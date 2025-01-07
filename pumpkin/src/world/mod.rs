@@ -584,7 +584,7 @@ impl World {
                         "Received chunk {:?}, but it is no longer watched... cleaning",
                         &chunk_data.position
                     );
-                    level.clean_chunk(&chunk_data.position);
+                    level.clean_chunk(&chunk_data.position).await;
                     continue;
                 }
 
@@ -871,7 +871,7 @@ impl World {
                 "Received chunk {:?}, but it is not watched... cleaning",
                 chunk_pos
             );
-            self.level.clean_chunk(&chunk_pos);
+            self.level.clean_chunk(&chunk_pos).await;
         }
 
         chunk
