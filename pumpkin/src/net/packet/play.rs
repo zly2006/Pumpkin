@@ -823,7 +823,6 @@ impl Player {
             let entity = &self.living_entity.entity;
             let world = &entity.world;
             let slot_id = inventory.get_selected();
-            let cursor_pos = use_item_on.cursor_pos;
             let mut state_id = inventory.state_id;
             let item_slot = inventory.held_item_mut();
 
@@ -853,7 +852,7 @@ impl Player {
                 // check if item is a spawn egg
                 if let Some(item_t) = get_spawn_egg(item_stack.item_id) {
                     should_try_decrement = self
-                        .run_is_spawn_egg(item_t, server, location, cursor_pos, &face)
+                        .run_is_spawn_egg(item_t, server, location, &face)
                         .await?;
                 };
 
@@ -999,17 +998,17 @@ impl Player {
         item_t: String,
         server: &Server,
         location: WorldPosition,
-        cursor_pos: Vector3<f32>,
         face: &BlockFace,
     ) -> Result<bool, Box<dyn PumpkinError>> {
         // checks if spawn egg has a corresponding entity name
         if let Some(spawn_item_name) = get_entity_id(&item_t) {
             let head_yaw = 10.0;
             let world_pos = WorldPosition(location.0 + face.to_offset());
+            // align position like Vanilla does
             let pos = Vector3::new(
-                f64::from(world_pos.0.x),
+                f64::from(world_pos.0.x) + 0.5,
                 f64::from(world_pos.0.y),
-                f64::from(world_pos.0.z),
+                f64::from(world_pos.0.z) + 0.5,
             );
 
             // TODO: this should not be hardcoded
@@ -1021,9 +1020,9 @@ impl Player {
                     VarInt(mob.living_entity.entity.entity_id),
                     uuid,
                     VarInt((*spawn_item_name).into()),
-                    pos.x + f64::from(cursor_pos.x),
+                    pos.x,
                     pos.y,
-                    pos.z + f64::from(cursor_pos.z),
+                    pos.z,
                     10.0,
                     head_yaw,
                     opposite_yaw,
