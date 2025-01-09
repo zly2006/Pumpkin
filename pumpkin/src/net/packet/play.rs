@@ -1032,8 +1032,7 @@ impl Player {
         face: &BlockFace,
     ) -> Result<bool, Box<dyn PumpkinError>> {
         // checks if spawn egg has a corresponding entity name
-        if let Some(spawn_item_name) = get_entity_id(&item_t) {
-            let head_yaw = 10.0;
+        if let Some(spawn_item_id) = get_entity_id(&item_t) {
             let world_pos = WorldPosition(location.0 + face.to_offset());
             // align position like Vanilla does
             let pos = Vector3::new(
@@ -1044,19 +1043,20 @@ impl Player {
 
             // TODO: this should not be hardcoded
             let (mob, uuid) = mob::from_type(EntityType::Zombie, server, pos, self.world()).await;
+            let yaw = wrap_degrees(rand::random::<f32>() * 360.0) % 360.0;
+            mob.living_entity.entity.set_rotation(yaw, 0.0);
 
-            let opposite_yaw = self.living_entity.entity.yaw.load() + 180.0;
             server
                 .broadcast_packet_all(&CSpawnEntity::new(
                     VarInt(mob.living_entity.entity.entity_id),
                     uuid,
-                    VarInt((*spawn_item_name).into()),
+                    VarInt((*spawn_item_id).into()),
                     pos.x,
                     pos.y,
                     pos.z,
-                    10.0,
-                    head_yaw,
-                    opposite_yaw,
+                    0.0,
+                    yaw,
+                    yaw,
                     0.into(),
                     0.0,
                     0.0,

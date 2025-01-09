@@ -51,7 +51,8 @@ impl Goal for TargetGoal {
             let mob_pos = mob.living_entity.entity.pos.load();
             let target_pos = target.living_entity.entity.pos.load();
             let abilities = target.abilities.lock().await;
-            return !abilities.invulnerable && mob_pos.squared_distance_to_vec(target_pos) <= (self.range * self.range);
+            return !abilities.invulnerable
+                && mob_pos.squared_distance_to_vec(target_pos) <= (self.range * self.range);
         }
         false
     }
