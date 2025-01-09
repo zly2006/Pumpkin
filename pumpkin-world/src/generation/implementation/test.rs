@@ -5,7 +5,7 @@ use std::{
 
 use dashmap::{DashMap, Entry};
 use num_traits::Zero;
-use pumpkin_core::math::{vector2::Vector2, vector3::Vector3};
+use pumpkin_util::math::{vector2::Vector2, vector3::Vector3};
 
 use crate::{
     biome::Biome,

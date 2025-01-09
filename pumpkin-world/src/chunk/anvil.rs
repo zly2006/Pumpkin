@@ -2,7 +2,7 @@ use bytes::*;
 use fastnbt::LongArray;
 use flate2::bufread::{GzDecoder, GzEncoder, ZlibDecoder, ZlibEncoder};
 use indexmap::IndexMap;
-use pumpkin_core::math::ceil_log2;
+use pumpkin_util::math::ceil_log2;
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::{
     collections::HashSet,
@@ -135,7 +135,7 @@ impl ChunkReader for AnvilChunkFormat {
     fn read_chunk(
         &self,
         save_file: &LevelFolder,
-        at: &pumpkin_core::math::vector2::Vector2<i32>,
+        at: &pumpkin_util::math::vector2::Vector2<i32>,
     ) -> Result<super::ChunkData, ChunkReadingError> {
         let region = (at.x >> 5, at.z >> 5);
 
@@ -219,7 +219,7 @@ impl ChunkWriter for AnvilChunkFormat {
         &self,
         chunk_data: &ChunkData,
         level_folder: &LevelFolder,
-        at: &pumpkin_core::math::vector2::Vector2<i32>,
+        at: &pumpkin_util::math::vector2::Vector2<i32>,
     ) -> Result<(), super::ChunkWritingError> {
         let region = (at.x >> 5, at.z >> 5);
 
@@ -477,7 +477,7 @@ impl AnvilChunkFormat {
 
 #[cfg(test)]
 mod tests {
-    use pumpkin_core::math::vector2::Vector2;
+    use pumpkin_util::math::vector2::Vector2;
     use std::fs;
     use std::path::PathBuf;
 

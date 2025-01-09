@@ -1,6 +1,6 @@
 use log::warn;
 use logging::LoggingConfig;
-use pumpkin_core::{Difficulty, GameMode, PermissionLvl};
+use pumpkin_util::{Difficulty, GameMode, PermissionLvl};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use std::{

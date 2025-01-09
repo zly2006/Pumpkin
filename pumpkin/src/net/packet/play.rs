@@ -12,12 +12,6 @@ use crate::{
     world::player_chunker,
 };
 use pumpkin_config::ADVANCED_CONFIG;
-use pumpkin_core::math::{boundingbox::BoundingBox, position::WorldPosition};
-use pumpkin_core::{
-    math::{vector3::Vector3, wrap_degrees},
-    text::TextComponent,
-    GameMode,
-};
 use pumpkin_entity::entity_type::EntityType;
 use pumpkin_inventory::player::PlayerInventory;
 use pumpkin_inventory::InventoryError;
@@ -40,6 +34,12 @@ use pumpkin_protocol::{
         SPlayerAbilities, SPlayerAction, SPlayerCommand, SPlayerPosition, SPlayerPositionRotation,
         SPlayerRotation, SSetCreativeSlot, SSetHeldItem, SSwingArm, SUseItemOn, Status,
     },
+};
+use pumpkin_util::math::{boundingbox::BoundingBox, position::WorldPosition};
+use pumpkin_util::{
+    math::{vector3::Vector3, wrap_degrees},
+    text::TextComponent,
+    GameMode,
 };
 use pumpkin_world::block::block_registry::Block;
 use pumpkin_world::item::item_registry::get_item_by_id;

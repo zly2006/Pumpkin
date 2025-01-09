@@ -11,9 +11,6 @@ use crate::{
 };
 use level_time::LevelTime;
 use pumpkin_config::BasicConfiguration;
-use pumpkin_core::math::vector2::Vector2;
-use pumpkin_core::math::{position::WorldPosition, vector3::Vector3};
-use pumpkin_core::text::{color::NamedColor, TextComponent};
 use pumpkin_entity::{entity_type::EntityType, pose::EntityPose, EntityId};
 use pumpkin_protocol::{
     client::play::CLevelEvent,
@@ -31,6 +28,9 @@ use pumpkin_protocol::{
     ClientPacket,
 };
 use pumpkin_registry::DimensionType;
+use pumpkin_util::math::vector2::Vector2;
+use pumpkin_util::math::{position::WorldPosition, vector3::Vector3};
+use pumpkin_util::text::{color::NamedColor, TextComponent};
 use pumpkin_world::chunk::ChunkData;
 use pumpkin_world::level::Level;
 use pumpkin_world::{

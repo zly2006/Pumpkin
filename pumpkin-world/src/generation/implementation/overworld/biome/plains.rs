@@ -1,6 +1,6 @@
 use noise::Perlin;
-use pumpkin_core::math::vector2::Vector2;
 use pumpkin_macros::block_state;
+use pumpkin_util::math::vector2::Vector2;
 use rand::Rng;
 
 use crate::{

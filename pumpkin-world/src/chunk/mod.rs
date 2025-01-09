@@ -1,5 +1,5 @@
 use fastnbt::LongArray;
-use pumpkin_core::math::{ceil_log2, vector2::Vector2};
+use pumpkin_util::math::{ceil_log2, vector2::Vector2};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, iter::repeat_with};
 use thiserror::Error;

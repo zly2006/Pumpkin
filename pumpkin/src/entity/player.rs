@@ -9,17 +9,6 @@ use std::{
 
 use crossbeam::atomic::AtomicCell;
 use pumpkin_config::{ADVANCED_CONFIG, BASIC_CONFIG};
-use pumpkin_core::{
-    math::{
-        boundingbox::{BoundingBox, BoundingBoxSize},
-        position::WorldPosition,
-        vector2::Vector2,
-        vector3::Vector3,
-    },
-    permission::PermissionLvl,
-    text::TextComponent,
-    GameMode,
-};
 use pumpkin_entity::{entity_type::EntityType, EntityId};
 use pumpkin_inventory::player::PlayerInventory;
 use pumpkin_macros::sound;
@@ -46,6 +35,17 @@ use pumpkin_protocol::{client::play::CUpdateTime, codec::var_int::VarInt};
 use pumpkin_protocol::{
     client::play::{CSetEntityMetadata, Metadata},
     server::play::{SClickContainer, SKeepAlive},
+};
+use pumpkin_util::{
+    math::{
+        boundingbox::{BoundingBox, BoundingBoxSize},
+        position::WorldPosition,
+        vector2::Vector2,
+        vector3::Vector3,
+    },
+    permission::PermissionLvl,
+    text::TextComponent,
+    GameMode,
 };
 use pumpkin_world::{
     cylindrical_chunk_iterator::Cylindrical,

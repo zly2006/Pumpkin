@@ -2,7 +2,7 @@ use std::{path::PathBuf, sync::Arc};
 
 use dashmap::{DashMap, Entry};
 use num_traits::Zero;
-use pumpkin_core::math::vector2::Vector2;
+use pumpkin_util::math::vector2::Vector2;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use tokio::{
     runtime::Handle,

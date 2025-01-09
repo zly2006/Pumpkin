@@ -1,5 +1,5 @@
 use noise::{NoiseFn, Perlin};
-use pumpkin_core::math::vector2::Vector2;
+use pumpkin_util::math::vector2::Vector2;
 
 use crate::{
     chunk::{ChunkData, Subchunks},
