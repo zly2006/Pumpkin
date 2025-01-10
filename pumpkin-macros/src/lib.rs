@@ -73,12 +73,6 @@ pub fn sound(item: TokenStream) -> TokenStream {
     sound::sound_impl(item)
 }
 
-mod particle;
-#[proc_macro]
-pub fn particle(item: TokenStream) -> TokenStream {
-    particle::particle_impl(item)
-}
-
 mod block_state;
 #[proc_macro]
 pub fn block_state(item: TokenStream) -> TokenStream {

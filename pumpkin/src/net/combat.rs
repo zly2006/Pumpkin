@@ -1,6 +1,7 @@
 use std::f32::consts::PI;
 
-use pumpkin_macros::{particle, sound};
+use pumpkin_data::particle::Particle;
+use pumpkin_macros::sound;
 use pumpkin_protocol::{
     client::play::{CEntityVelocity, CParticle},
     codec::var_int::VarInt,
@@ -110,7 +111,7 @@ pub async fn spawn_sweep_particle(attacker_entity: &Entity, world: &World, pos: 
             Vector3::new(0.0, 0.0, 0.0),
             0.0,
             0,
-            VarInt(i32::from(particle!("sweep_attack"))), // sweep
+            VarInt(Particle::SweepAttack as i32), // sweep
             &[],
         ))
         .await;
