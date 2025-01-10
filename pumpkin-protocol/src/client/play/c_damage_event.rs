@@ -1,3 +1,4 @@
+use pumpkin_data::packet::clientbound::PLAY_DAMAGE_EVENT;
 use pumpkin_macros::client_packet;
 use pumpkin_util::math::vector3::Vector3;
 use serde::Serialize;
@@ -5,7 +6,7 @@ use serde::Serialize;
 use crate::VarInt;
 
 #[derive(Serialize)]
-#[client_packet("play:damage_event")]
+#[client_packet(PLAY_DAMAGE_EVENT)]
 pub struct CDamageEvent {
     entity_id: VarInt,
     source_type_id: VarInt,

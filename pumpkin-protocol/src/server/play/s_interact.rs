@@ -1,4 +1,5 @@
 use bytes::Buf;
+use pumpkin_data::packet::serverbound::PLAY_INTERACT;
 use pumpkin_macros::server_packet;
 use pumpkin_util::math::vector3::Vector3;
 
@@ -7,7 +8,7 @@ use crate::{
     ServerPacket, VarInt,
 };
 
-#[server_packet("play:interact")]
+#[server_packet(PLAY_INTERACT)]
 pub struct SInteract {
     pub entity_id: VarInt,
     pub typ: VarInt,

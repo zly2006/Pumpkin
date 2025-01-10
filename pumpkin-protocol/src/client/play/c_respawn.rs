@@ -1,3 +1,4 @@
+use pumpkin_data::packet::clientbound::PLAY_RESPAWN;
 use pumpkin_macros::client_packet;
 use pumpkin_util::math::position::WorldPosition;
 use serde::Serialize;
@@ -5,7 +6,7 @@ use serde::Serialize;
 use crate::{codec::identifier::Identifier, VarInt};
 
 #[derive(Serialize)]
-#[client_packet("play:respawn")]
+#[client_packet(PLAY_RESPAWN)]
 pub struct CRespawn {
     dimension_type: VarInt,
     dimension_name: Identifier,

@@ -1,3 +1,4 @@
+use pumpkin_data::packet::clientbound::PLAY_SET_SCORE;
 use pumpkin_util::text::TextComponent;
 
 use pumpkin_macros::client_packet;
@@ -6,7 +7,7 @@ use serde::Serialize;
 use crate::{NumberFormat, VarInt};
 
 #[derive(Serialize)]
-#[client_packet("play:set_score")]
+#[client_packet(PLAY_SET_SCORE)]
 pub struct CUpdateScore<'a> {
     entity_name: &'a str,
     objective_name: &'a str,

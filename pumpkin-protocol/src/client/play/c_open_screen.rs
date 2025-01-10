@@ -1,3 +1,4 @@
+use pumpkin_data::packet::clientbound::PLAY_OPEN_SCREEN;
 use pumpkin_util::text::TextComponent;
 
 use pumpkin_macros::client_packet;
@@ -6,7 +7,7 @@ use serde::Serialize;
 use crate::VarInt;
 
 #[derive(Serialize)]
-#[client_packet("play:open_screen")]
+#[client_packet(PLAY_OPEN_SCREEN)]
 pub struct COpenScreen<'a> {
     window_id: VarInt,
     window_type: VarInt,

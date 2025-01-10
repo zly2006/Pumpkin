@@ -9,7 +9,7 @@ members = [
     "pumpkin-protocol/",
     "pumpkin-registry/",
     "pumpkin-world",
-    "pumpkin/",
+    "pumpkin/", "pumpkin-data",
 ]
 
 [workspace.package]
