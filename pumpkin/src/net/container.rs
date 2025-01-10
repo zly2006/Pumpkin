@@ -1,12 +1,13 @@
 use crate::entity::player::Player;
 use crate::server::Server;
+use pumpkin_data::screen::WindowType;
 use pumpkin_inventory::container_click::{
     Click, ClickType, KeyClick, MouseClick, MouseDragState, MouseDragType,
 };
 use pumpkin_inventory::drag_handler::DragHandler;
 use pumpkin_inventory::window_property::{WindowProperty, WindowPropertyTrait};
+use pumpkin_inventory::Container;
 use pumpkin_inventory::{container_click, InventoryError, OptionallyCombinedContainer};
-use pumpkin_inventory::{Container, WindowType};
 use pumpkin_protocol::client::play::{
     CCloseContainer, COpenScreen, CSetContainerContent, CSetContainerProperty, CSetContainerSlot,
 };
