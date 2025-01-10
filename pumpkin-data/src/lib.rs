@@ -9,3 +9,7 @@ pub mod screen {
 pub mod particle {
     include!(concat!(env!("OUT_DIR"), "/particle.rs"));
 }
+
+pub mod sound {
+    include!(concat!(env!("OUT_DIR"), "/sound.rs"));
+}

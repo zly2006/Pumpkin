@@ -67,12 +67,6 @@ pub fn pumpkin_block(input: TokenStream, item: TokenStream) -> TokenStream {
     gen.into()
 }
 
-mod sound;
-#[proc_macro]
-pub fn sound(item: TokenStream) -> TokenStream {
-    sound::sound_impl(item)
-}
-
 mod block_state;
 #[proc_macro]
 pub fn block_state(item: TokenStream) -> TokenStream {

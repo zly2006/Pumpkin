@@ -9,9 +9,9 @@ use std::{
 
 use crossbeam::atomic::AtomicCell;
 use pumpkin_config::{ADVANCED_CONFIG, BASIC_CONFIG};
+use pumpkin_data::sound::Sound;
 use pumpkin_entity::{entity_type::EntityType, EntityId};
 use pumpkin_inventory::player::PlayerInventory;
-use pumpkin_macros::sound;
 use pumpkin_protocol::server::play::{
     SCloseContainer, SCookieResponse as SPCookieResponse, SPlayPingRequest, SPlayerLoaded,
 };
@@ -317,7 +317,7 @@ impl Player {
         {
             world
                 .play_sound(
-                    sound!("entity.player.attack.nodamage"),
+                    Sound::EntityPlayerAttackNodamage as u16,
                     SoundCategory::Players,
                     &pos,
                 )
@@ -326,7 +326,7 @@ impl Player {
         }
 
         world
-            .play_sound(sound!("entity.player.hurt"), SoundCategory::Players, &pos)
+            .play_sound(Sound::EntityPlayerHurt as u16, SoundCategory::Players, &pos)
             .await;
 
         let attack_type = AttackType::new(self, attack_cooldown_progress as f32).await;

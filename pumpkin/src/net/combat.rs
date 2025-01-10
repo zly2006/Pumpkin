@@ -1,7 +1,6 @@
 use std::f32::consts::PI;
 
-use pumpkin_data::particle::Particle;
-use pumpkin_macros::sound;
+use pumpkin_data::{particle::Particle, sound::Sound};
 use pumpkin_protocol::{
     client::play::{CEntityVelocity, CParticle},
     codec::var_int::VarInt,
@@ -122,7 +121,7 @@ pub async fn player_attack_sound(pos: &Vector3<f64>, world: &World, attack_type:
         AttackType::Knockback => {
             world
                 .play_sound(
-                    sound!("entity.player.attack.knockback"),
+                    Sound::EntityPlayerAttackKnockback as u16,
                     SoundCategory::Players,
                     pos,
                 )
@@ -131,7 +130,7 @@ pub async fn player_attack_sound(pos: &Vector3<f64>, world: &World, attack_type:
         AttackType::Critical => {
             world
                 .play_sound(
-                    sound!("entity.player.attack.crit"),
+                    Sound::EntityPlayerAttackCrit as u16,
                     SoundCategory::Players,
                     pos,
                 )
@@ -140,7 +139,7 @@ pub async fn player_attack_sound(pos: &Vector3<f64>, world: &World, attack_type:
         AttackType::Sweeping => {
             world
                 .play_sound(
-                    sound!("entity.player.attack.sweep"),
+                    Sound::EntityPlayerAttackSweep as u16,
                     SoundCategory::Players,
                     pos,
                 )
@@ -149,7 +148,7 @@ pub async fn player_attack_sound(pos: &Vector3<f64>, world: &World, attack_type:
         AttackType::Strong => {
             world
                 .play_sound(
-                    sound!("entity.player.attack.strong"),
+                    Sound::EntityPlayerAttackStrong as u16,
                     SoundCategory::Players,
                     pos,
                 )
@@ -158,7 +157,7 @@ pub async fn player_attack_sound(pos: &Vector3<f64>, world: &World, attack_type:
         AttackType::Weak => {
             world
                 .play_sound(
-                    sound!("entity.player.attack.weak"),
+                    Sound::EntityPlayerAttackWeak as u16,
                     SoundCategory::Players,
                     pos,
                 )
