@@ -4,6 +4,9 @@ version.workspace = true
 edition.workspace = true
 build = "build/build.rs"
 
+[dependencies]
+serde.workspace = true
+
 [build-dependencies]
 serde.workspace = true
 serde_json.workspace = true

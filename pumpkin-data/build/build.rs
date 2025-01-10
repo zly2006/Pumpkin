@@ -3,6 +3,7 @@ use std::{env, fs, path::Path, process::Command};
 use proc_macro2::{Span, TokenStream};
 use syn::Ident;
 
+mod chunk_status;
 mod packet;
 mod particle;
 mod screen;
@@ -13,6 +14,7 @@ pub fn main() {
     write_generated_file(screen::build(), "screen.rs");
     write_generated_file(particle::build(), "particle.rs");
     write_generated_file(sound::build(), "sound.rs");
+    write_generated_file(chunk_status::build(), "chunk_status.rs");
 }
 
 pub fn write_generated_file(content: TokenStream, out_file: &str) {

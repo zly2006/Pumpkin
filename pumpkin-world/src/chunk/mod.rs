@@ -1,4 +1,5 @@
 use fastnbt::LongArray;
+use pumpkin_data::chunk_status::ChunkStatus;
 use pumpkin_util::math::{ceil_log2, vector2::Vector2};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, iter::repeat_with};
@@ -159,34 +160,6 @@ struct ChunkNbt {
     #[serde(rename = "sections")]
     sections: Vec<ChunkSection>,
     heightmaps: ChunkHeightmaps,
-}
-
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
-enum ChunkStatus {
-    #[serde(rename = "minecraft:empty")]
-    Empty,
-    #[serde(rename = "minecraft:structure_starts")]
-    StructureStarts,
-    #[serde(rename = "minecraft:structure_references")]
-    StructureReferences,
-    #[serde(rename = "minecraft:biomes")]
-    Biomes,
-    #[serde(rename = "minecraft:noise")]
-    Noise,
-    #[serde(rename = "minecraft:surface")]
-    Surface,
-    #[serde(rename = "minecraft:carvers")]
-    Carvers,
-    #[serde(rename = "minecraft:features")]
-    Features,
-    #[serde(rename = "minecraft:initialize_light")]
-    InitLight,
-    #[serde(rename = "minecraft:light")]
-    Light,
-    #[serde(rename = "minecraft:spawn")]
-    Spawn,
-    #[serde(rename = "minecraft:full")]
-    Full,
 }
 
 /// The Heightmap for a completely empty chunk

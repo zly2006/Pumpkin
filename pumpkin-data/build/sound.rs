@@ -7,13 +7,13 @@ use crate::ident;
 pub(crate) fn build() -> TokenStream {
     println!("cargo:rerun-if-changed=assets/sounds.json");
 
-    let screens: Vec<String> = serde_json::from_str(include_str!("../../assets/sounds.json"))
+    let sound: Vec<String> = serde_json::from_str(include_str!("../../assets/sounds.json"))
         .expect("Failed to parse sounds.json");
     let mut variants = TokenStream::new();
 
-    for (id, screen) in screens.iter().enumerate() {
+    for (id, sound) in sound.iter().enumerate() {
         let id = id as u16;
-        let name = ident(screen.to_pascal_case());
+        let name = ident(sound.to_pascal_case());
 
         variants.extend([quote! {
             #name = #id,
