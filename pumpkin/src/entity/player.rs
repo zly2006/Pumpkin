@@ -317,7 +317,7 @@ impl Player {
         {
             world
                 .play_sound(
-                    Sound::EntityPlayerAttackNodamage as u16,
+                    Sound::EntityPlayerAttackNodamage,
                     SoundCategory::Players,
                     &pos,
                 )
@@ -326,7 +326,7 @@ impl Player {
         }
 
         world
-            .play_sound(Sound::EntityPlayerHurt as u16, SoundCategory::Players, &pos)
+            .play_sound(Sound::EntityPlayerHurt, SoundCategory::Players, &pos)
             .await;
 
         let attack_type = AttackType::new(self, attack_cooldown_progress as f32).await;

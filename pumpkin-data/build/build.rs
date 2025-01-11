@@ -4,6 +4,7 @@ use proc_macro2::{Span, TokenStream};
 use syn::Ident;
 
 mod chunk_status;
+mod game_event;
 mod packet;
 mod particle;
 mod screen;
@@ -15,6 +16,7 @@ pub fn main() {
     write_generated_file(particle::build(), "particle.rs");
     write_generated_file(sound::build(), "sound.rs");
     write_generated_file(chunk_status::build(), "chunk_status.rs");
+    write_generated_file(game_event::build(), "game_event.rs");
 }
 
 pub fn write_generated_file(content: TokenStream, out_file: &str) {
