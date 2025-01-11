@@ -12,6 +12,7 @@ pub mod particle {
 
 pub mod sound {
     include!(concat!(env!("OUT_DIR"), "/sound.rs"));
+    include!(concat!(env!("OUT_DIR"), "/sound_category.rs"));
 }
 
 pub mod chunk_status {
@@ -22,10 +23,10 @@ pub mod game_event {
     include!(concat!(env!("OUT_DIR"), "/game_event.rs"));
 }
 
-pub mod sound_category {
-    include!(concat!(env!("OUT_DIR"), "/sound_category.rs"));
+pub mod entity {
+    include!(concat!(env!("OUT_DIR"), "/entity_pose.rs"));
 }
 
-pub mod entity_pose {
-    include!(concat!(env!("OUT_DIR"), "/entity_pose.rs"));
+pub mod scoreboard {
+    include!(concat!(env!("OUT_DIR"), "/scoreboard_slot.rs"));
 }

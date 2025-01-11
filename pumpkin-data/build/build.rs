@@ -10,6 +10,7 @@ mod entity_pose;
 mod game_event;
 mod packet;
 mod particle;
+mod scoreboard_slot;
 mod screen;
 mod sound;
 mod sound_category;
@@ -23,6 +24,7 @@ pub fn main() {
     write_generated_file(game_event::build(), "game_event.rs");
     write_generated_file(sound_category::build(), "sound_category.rs");
     write_generated_file(entity_pose::build(), "entity_pose.rs");
+    write_generated_file(scoreboard_slot::build(), "scoreboard_slot.rs");
 }
 
 pub fn array_to_tokenstream(array: Vec<String>) -> TokenStream {

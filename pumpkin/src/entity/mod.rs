@@ -2,7 +2,7 @@ use core::f32;
 use std::sync::{atomic::AtomicBool, Arc};
 
 use crossbeam::atomic::AtomicCell;
-use pumpkin_data::entity_pose::EntityPose;
+use pumpkin_data::entity::EntityPose;
 use pumpkin_entity::{entity_type::EntityType, EntityId};
 use pumpkin_protocol::{
     client::play::{CHeadRot, CSetEntityMetadata, CTeleportEntity, CUpdateEntityRot, Metadata},

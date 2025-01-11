@@ -9,7 +9,7 @@ use std::{
 
 use crossbeam::atomic::AtomicCell;
 use pumpkin_config::{ADVANCED_CONFIG, BASIC_CONFIG};
-use pumpkin_data::{sound::Sound, sound_category::SoundCategory};
+use pumpkin_data::sound::{Sound, SoundCategory};
 use pumpkin_entity::{entity_type::EntityType, EntityId};
 use pumpkin_inventory::player::PlayerInventory;
 use pumpkin_protocol::server::play::{
