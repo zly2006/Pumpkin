@@ -21,7 +21,7 @@ pub(crate) fn build() -> TokenStream {
     let mut variants = TokenStream::new();
 
     for (name, paremter) in json.iter() {
-        let raw_name = name;
+        let raw_name = format!("minecraft:{name}");
         let name = ident(name.to_uppercase());
         let first_octave = paremter.first_octave;
         let amplitudes = &paremter.amplitudes;
