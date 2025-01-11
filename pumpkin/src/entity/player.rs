@@ -9,7 +9,7 @@ use std::{
 
 use crossbeam::atomic::AtomicCell;
 use pumpkin_config::{ADVANCED_CONFIG, BASIC_CONFIG};
-use pumpkin_data::sound::Sound;
+use pumpkin_data::{sound::Sound, sound_category::SoundCategory};
 use pumpkin_entity::{entity_type::EntityType, EntityId};
 use pumpkin_inventory::player::PlayerInventory;
 use pumpkin_protocol::server::play::{
@@ -29,7 +29,7 @@ use pumpkin_protocol::{
         SPlayerRotation, SSetCreativeSlot, SSetHeldItem, SSetPlayerGround, SSwingArm, SUseItem,
         SUseItemOn,
     },
-    RawPacket, ServerPacket, SoundCategory,
+    RawPacket, ServerPacket,
 };
 use pumpkin_protocol::{client::play::CUpdateTime, codec::var_int::VarInt};
 use pumpkin_protocol::{

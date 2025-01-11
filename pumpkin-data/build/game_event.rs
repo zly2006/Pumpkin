@@ -1,23 +1,16 @@
-use heck::ToPascalCase;
 use proc_macro2::TokenStream;
 use quote::quote;
 
-use crate::ident;
+use crate::array_to_tokenstream;
 
 pub(crate) fn build() -> TokenStream {
     println!("cargo:rerun-if-changed=assets/game_event.json");
 
-    let game_event: Vec<String> =
+    let game_events: Vec<String> =
         serde_json::from_str(include_str!("../../assets/game_event.json"))
             .expect("Failed to parse game_event.json");
-    let mut variants = TokenStream::new();
+    let variants = array_to_tokenstream(game_events);
 
-    for event in game_event.iter() {
-        let name = ident(event.to_pascal_case());
-        variants.extend([quote! {
-            #name,
-        }]);
-    }
     quote! {
         #[repr(u8)]
         pub enum GameEvent {

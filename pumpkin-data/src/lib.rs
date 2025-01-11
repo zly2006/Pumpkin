@@ -21,3 +21,7 @@ pub mod chunk_status {
 pub mod game_event {
     include!(concat!(env!("OUT_DIR"), "/game_event.rs"));
 }
+
+pub mod sound_category {
+    include!(concat!(env!("OUT_DIR"), "/sound_category.rs"));
+}

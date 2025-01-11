@@ -11,15 +11,12 @@ use crate::{
 };
 use level_time::LevelTime;
 use pumpkin_config::BasicConfiguration;
-use pumpkin_data::sound::Sound;
+use pumpkin_data::{sound::Sound, sound_category::SoundCategory};
 use pumpkin_entity::{entity_type::EntityType, pose::EntityPose, EntityId};
+use pumpkin_protocol::client::play::{CBlockUpdate, CRespawn, CSoundEffect, CWorldEvent};
 use pumpkin_protocol::{
     client::play::CLevelEvent,
     codec::{identifier::Identifier, var_int::VarInt},
-};
-use pumpkin_protocol::{
-    client::play::{CBlockUpdate, CRespawn, CSoundEffect, CWorldEvent},
-    SoundCategory,
 };
 use pumpkin_protocol::{
     client::play::{

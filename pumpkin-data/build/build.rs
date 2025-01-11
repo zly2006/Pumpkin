@@ -1,5 +1,7 @@
+use quote::quote;
 use std::{env, fs, path::Path, process::Command};
 
+use heck::ToPascalCase;
 use proc_macro2::{Span, TokenStream};
 use syn::Ident;
 
@@ -9,6 +11,7 @@ mod packet;
 mod particle;
 mod screen;
 mod sound;
+mod sound_category;
 
 pub fn main() {
     write_generated_file(packet::build(), "packet.rs");
@@ -17,6 +20,19 @@ pub fn main() {
     write_generated_file(sound::build(), "sound.rs");
     write_generated_file(chunk_status::build(), "chunk_status.rs");
     write_generated_file(game_event::build(), "game_event.rs");
+    write_generated_file(sound_category::build(), "sound_category.rs");
+}
+
+pub fn array_to_tokenstream(array: Vec<String>) -> TokenStream {
+    let mut variants = TokenStream::new();
+
+    for item in array.iter() {
+        let name = ident(item.to_pascal_case());
+        variants.extend([quote! {
+            #name,
+        }]);
+    }
+    variants
 }
 
 pub fn write_generated_file(content: TokenStream, out_file: &str) {
