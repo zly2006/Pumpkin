@@ -25,3 +25,7 @@ pub mod game_event {
 pub mod sound_category {
     include!(concat!(env!("OUT_DIR"), "/sound_category.rs"));
 }
+
+pub mod entity_pose {
+    include!(concat!(env!("OUT_DIR"), "/entity_pose.rs"));
+}

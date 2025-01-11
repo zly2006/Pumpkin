@@ -6,6 +6,7 @@ use proc_macro2::{Span, TokenStream};
 use syn::Ident;
 
 mod chunk_status;
+mod entity_pose;
 mod game_event;
 mod packet;
 mod particle;
@@ -21,6 +22,7 @@ pub fn main() {
     write_generated_file(chunk_status::build(), "chunk_status.rs");
     write_generated_file(game_event::build(), "game_event.rs");
     write_generated_file(sound_category::build(), "sound_category.rs");
+    write_generated_file(entity_pose::build(), "entity_pose.rs");
 }
 
 pub fn array_to_tokenstream(array: Vec<String>) -> TokenStream {
