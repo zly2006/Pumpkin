@@ -27,6 +27,10 @@ pub mod entity {
     include!(concat!(env!("OUT_DIR"), "/entity_pose.rs"));
 }
 
+pub mod world {
+    include!(concat!(env!("OUT_DIR"), "/world_event.rs"));
+}
+
 pub mod scoreboard {
     include!(concat!(env!("OUT_DIR"), "/scoreboard_slot.rs"));
 }

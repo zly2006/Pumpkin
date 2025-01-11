@@ -14,6 +14,7 @@ use pumpkin_config::BasicConfiguration;
 use pumpkin_data::{
     entity::EntityPose,
     sound::{Sound, SoundCategory},
+    world::WorldEvent,
 };
 use pumpkin_entity::{entity_type::EntityType, EntityId};
 use pumpkin_protocol::client::play::{CBlockUpdate, CRespawn, CSoundEffect, CWorldEvent};
@@ -886,8 +887,12 @@ impl World {
     pub async fn break_block(&self, position: WorldPosition, cause: Option<&Player>) {
         let broken_block_state_id = self.set_block_state(position, 0).await;
 
-        let particles_packet =
-            CWorldEvent::new(2001, &position, broken_block_state_id.into(), false);
+        let particles_packet = CWorldEvent::new(
+            WorldEvent::BlockBroken as i32,
+            &position,
+            broken_block_state_id.into(),
+            false,
+        );
 
         match cause {
             Some(player) => {
