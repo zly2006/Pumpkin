@@ -9,6 +9,7 @@ mod chunk_status;
 mod entity_pose;
 mod entity_type;
 mod game_event;
+mod noise_parmeter;
 mod packet;
 mod particle;
 mod scoreboard_slot;
@@ -29,6 +30,7 @@ pub fn main() {
     write_generated_file(scoreboard_slot::build(), "scoreboard_slot.rs");
     write_generated_file(world_event::build(), "world_event.rs");
     write_generated_file(entity_type::build(), "entity_type.rs");
+    write_generated_file(noise_parmeter::build(), "noise_parmeter.rs");
 }
 
 pub fn array_to_tokenstream(array: Vec<String>) -> TokenStream {

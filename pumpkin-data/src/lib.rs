@@ -15,7 +15,8 @@ pub mod sound {
     include!(concat!(env!("OUT_DIR"), "/sound_category.rs"));
 }
 
-pub mod chunk_status {
+pub mod chunk {
+    include!(concat!(env!("OUT_DIR"), "/noise_parmeter.rs"));
     include!(concat!(env!("OUT_DIR"), "/chunk_status.rs"));
 }
 
