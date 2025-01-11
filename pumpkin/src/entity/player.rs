@@ -9,8 +9,10 @@ use std::{
 
 use crossbeam::atomic::AtomicCell;
 use pumpkin_config::{ADVANCED_CONFIG, BASIC_CONFIG};
-use pumpkin_data::sound::{Sound, SoundCategory};
-use pumpkin_entity::{entity_type::EntityType, EntityId};
+use pumpkin_data::{
+    entity::EntityType,
+    sound::{Sound, SoundCategory},
+};
 use pumpkin_inventory::player::PlayerInventory;
 use pumpkin_protocol::server::play::{
     SCloseContainer, SCookieResponse as SPCookieResponse, SPlayPingRequest, SPlayerLoaded,
@@ -56,7 +58,7 @@ use pumpkin_world::{
 };
 use tokio::sync::{Mutex, Notify, RwLock};
 
-use super::Entity;
+use super::{Entity, EntityId};
 use crate::{
     command::{client_cmd_suggestions, dispatcher::CommandDispatcher},
     data::op_data::OPERATOR_CONFIG,

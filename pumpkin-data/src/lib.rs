@@ -24,6 +24,7 @@ pub mod game_event {
 }
 
 pub mod entity {
+    include!(concat!(env!("OUT_DIR"), "/entity_type.rs"));
     include!(concat!(env!("OUT_DIR"), "/entity_pose.rs"));
 }
 

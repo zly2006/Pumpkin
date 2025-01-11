@@ -2,8 +2,7 @@ use connection_cache::{CachedBranding, CachedStatus};
 use crossbeam::atomic::AtomicCell;
 use key_store::KeyStore;
 use pumpkin_config::BASIC_CONFIG;
-use pumpkin_entity::entity_type::EntityType;
-use pumpkin_entity::EntityId;
+use pumpkin_data::entity::EntityType;
 use pumpkin_inventory::drag_handler::DragHandler;
 use pumpkin_inventory::{Container, OpenContainer};
 use pumpkin_protocol::client::login::CEncryptionRequest;
@@ -35,7 +34,7 @@ use crate::block::default_block_manager;
 use crate::entity::ai::path::Navigator;
 use crate::entity::living::LivingEntity;
 use crate::entity::mob::MobEntity;
-use crate::entity::Entity;
+use crate::entity::{Entity, EntityId};
 use crate::net::EncryptionError;
 use crate::world::custom_bossbar::CustomBossbars;
 use crate::{
@@ -231,7 +230,7 @@ impl Server {
         let entity_id = self.new_entity_id();
 
         // TODO: this should be resolved to a integer using a macro when calling this function
-        let bounding_box_size = get_entity_by_id(entity_type.clone() as u16).map_or(
+        let bounding_box_size = get_entity_by_id(entity_type as u16).map_or(
             BoundingBoxSize {
                 width: 0.6,
                 height: 1.8,

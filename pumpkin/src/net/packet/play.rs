@@ -12,7 +12,7 @@ use crate::{
     world::player_chunker,
 };
 use pumpkin_config::ADVANCED_CONFIG;
-use pumpkin_entity::entity_type::EntityType;
+use pumpkin_data::entity::EntityType;
 use pumpkin_inventory::player::PlayerInventory;
 use pumpkin_inventory::InventoryError;
 use pumpkin_protocol::client::play::{CSetContainerSlot, CSetHeldItem, CSpawnEntity};
@@ -1046,7 +1046,13 @@ impl Player {
             );
 
             // TODO: this should not be hardcoded
-            let (mob, uuid) = mob::from_type(EntityType::Zombie, server, pos, self.world()).await;
+            let (mob, uuid) = mob::from_type(
+                EntityType::from_raw(*spawn_item_id).unwrap(),
+                server,
+                pos,
+                self.world(),
+            )
+            .await;
             let yaw = wrap_degrees(rand::random::<f32>() * 360.0) % 360.0;
             mob.living_entity.entity.set_rotation(yaw, 0.0);
 
