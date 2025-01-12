@@ -174,7 +174,7 @@ impl World {
         for (_, player) in players.iter() {
             player
                 .play_sound(sound_id, category, position, volume, pitch, seed)
-                .await
+                .await;
         }
     }
 

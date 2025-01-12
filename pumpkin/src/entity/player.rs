@@ -392,7 +392,7 @@ impl Player {
                 pitch,
                 seed,
             ))
-            .await
+            .await;
     }
 
     pub async fn await_cancel(&self) {

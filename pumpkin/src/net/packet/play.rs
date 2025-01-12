@@ -856,7 +856,7 @@ impl Player {
             let world = &entity.world;
             let slot_id = inventory.get_selected();
             let mut state_id = inventory.state_id;
-            let item_slot = inventory.held_item_mut().clone();
+            let item_slot = *inventory.held_item_mut();
             drop(inventory);
 
             if let Some(item_stack) = item_slot {
