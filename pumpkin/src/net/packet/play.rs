@@ -856,7 +856,8 @@ impl Player {
             let world = &entity.world;
             let slot_id = inventory.get_selected();
             let mut state_id = inventory.state_id;
-            let item_slot = inventory.held_item_mut();
+            let item_slot = inventory.held_item_mut().clone();
+            drop(inventory);
 
             if let Some(item_stack) = item_slot {
                 // check if block is interactive
@@ -892,6 +893,8 @@ impl Player {
                     // TODO: Config
                     // Decrease Block count
                     if self.gamemode.load() != GameMode::Creative {
+                        let mut inventory = self.inventory().lock().await;
+                        let item_slot = inventory.held_item_mut();
                         // This should never be possible
                         let Some(item_stack) = item_slot else {
                             return Err(BlockPlacingError::InventoryInvalid.into());

@@ -1,5 +1,8 @@
 use async_trait::async_trait;
-use pumpkin_data::{screen::WindowType, sound::Sound};
+use pumpkin_data::{
+    screen::WindowType,
+    sound::{Sound, SoundCategory},
+};
 use pumpkin_inventory::{Chest, OpenContainer};
 use pumpkin_macros::pumpkin_block;
 use pumpkin_protocol::{client::play::CBlockAction, codec::var_int::VarInt};
@@ -114,12 +117,12 @@ impl ChestBlock {
         if state == ChestState::IsClosed && num_players == 0 {
             player
                 .world()
-                .play_block_sound(Sound::BlockChestClose, location)
+                .play_block_sound(Sound::BlockChestClose, SoundCategory::Blocks, location)
                 .await;
         } else if state == ChestState::IsOpened && num_players == 1 {
             player
                 .world()
-                .play_block_sound(Sound::BlockChestOpen, location)
+                .play_block_sound(Sound::BlockChestOpen, SoundCategory::Blocks, location)
                 .await;
         }
 

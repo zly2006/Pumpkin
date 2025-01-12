@@ -14,9 +14,6 @@ use pumpkin_data::{
     sound::{Sound, SoundCategory},
 };
 use pumpkin_inventory::player::PlayerInventory;
-use pumpkin_protocol::server::play::{
-    SCloseContainer, SCookieResponse as SPCookieResponse, SPlayPingRequest, SPlayerLoaded,
-};
 use pumpkin_protocol::{
     bytebuf::packet_id::Packet,
     client::play::{
@@ -32,6 +29,12 @@ use pumpkin_protocol::{
         SUseItemOn,
     },
     RawPacket, ServerPacket,
+};
+use pumpkin_protocol::{
+    client::play::CSoundEffect,
+    server::play::{
+        SCloseContainer, SCookieResponse as SPCookieResponse, SPlayPingRequest, SPlayerLoaded,
+    },
 };
 use pumpkin_protocol::{client::play::CUpdateTime, codec::var_int::VarInt};
 use pumpkin_protocol::{
@@ -366,6 +369,30 @@ impl Player {
         }
 
         if config.swing {}
+    }
+
+    pub async fn play_sound(
+        &self,
+        sound_id: u16,
+        category: SoundCategory,
+        position: &Vector3<f64>,
+        volume: f32,
+        pitch: f32,
+        seed: f64,
+    ) {
+        self.client
+            .send_packet(&CSoundEffect::new(
+                VarInt(i32::from(sound_id)),
+                None,
+                category,
+                position.x,
+                position.y,
+                position.z,
+                volume,
+                pitch,
+                seed,
+            ))
+            .await
     }
 
     pub async fn await_cancel(&self) {

@@ -12,6 +12,7 @@ pub(crate) fn build() -> TokenStream {
     let variants = array_to_tokenstream(sound_categories);
 
     quote! {
+        #[derive(Clone, Copy)]
         #[repr(u8)]
         pub enum SoundCategory {
             #variants
