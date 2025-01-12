@@ -1,6 +1,6 @@
 use pumpkin_data::screen::WindowType;
 use pumpkin_inventory::{Container, OpenContainer};
-use pumpkin_util::math::position::WorldPosition;
+use pumpkin_util::math::position::BlockPos;
 use pumpkin_world::block::block_registry::Block;
 
 use crate::{entity::player::Player, server::Server};
@@ -15,7 +15,7 @@ pub(crate) mod jukebox;
 pub async fn standard_on_broken_with_container(
     block: &Block,
     player: &Player,
-    location: WorldPosition,
+    location: BlockPos,
     server: &Server,
 ) {
     // TODO: drop all items and back to players inventory if in motion
@@ -38,7 +38,7 @@ pub async fn standard_on_broken_with_container(
 pub async fn standard_open_container<C: Container + Default + 'static>(
     block: &Block,
     player: &Player,
-    location: WorldPosition,
+    location: BlockPos,
     server: &Server,
     window_type: WindowType,
 ) {
@@ -66,7 +66,7 @@ pub async fn standard_open_container<C: Container + Default + 'static>(
 pub async fn standard_open_container_unique<C: Container + Default + 'static>(
     block: &Block,
     player: &Player,
-    location: WorldPosition,
+    location: BlockPos,
     server: &Server,
     window_type: WindowType,
 ) {

@@ -41,7 +41,7 @@ use pumpkin_protocol::{
 use pumpkin_util::{
     math::{
         boundingbox::{BoundingBox, BoundingBoxSize},
-        position::WorldPosition,
+        position::BlockPos,
         vector2::Vector2,
         vector3::Vector3,
     },
@@ -533,7 +533,7 @@ impl Player {
         }
     }
 
-    pub fn can_interact_with_block_at(&self, pos: &WorldPosition, additional_range: f64) -> bool {
+    pub fn can_interact_with_block_at(&self, pos: &BlockPos, additional_range: f64) -> bool {
         let d = self.block_interaction_range() + additional_range;
         let box_pos = BoundingBox::from_block(pos);
         let entity_pos = self.living_entity.entity.pos.load();

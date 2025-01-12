@@ -3,7 +3,7 @@ use pumpkin_data::{screen::WindowType, sound::Sound};
 use pumpkin_inventory::{Chest, OpenContainer};
 use pumpkin_macros::pumpkin_block;
 use pumpkin_protocol::{client::play::CBlockAction, codec::var_int::VarInt};
-use pumpkin_util::math::position::WorldPosition;
+use pumpkin_util::math::position::BlockPos;
 use pumpkin_world::{
     block::block_registry::{get_block, Block},
     item::item_registry::Item,
@@ -30,7 +30,7 @@ impl PumpkinBlock for ChestBlock {
         &self,
         block: &Block,
         player: &Player,
-        _location: WorldPosition,
+        _location: BlockPos,
         server: &Server,
     ) {
         self.open_chest_block(block, player, _location, server)
@@ -41,7 +41,7 @@ impl PumpkinBlock for ChestBlock {
         &self,
         block: &Block,
         player: &Player,
-        _location: WorldPosition,
+        _location: BlockPos,
         _item: &Item,
         server: &Server,
     ) -> BlockActionResult {
@@ -54,7 +54,7 @@ impl PumpkinBlock for ChestBlock {
         &self,
         block: &Block,
         player: &Player,
-        location: WorldPosition,
+        location: BlockPos,
         server: &Server,
     ) {
         super::standard_on_broken_with_container(block, player, location, server).await;
@@ -64,7 +64,7 @@ impl PumpkinBlock for ChestBlock {
         &self,
         _block: &Block,
         player: &Player,
-        location: WorldPosition,
+        location: BlockPos,
         server: &Server,
         container: &mut OpenContainer,
     ) {
@@ -80,7 +80,7 @@ impl ChestBlock {
         &self,
         block: &Block,
         player: &Player,
-        location: WorldPosition,
+        location: BlockPos,
         server: &Server,
     ) {
         // TODO: shouldn't Chest and window type be constrained together to avoid errors?
@@ -106,7 +106,7 @@ impl ChestBlock {
         &self,
         container: &OpenContainer,
         player: &Player,
-        location: WorldPosition,
+        location: BlockPos,
         server: &Server,
         state: ChestState,
     ) {

@@ -10,7 +10,7 @@ use pumpkin_protocol::{
 use pumpkin_util::math::{
     boundingbox::{BoundingBox, BoundingBoxSize},
     get_section_cord,
-    position::WorldPosition,
+    position::BlockPos,
     vector2::Vector2,
     vector3::Vector3,
     wrap_degrees,
@@ -39,7 +39,7 @@ pub struct Entity {
     /// The entity's current position in the world
     pub pos: AtomicCell<Vector3<f64>>,
     /// The entity's position rounded to the nearest block coordinates
-    pub block_pos: AtomicCell<WorldPosition>,
+    pub block_pos: AtomicCell<BlockPos>,
     /// The chunk coordinates of the entity's current position
     pub chunk_pos: AtomicCell<Vector2<i32>>,
     /// Indicates whether the entity is sneaking
@@ -90,7 +90,7 @@ impl Entity {
             entity_type,
             on_ground: AtomicBool::new(false),
             pos: AtomicCell::new(position),
-            block_pos: AtomicCell::new(WorldPosition(Vector3::new(floor_x, floor_y, floor_z))),
+            block_pos: AtomicCell::new(BlockPos(Vector3::new(floor_x, floor_y, floor_z))),
             chunk_pos: AtomicCell::new(Vector2::new(floor_x, floor_z)),
             sneaking: AtomicBool::new(false),
             world,
@@ -133,7 +133,7 @@ impl Entity {
                 || floor_z != block_pos_vec.z
             {
                 let new_block_pos = Vector3::new(floor_x, floor_y, floor_z);
-                self.block_pos.store(WorldPosition(new_block_pos));
+                self.block_pos.store(BlockPos(new_block_pos));
 
                 let chunk_pos = self.chunk_pos.load();
                 if get_section_cord(floor_x) != chunk_pos.x

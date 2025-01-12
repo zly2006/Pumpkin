@@ -9,7 +9,7 @@ use pumpkin_protocol::client::login::CEncryptionRequest;
 use pumpkin_protocol::{client::config::CPluginMessage, ClientPacket};
 use pumpkin_registry::{DimensionType, Registry};
 use pumpkin_util::math::boundingbox::{BoundingBox, BoundingBoxSize};
-use pumpkin_util::math::position::WorldPosition;
+use pumpkin_util::math::position::BlockPos;
 use pumpkin_util::math::vector2::Vector2;
 use pumpkin_util::math::vector3::Vector3;
 use pumpkin_util::GameMode;
@@ -271,7 +271,7 @@ impl Server {
 
     /// Returns the first id with a matching location and block type. If this is used with unique
     /// blocks, the output will return a random result.
-    pub async fn get_container_id(&self, location: WorldPosition, block: Block) -> Option<u32> {
+    pub async fn get_container_id(&self, location: BlockPos, block: Block) -> Option<u32> {
         let open_containers = self.open_containers.read().await;
         // TODO: do better than brute force
         for (id, container) in open_containers.iter() {
@@ -292,7 +292,7 @@ impl Server {
 
     pub async fn get_all_container_ids(
         &self,
-        location: WorldPosition,
+        location: BlockPos,
         block: Block,
     ) -> Option<Vec<u32>> {
         let open_containers = self.open_containers.read().await;
