@@ -870,11 +870,18 @@ impl Player {
         };
 
         let Some(stack) = item_slot else {
-            // Using block with empty hand
-            server
-                .block_manager
-                .on_use(block, self, location, server)
-                .await;
+            if !self
+                .living_entity
+                .entity
+                .sneaking
+                .load(std::sync::atomic::Ordering::Relaxed)
+            {
+                // Using block with empty hand
+                server
+                    .block_manager
+                    .on_use(block, self, location, server)
+                    .await;
+            }
             return Ok(());
         };
         let Some(item) = get_item_by_id(stack.item_id) else {
@@ -882,17 +889,23 @@ impl Player {
             return Err(BlockPlacingError::InventoryInvalid.into());
         };
 
-        let action_result = server
-            .block_manager
-            .on_use_with_item(block, self, location, item, server)
-            .await;
-        match action_result {
-            BlockActionResult::Continue => {}
-            BlockActionResult::Consume => {
-                return Ok(());
+        if !self
+            .living_entity
+            .entity
+            .sneaking
+            .load(std::sync::atomic::Ordering::Relaxed)
+        {
+            let action_result = server
+                .block_manager
+                .on_use_with_item(block, self, location, item, server)
+                .await;
+            match action_result {
+                BlockActionResult::Continue => {}
+                BlockActionResult::Consume => {
+                    return Ok(());
+                }
             }
         }
-
         // check if item is a block, Because Not every item can be placed :D
         if let Some(block) = get_block_by_item(stack.item_id) {
             should_try_decrement = self
