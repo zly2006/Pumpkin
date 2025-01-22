@@ -15,9 +15,7 @@ use pumpkin_config::ADVANCED_CONFIG;
 use pumpkin_data::entity::EntityType;
 use pumpkin_inventory::player::PlayerInventory;
 use pumpkin_inventory::InventoryError;
-use pumpkin_protocol::client::play::{
-    CSetContainerSlot, CSetHeldItem, CSpawnEntity, CSystemChatMessage,
-};
+use pumpkin_protocol::client::play::{CSetContainerSlot, CSetHeldItem, CSpawnEntity};
 use pumpkin_protocol::codec::slot::Slot;
 use pumpkin_protocol::codec::var_int::VarInt;
 use pumpkin_protocol::server::play::SCookieResponse as SPCookieResponse;
@@ -81,11 +79,8 @@ impl PumpkinError for BlockPlacingError {
 
     fn severity(&self) -> log::Level {
         match self {
-            Self::BlockOutOfReach
-            | Self::BlockOutOfWorld
-            | Self::InvalidBlockFace
-            | Self::InvalidGamemode
-            | Self::NoBaseBlock => log::Level::Warn,
+            Self::BlockOutOfWorld | Self::InvalidGamemode | Self::NoBaseBlock => log::Level::Trace,
+            Self::BlockOutOfReach | Self::InvalidBlockFace => log::Level::Warn,
             Self::InventoryInvalid => log::Level::Error,
         }
     }
@@ -141,7 +136,11 @@ impl Player {
         // y = feet Y
         let position = packet.position;
         if position.x.is_nan() || position.y.is_nan() || position.z.is_nan() {
-            self.kick(TextComponent::text("Invalid movement")).await;
+            self.kick(TextComponent::translate(
+                "multiplayer.disconnect.invalid_player_movement",
+                [],
+            ))
+            .await;
             return;
         }
         let position = Vector3::new(
@@ -199,15 +198,20 @@ impl Player {
         }
         // y = feet Y
         let position = packet.position;
-        if position.x.is_nan() || position.y.is_nan() || position.z.is_nan() {
-            self.kick(TextComponent::text("Invalid movement")).await;
+        if position.x.is_nan()
+            || position.y.is_nan()
+            || position.z.is_nan()
+            || packet.yaw.is_infinite()
+            || packet.pitch.is_infinite()
+        {
+            self.kick(TextComponent::translate(
+                "multiplayer.disconnect.invalid_player_movement",
+                [],
+            ))
+            .await;
             return;
         }
 
-        if packet.yaw.is_infinite() || packet.pitch.is_infinite() {
-            self.kick(TextComponent::text("Invalid rotation")).await;
-            return;
-        }
         let position = Vector3::new(
             Self::clamp_horizontal(position.x),
             Self::clamp_vertical(position.y),
@@ -280,7 +284,11 @@ impl Player {
             return;
         }
         if !rotation.yaw.is_finite() || !rotation.pitch.is_finite() {
-            self.kick(TextComponent::text("Invalid rotation")).await;
+            self.kick(TextComponent::translate(
+                "multiplayer.disconnect.invalid_player_movement",
+                [],
+            ))
+            .await;
             return;
         }
         let entity = &self.living_entity.entity;
@@ -528,8 +536,11 @@ impl Player {
         }
 
         if message.chars().any(|c| c == '§' || c < ' ' || c == '\x7F') {
-            self.kick(TextComponent::text("Illegal characters in chat"))
-                .await;
+            self.kick(TextComponent::translate(
+                "multiplayer.disconnect.illegal_characters",
+                [],
+            ))
+            .await;
             return;
         }
 
@@ -705,8 +716,11 @@ impl Player {
                         self.entity_id(),
                         entity_id.0
                     );
-                    self.kick(TextComponent::text("Interacted with invalid entity id"))
-                        .await;
+                    self.kick(TextComponent::translate(
+                        "multiplayer.disconnect.invalid_entity_attacked",
+                        [],
+                    ))
+                    .await;
                     return;
                 };
 
@@ -1134,16 +1148,15 @@ impl Player {
 
         //check max world build height
         if location.0.y + face.to_offset().y >= WORLD_MAX_Y.into() {
-            self.client
-                .send_packet(&CSystemChatMessage::new(
-                    &TextComponent::translate(
-                        "build.tooHigh",
-                        vec![(WORLD_MAX_Y - 1).to_string().into()],
-                    )
-                    .color_named(NamedColor::Red),
-                    true,
-                ))
-                .await;
+            self.send_system_message_raw(
+                &TextComponent::translate(
+                    "build.tooHigh",
+                    vec![(WORLD_MAX_Y - 1).to_string().into()],
+                )
+                .color_named(NamedColor::Red),
+                true,
+            )
+            .await;
             self.client
                 .send_packet(&CAcknowledgeBlockChange::new(use_item_on.sequence))
                 .await;

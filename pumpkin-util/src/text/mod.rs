@@ -42,14 +42,15 @@ impl TextComponent {
         }
     }
 
-    pub fn translate<P>(key: P, with: Vec<Cow<'static, str>>) -> Self
+    pub fn translate<K, W>(key: K, with: W) -> Self
     where
-        P: Into<Cow<'static, str>>,
+        K: Into<Cow<'static, str>>,
+        W: Into<Vec<Cow<'static, str>>>,
     {
         Self {
             content: TextContent::Translate {
                 translate: key.into(),
-                with,
+                with: with.into(),
             },
             style: Style::default(),
             extra: vec![],
@@ -61,9 +62,19 @@ impl TextComponent {
         self
     }
 
+    pub fn get_text(self) -> String {
+        match self.content {
+            TextContent::Text { text } => text.into_owned(),
+            TextContent::Translate { translate, with: _ } => translate.into_owned(),
+            TextContent::EntityNames {
+                selector,
+                separator: _,
+            } => selector.into_owned(),
+            TextContent::Keybind { keybind } => keybind.into_owned(),
+        }
+    }
+
     pub fn to_pretty_console(self) -> String {
-        let style = self.style;
-        let color = style.color;
         let mut text = match self.content {
             TextContent::Text { text } => text.into_owned(),
             TextContent::Translate { translate, with: _ } => translate.into_owned(),
@@ -73,6 +84,8 @@ impl TextComponent {
             } => selector.into_owned(),
             TextContent::Keybind { keybind } => keybind.into_owned(),
         };
+        let style = self.style;
+        let color = style.color;
         if let Some(color) = color {
             text = color.console_color(&text).to_string();
         }
