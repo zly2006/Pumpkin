@@ -37,6 +37,7 @@ pub(crate) mod arg_position_block;
 pub(crate) mod arg_resource_location;
 pub(crate) mod arg_rotation;
 pub(crate) mod arg_simple;
+pub(crate) mod arg_sound;
 pub(crate) mod arg_textcomponent;
 mod coordinate;
 
