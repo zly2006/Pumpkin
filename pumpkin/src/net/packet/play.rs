@@ -13,6 +13,7 @@ use crate::{
 };
 use pumpkin_config::ADVANCED_CONFIG;
 use pumpkin_data::entity::EntityType;
+use pumpkin_data::world::CHAT;
 use pumpkin_inventory::player::PlayerInventory;
 use pumpkin_inventory::InventoryError;
 use pumpkin_protocol::client::play::{CSetContainerSlot, CSetHeldItem, CSpawnEntity};
@@ -560,7 +561,7 @@ impl Player {
                 &[],
                 Some(TextComponent::text(message.clone())),
                 FilterType::PassThrough,
-                1.into(),
+                CHAT.into(),
                 TextComponent::text(gameprofile.name.clone()),
                 None,
             ))
