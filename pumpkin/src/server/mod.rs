@@ -1,7 +1,8 @@
 use connection_cache::{CachedBranding, CachedStatus};
 use crossbeam::atomic::AtomicCell;
+use hmac::digest::consts::U6;
 use key_store::KeyStore;
-use pumpkin_config::BASIC_CONFIG;
+use pumpkin_config::{ADVANCED_CONFIG, BASIC_CONFIG};
 use pumpkin_data::entity::EntityType;
 use pumpkin_inventory::drag_handler::DragHandler;
 use pumpkin_inventory::{Container, OpenContainer};
@@ -88,7 +89,12 @@ impl Server {
     pub fn new() -> Self {
         let auth_client = BASIC_CONFIG.online_mode.then(|| {
             reqwest::Client::builder()
-                .timeout(Duration::from_millis(5000))
+                .connect_timeout(Duration::from_millis(
+                    ADVANCED_CONFIG.networking.authentication.connect_timeout as u64,
+                ))
+                .read_timeout(Duration::from_millis(
+                    ADVANCED_CONFIG.networking.authentication.read_timeout as u64,
+                ))
                 .build()
                 .expect("Failed to to make reqwest client")
         });
