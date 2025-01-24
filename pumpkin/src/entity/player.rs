@@ -225,11 +225,11 @@ impl Player {
 
     /// Removes the Player out of the current World
     #[allow(unused_variables)]
-    pub async fn remove(&self) {
+    pub async fn remove(self: Arc<Self>) {
         let world = self.world();
         self.cancel_tasks.notify_waiters();
 
-        world.remove_player(self).await;
+        world.remove_player(self.clone()).await;
 
         let cylindrical = self.watched_section.load();
 
@@ -816,7 +816,8 @@ impl Player {
                     .await;
             }
             SPlayerAction::PACKET_ID => {
-                self.handle_player_action(SPlayerAction::read(bytebuf)?, server)
+                self.clone()
+                    .handle_player_action(SPlayerAction::read(bytebuf)?, server)
                     .await;
             }
             SPlayerCommand::PACKET_ID => {
