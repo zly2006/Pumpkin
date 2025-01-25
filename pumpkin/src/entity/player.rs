@@ -19,9 +19,9 @@ use pumpkin_nbt::compound::NbtCompound;
 use pumpkin_protocol::{
     bytebuf::packet_id::Packet,
     client::play::{
-        CCombatDeath, CEntityStatus, CGameEvent, CHurtAnimation, CKeepAlive, CPlayDisconnect,
-        CPlayerAbilities, CPlayerInfoUpdate, CPlayerPosition, CSetHealth, CSystemChatMessage,
-        GameEvent, PlayerAction,
+        CActionBar, CCombatDeath, CEntityStatus, CGameEvent, CHurtAnimation, CKeepAlive,
+        CPlayDisconnect, CPlayerAbilities, CPlayerInfoUpdate, CPlayerPosition, CSetHealth,
+        CSubtitle, CSystemChatMessage, CTitleText, GameEvent, PlayerAction,
     },
     server::play::{
         SChatCommand, SChatMessage, SClientCommand, SClientInformationPlay, SClientTickEnd,
@@ -368,6 +368,14 @@ impl Player {
         }
 
         if config.swing {}
+    }
+
+    pub async fn show_title(&self, text: &TextComponent, mode: &TitleMode) {
+        match mode {
+            TitleMode::Title => self.client.send_packet(&CTitleText::new(text)).await,
+            TitleMode::SubTitle => self.client.send_packet(&CSubtitle::new(text)).await,
+            TitleMode::ActionBar => self.client.send_packet(&CActionBar::new(text)).await,
+        }
     }
 
     pub async fn play_sound(
@@ -868,6 +876,13 @@ impl Player {
         };
         Ok(())
     }
+}
+
+#[derive(Debug)]
+pub enum TitleMode {
+    Title,
+    SubTitle,
+    ActionBar,
 }
 
 /// Represents a player's abilities and special powers.

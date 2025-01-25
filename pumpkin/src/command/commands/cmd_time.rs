@@ -158,34 +158,31 @@ impl CommandExecutor for TimeChangeExecutor {
 
 pub fn init_command_tree() -> CommandTree {
     CommandTree::new(NAMES, DESCRIPTION)
-        .with_child(
-            literal("add").with_child(
-                argument_default_name(arg_number()).execute(TimeChangeExecutor(Mode::Add)),
-            ),
+        .then(
+            literal("add")
+                .then(argument_default_name(arg_number()).execute(TimeChangeExecutor(Mode::Add))),
         )
-        .with_child(
+        .then(
             literal("query")
-                .with_child(literal("daytime").execute(TimeQueryExecutor(QueryMode::DayTime)))
-                .with_child(literal("gametime").execute(TimeQueryExecutor(QueryMode::GameTime)))
-                .with_child(literal("day").execute(TimeQueryExecutor(QueryMode::Day))),
+                .then(literal("daytime").execute(TimeQueryExecutor(QueryMode::DayTime)))
+                .then(literal("gametime").execute(TimeQueryExecutor(QueryMode::GameTime)))
+                .then(literal("day").execute(TimeQueryExecutor(QueryMode::Day))),
         )
-        .with_child(
+        .then(
             literal("set")
-                .with_child(
-                    literal("day").execute(TimeChangeExecutor(Mode::Set(Some(PresetTime::Day)))),
-                )
-                .with_child(
+                .then(literal("day").execute(TimeChangeExecutor(Mode::Set(Some(PresetTime::Day)))))
+                .then(
                     literal("noon").execute(TimeChangeExecutor(Mode::Set(Some(PresetTime::Noon)))),
                 )
-                .with_child(
+                .then(
                     literal("night")
                         .execute(TimeChangeExecutor(Mode::Set(Some(PresetTime::Night)))),
                 )
-                .with_child(
+                .then(
                     literal("midnight")
                         .execute(TimeChangeExecutor(Mode::Set(Some(PresetTime::Midnight)))),
                 )
-                .with_child(
+                .then(
                     argument_default_name(arg_number())
                         .execute(TimeChangeExecutor(Mode::Set(None))),
                 ),

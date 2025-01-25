@@ -2,9 +2,7 @@ use std::{collections::HashMap, hash::Hash, sync::Arc};
 
 use arg_bounded_num::{NotInBounds, Number};
 use async_trait::async_trait;
-use pumpkin_protocol::client::play::{
-    CommandSuggestion, ProtoCmdArgParser, ProtoCmdArgSuggestionType,
-};
+use pumpkin_protocol::client::play::{ArgumentType, CommandSuggestion, SuggestionProviders};
 use pumpkin_util::text::TextComponent;
 use pumpkin_util::{
     math::{position::BlockPos, vector2::Vector2, vector3::Vector3},
@@ -64,9 +62,9 @@ pub trait ArgumentConsumer: Sync + GetClientSideArgParser {
 
 pub trait GetClientSideArgParser {
     /// Return the parser the client should use while typing a command in chat.
-    fn get_client_side_parser(&self) -> ProtoCmdArgParser;
+    fn get_client_side_parser(&self) -> ArgumentType;
     /// Usually this should return None. This can be used to force suggestions to be processed on serverside.
-    fn get_client_side_suggestion_type_override(&self) -> Option<ProtoCmdArgSuggestionType>;
+    fn get_client_side_suggestion_type_override(&self) -> Option<SuggestionProviders>;
 }
 
 pub trait DefaultNameArgConsumer: ArgumentConsumer {

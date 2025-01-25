@@ -44,5 +44,5 @@ impl CommandExecutor for SayExecutor {
 
 pub fn init_command_tree() -> CommandTree {
     CommandTree::new(NAMES, DESCRIPTION)
-        .with_child(argument(ARG_MESSAGE, MsgArgConsumer).execute(SayExecutor))
+        .then(argument(ARG_MESSAGE, MsgArgConsumer).execute(SayExecutor))
 }

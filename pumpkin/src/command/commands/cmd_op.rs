@@ -81,5 +81,5 @@ impl CommandExecutor for OpExecutor {
 
 pub fn init_command_tree() -> CommandTree {
     CommandTree::new(NAMES, DESCRIPTION)
-        .with_child(argument(ARG_TARGETS, PlayersArgumentConsumer).execute(OpExecutor))
+        .then(argument(ARG_TARGETS, PlayersArgumentConsumer).execute(OpExecutor))
 }

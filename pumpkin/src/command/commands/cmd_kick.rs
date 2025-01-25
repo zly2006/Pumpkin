@@ -50,9 +50,9 @@ impl CommandExecutor for KickExecutor {
 
 // TODO: Permission
 pub fn init_command_tree() -> CommandTree {
-    CommandTree::new(NAMES, DESCRIPTION).with_child(
+    CommandTree::new(NAMES, DESCRIPTION).then(
         argument(ARG_TARGETS, PlayersArgumentConsumer)
             .execute(KickExecutor)
-            .with_child(argument(ARG_REASON, MsgArgConsumer).execute(KickExecutor)),
+            .then(argument(ARG_REASON, MsgArgConsumer).execute(KickExecutor)),
     )
 }

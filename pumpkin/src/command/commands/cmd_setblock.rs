@@ -85,12 +85,12 @@ impl CommandExecutor for SetblockExecutor {
 }
 
 pub fn init_command_tree() -> CommandTree {
-    CommandTree::new(NAMES, DESCRIPTION).with_child(
-        argument(ARG_BLOCK_POS, BlockPosArgumentConsumer).with_child(
+    CommandTree::new(NAMES, DESCRIPTION).then(
+        argument(ARG_BLOCK_POS, BlockPosArgumentConsumer).then(
             argument(ARG_BLOCK, BlockArgumentConsumer)
-                .with_child(literal("replace").execute(SetblockExecutor(Mode::Replace)))
-                .with_child(literal("destroy").execute(SetblockExecutor(Mode::Destroy)))
-                .with_child(literal("keep").execute(SetblockExecutor(Mode::Keep)))
+                .then(literal("replace").execute(SetblockExecutor(Mode::Replace)))
+                .then(literal("destroy").execute(SetblockExecutor(Mode::Destroy)))
+                .then(literal("keep").execute(SetblockExecutor(Mode::Keep)))
                 .execute(SetblockExecutor(Mode::Replace)),
         ),
     )

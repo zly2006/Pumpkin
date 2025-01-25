@@ -1,9 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use pumpkin_protocol::client::play::{
-    CommandSuggestion, ProtoCmdArgParser, ProtoCmdArgSuggestionType,
-};
+use pumpkin_protocol::client::play::{ArgumentType, CommandSuggestion, SuggestionProviders};
 
 use crate::command::dispatcher::CommandError;
 use crate::command::tree::RawArgs;
@@ -22,14 +20,14 @@ use super::{Arg, DefaultNameArgConsumer, FindArg, GetClientSideArgParser};
 pub struct EntityArgumentConsumer;
 
 impl GetClientSideArgParser for EntityArgumentConsumer {
-    fn get_client_side_parser(&self) -> ProtoCmdArgParser {
+    fn get_client_side_parser(&self) -> ArgumentType {
         // todo: investigate why this does not accept target selectors
-        ProtoCmdArgParser::Entity {
-            flags: ProtoCmdArgParser::ENTITY_FLAG_ONLY_SINGLE,
+        ArgumentType::Entity {
+            flags: ArgumentType::ENTITY_FLAG_ONLY_SINGLE,
         }
     }
 
-    fn get_client_side_suggestion_type_override(&self) -> Option<ProtoCmdArgSuggestionType> {
+    fn get_client_side_suggestion_type_override(&self) -> Option<SuggestionProviders> {
         None
     }
 }

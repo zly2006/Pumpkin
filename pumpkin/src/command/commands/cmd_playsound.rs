@@ -45,5 +45,5 @@ impl CommandExecutor for SoundExecutor {
 
 pub fn init_command_tree() -> CommandTree {
     CommandTree::new(NAMES, DESCRIPTION)
-        .with_child(argument(ARG_SOUND, SoundArgumentConsumer).execute(SoundExecutor))
+        .then(argument(ARG_SOUND, SoundArgumentConsumer).execute(SoundExecutor))
 }

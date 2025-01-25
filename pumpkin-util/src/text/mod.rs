@@ -111,6 +111,14 @@ impl TextComponent {
         self
     }
 
+    pub fn from_content(content: TextContent) -> Self {
+        Self(TextComponentBase {
+            content,
+            style: Style::default(),
+            extra: vec![],
+        })
+    }
+
     pub fn add_text<P>(mut self, text: P) -> Self
     where
         P: Into<Cow<'static, str>>,

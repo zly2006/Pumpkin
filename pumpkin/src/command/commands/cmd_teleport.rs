@@ -240,34 +240,32 @@ impl CommandExecutor for TpSelfToPosExecutor {
 
 pub fn init_command_tree() -> CommandTree {
     CommandTree::new(NAMES, DESCRIPTION)
-        .with_child(argument(ARG_LOCATION, Position3DArgumentConsumer).execute(TpSelfToPosExecutor))
-        .with_child(
-            argument(ARG_DESTINATION, EntityArgumentConsumer).execute(TpSelfToEntityExecutor),
-        )
-        .with_child(
+        .then(argument(ARG_LOCATION, Position3DArgumentConsumer).execute(TpSelfToPosExecutor))
+        .then(argument(ARG_DESTINATION, EntityArgumentConsumer).execute(TpSelfToEntityExecutor))
+        .then(
             argument(ARG_TARGETS, EntitiesArgumentConsumer)
-                .with_child(
+                .then(
                     argument(ARG_LOCATION, Position3DArgumentConsumer)
                         .execute(TpEntitiesToPosExecutor)
-                        .with_child(
+                        .then(
                             argument(ARG_ROTATION, RotationArgumentConsumer)
                                 .execute(TpEntitiesToPosWithRotationExecutor),
                         )
-                        .with_child(
+                        .then(
                             literal("facing")
-                                .with_child(
-                                    literal("entity").with_child(
+                                .then(
+                                    literal("entity").then(
                                         argument(ARG_FACING_ENTITY, EntityArgumentConsumer)
                                             .execute(TpEntitiesToPosFacingEntityExecutor),
                                     ),
                                 )
-                                .with_child(
+                                .then(
                                     argument(ARG_FACING_LOCATION, Position3DArgumentConsumer)
                                         .execute(TpEntitiesToPosFacingPosExecutor),
                                 ),
                         ),
                 )
-                .with_child(
+                .then(
                     argument(ARG_DESTINATION, EntityArgumentConsumer)
                         .execute(TpEntitiesToEntityExecutor),
                 ),

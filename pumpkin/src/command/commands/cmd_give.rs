@@ -83,11 +83,11 @@ impl CommandExecutor for GiveExecutor {
 }
 
 pub fn init_command_tree() -> CommandTree {
-    CommandTree::new(NAMES, DESCRIPTION).with_child(
-        argument_default_name(PlayersArgumentConsumer).with_child(
+    CommandTree::new(NAMES, DESCRIPTION).then(
+        argument_default_name(PlayersArgumentConsumer).then(
             argument(ARG_ITEM, ItemArgumentConsumer)
                 .execute(GiveExecutor)
-                .with_child(argument_default_name(item_count_consumer()).execute(GiveExecutor)),
+                .then(argument_default_name(item_count_consumer()).execute(GiveExecutor)),
         ),
     )
 }

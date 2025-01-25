@@ -610,52 +610,52 @@ impl CommandExecutor for WorldborderWarningTimeExecutor {
 
 pub fn init_command_tree() -> CommandTree {
     CommandTree::new(NAMES, DESCRIPTION)
-        .with_child(
-            literal("add").with_child(
+        .then(
+            literal("add").then(
                 argument_default_name(distance_consumer())
                     .execute(WorldborderAddExecutor)
-                    .with_child(
+                    .then(
                         argument_default_name(time_consumer()).execute(WorldborderAddTimeExecutor),
                     ),
             ),
         )
-        .with_child(literal("center").with_child(
+        .then(literal("center").then(
             argument_default_name(Position2DArgumentConsumer).execute(WorldborderCenterExecutor),
         ))
-        .with_child(
+        .then(
             literal("damage")
-                .with_child(
-                    literal("amount").with_child(
+                .then(
+                    literal("amount").then(
                         argument_default_name(damage_per_block_consumer())
                             .execute(WorldborderDamageAmountExecutor),
                     ),
                 )
-                .with_child(
-                    literal("buffer").with_child(
+                .then(
+                    literal("buffer").then(
                         argument_default_name(damage_buffer_consumer())
                             .execute(WorldborderDamageBufferExecutor),
                     ),
                 ),
         )
-        .with_child(literal("get").execute(WorldborderGetExecutor))
-        .with_child(
-            literal("set").with_child(
+        .then(literal("get").execute(WorldborderGetExecutor))
+        .then(
+            literal("set").then(
                 argument_default_name(distance_consumer())
                     .execute(WorldborderSetExecutor)
-                    .with_child(
+                    .then(
                         argument_default_name(time_consumer()).execute(WorldborderSetTimeExecutor),
                     ),
             ),
         )
-        .with_child(
+        .then(
             literal("warning")
-                .with_child(
-                    literal("distance").with_child(
+                .then(
+                    literal("distance").then(
                         argument_default_name(warning_distance_consumer())
                             .execute(WorldborderWarningDistanceExecutor),
                     ),
                 )
-                .with_child(literal("time").with_child(
+                .then(literal("time").then(
                     argument_default_name(time_consumer()).execute(WorldborderWarningTimeExecutor),
                 )),
         )

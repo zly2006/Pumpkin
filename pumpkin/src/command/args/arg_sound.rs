@@ -1,8 +1,6 @@
 use async_trait::async_trait;
 use pumpkin_data::sound::Sound;
-use pumpkin_protocol::client::play::{
-    CommandSuggestion, ProtoCmdArgParser, ProtoCmdArgSuggestionType,
-};
+use pumpkin_protocol::client::play::{ArgumentType, CommandSuggestion, SuggestionProviders};
 
 use crate::{command::dispatcher::CommandError, server::Server};
 
@@ -17,12 +15,12 @@ use super::{
 pub(crate) struct SoundArgumentConsumer;
 
 impl GetClientSideArgParser for SoundArgumentConsumer {
-    fn get_client_side_parser(&self) -> ProtoCmdArgParser {
-        ProtoCmdArgParser::ResourceLocation
+    fn get_client_side_parser(&self) -> ArgumentType {
+        ArgumentType::ResourceLocation
     }
 
-    fn get_client_side_suggestion_type_override(&self) -> Option<ProtoCmdArgSuggestionType> {
-        Some(ProtoCmdArgSuggestionType::AvailableSounds)
+    fn get_client_side_suggestion_type_override(&self) -> Option<SuggestionProviders> {
+        Some(SuggestionProviders::AvailableSounds)
     }
 }
 
