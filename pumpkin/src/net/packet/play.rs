@@ -1095,12 +1095,13 @@ impl Player {
             // create rotation like Vanilla
             let yaw = wrap_degrees(rand::random::<f32>() * 360.0) % 360.0;
 
+            let world = self.world();
             // create new mob and uuid based on spawn egg id
             let (mob, uuid) = mob::from_type(
                 EntityType::from_raw(*spawn_item_id).unwrap(),
                 server,
                 pos,
-                self.world(),
+                world,
             )
             .await;
 
@@ -1108,8 +1109,8 @@ impl Player {
             mob.living_entity.entity.set_rotation(yaw, 0.0);
 
             // broadcast new mob to all players
-            server
-                .broadcast_packet_all(&mob.create_spawn_entity_packet(uuid))
+            world
+                .broadcast_packet_all(&mob.living_entity.entity.create_spawn_packet(uuid))
                 .await;
 
             // TODO: send/configure additional commands/data based on type of entity (horse, slime, etc)

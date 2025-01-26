@@ -538,7 +538,7 @@ impl Player {
         let mobs = world.current_living_mobs.lock().await.clone();
         for (uuid, mob) in mobs {
             self.client
-                .send_packet(&mob.create_spawn_entity_packet(uuid))
+                .send_packet(&mob.living_entity.entity.create_spawn_packet(uuid))
                 .await;
         }
     }
