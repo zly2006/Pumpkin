@@ -148,17 +148,15 @@ impl Player {
             Self::clamp_horizontal(position.z),
         );
         let entity = &self.living_entity.entity;
+        let last_pos = entity.pos.load();
         self.living_entity.set_pos(position);
-
-        let pos = entity.pos.load();
-        let last_pos = self.living_entity.last_pos.load();
 
         entity
             .on_ground
             .store(packet.ground, std::sync::atomic::Ordering::Relaxed);
 
         let entity_id = entity.entity_id;
-        let Vector3 { x, y, z } = pos;
+        let Vector3 { x, y, z } = position;
         let world = &entity.world;
 
         // let delta = Vector3::new(x - lastx, y - lasty, z - lastz);
@@ -188,6 +186,16 @@ impl Player {
                 ),
             )
             .await;
+        if !self.abilities.lock().await.flying {
+            let height_difference = position.y - last_pos.y;
+            self.living_entity
+                .update_fall_distance(
+                    height_difference,
+                    packet.ground,
+                    self.gamemode.load() == GameMode::Creative,
+                )
+                .await;
+        }
         player_chunker::update_position(self).await;
     }
 
@@ -217,10 +225,8 @@ impl Player {
             Self::clamp_horizontal(position.z),
         );
         let entity = &self.living_entity.entity;
+        let last_pos = entity.pos.load();
         self.living_entity.set_pos(position);
-
-        let pos = entity.pos.load();
-        let last_pos = self.living_entity.last_pos.load();
 
         entity
             .on_ground
@@ -232,7 +238,7 @@ impl Player {
         );
 
         let entity_id = entity.entity_id;
-        let Vector3 { x, y, z } = pos;
+        let Vector3 { x, y, z } = position;
 
         let yaw = (entity.yaw.load() * 256.0 / 360.0).rem_euclid(256.0);
         let pitch = (entity.pitch.load() * 256.0 / 360.0).rem_euclid(256.0);
@@ -275,6 +281,16 @@ impl Player {
                 &CHeadRot::new(entity_id.into(), yaw as u8),
             )
             .await;
+        if !self.abilities.lock().await.flying {
+            let height_difference = position.y - last_pos.y;
+            self.living_entity
+                .update_fall_distance(
+                    height_difference,
+                    packet.ground,
+                    self.gamemode.load() == GameMode::Creative,
+                )
+                .await;
+        }
         player_chunker::update_position(self).await;
     }
 

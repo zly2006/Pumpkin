@@ -24,7 +24,7 @@ pub struct LivingEntity {
     /// The current health level of the entity.
     pub health: AtomicCell<f32>,
     /// The distance the entity has been falling
-    pub fall_distance: AtomicCell<f64>,
+    pub fall_distance: AtomicCell<f32>,
 }
 impl LivingEntity {
     pub const fn new(entity: Entity) -> Self {
@@ -113,25 +113,21 @@ impl LivingEntity {
         amount > 0.0
     }
 
-    pub async fn update_fall_distance(&self, dont_damage: bool) {
-        let y = self.entity.pos.load().y;
-        let last_y = self.last_pos.load().y;
-        let grounded = self
-            .entity
-            .on_ground
-            .load(std::sync::atomic::Ordering::Relaxed);
-
-        // + => falling, - => up
-        let y_diff = last_y - y;
-
-        if grounded {
+    pub async fn update_fall_distance(
+        &self,
+        height_difference: f64,
+        ground: bool,
+        dont_damage: bool,
+    ) {
+        if ground {
             let fall_distance = self.fall_distance.swap(0.0);
-            if dont_damage {
+            if fall_distance <= 0.0 || dont_damage {
                 return;
             }
 
-            let mut damage = (fall_distance - 3.0).max(0.0) as f32;
-            damage = (damage * 2.0).round() / 2.0;
+            let safe_fall_distance = 3.0;
+            let mut damage = fall_distance - safe_fall_distance;
+            damage = (damage).round();
             if !self.check_damage(damage) {
                 return;
             }
@@ -141,11 +137,10 @@ impl LivingEntity {
                 .await;
             // TODO: Play block fall sound
             self.damage(damage, 10).await; // Fall
-        } else if y_diff < 0.0 {
-            self.fall_distance.store(0.0);
-        } else {
-            let fall_distance = self.fall_distance.load();
-            self.fall_distance.store(fall_distance + y_diff);
+        } else if height_difference < 0.0 {
+            let distance = self.fall_distance.load();
+            self.fall_distance
+                .store(distance - (height_difference as f32));
         }
     }
 
