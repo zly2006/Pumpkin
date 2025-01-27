@@ -12,6 +12,7 @@ pub mod kick;
 pub mod kill;
 pub mod list;
 pub mod me;
+pub mod msg;
 pub mod op;
 pub mod pardon;
 pub mod pardonip;
