@@ -2,6 +2,7 @@ use std::sync::atomic::AtomicI32;
 
 use async_trait::async_trait;
 use crossbeam::atomic::AtomicCell;
+use pumpkin_data::sound::Sound;
 use pumpkin_nbt::tag::NbtTag;
 use pumpkin_protocol::client::play::{CDamageEvent, CEntityStatus, CSetEntityMetadata, Metadata};
 use pumpkin_util::math::vector3::Vector3;
@@ -135,12 +136,24 @@ impl LivingEntity {
                 return;
             }
 
+            self.entity
+                .play_sound(Self::get_fall_sound(fall_distance as i32))
+                .await;
+            // TODO: Play block fall sound
             self.damage(damage, 10).await; // Fall
         } else if y_diff < 0.0 {
             self.fall_distance.store(0.0);
         } else {
             let fall_distance = self.fall_distance.load();
             self.fall_distance.store(fall_distance + y_diff);
+        }
+    }
+
+    fn get_fall_sound(distance: i32) -> Sound {
+        if distance > 4 {
+            Sound::EntityGenericBigFall
+        } else {
+            Sound::EntityGenericSmallFall
         }
     }
 
