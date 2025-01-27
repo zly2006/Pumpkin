@@ -44,6 +44,9 @@ rand = "0.8.5"
 
 num-bigint = "0.4"
 
+# Console line reading
+rustyline = "15.0.0"
+
 # encryption
 rsa = "0.9.7"
 rsa-der = "0.3.0"

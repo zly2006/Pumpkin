@@ -3,12 +3,13 @@ use crate::server::{ticker::Ticker, Server};
 use plugin::PluginManager;
 use pumpkin_config::{ADVANCED_CONFIG, BASIC_CONFIG};
 use pumpkin_util::text::TextComponent;
+use rustyline::DefaultEditor;
 use std::{
     net::SocketAddr,
     sync::{Arc, LazyLock},
 };
 use tokio::{
-    io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader},
+    io::{AsyncReadExt, AsyncWriteExt},
     net::{tcp::OwnedReadHalf, TcpListener},
     sync::Mutex,
 };
@@ -183,24 +184,23 @@ impl PumpkinServer {
 
 fn setup_console(server: Arc<Server>) {
     tokio::spawn(async move {
-        let stdin = tokio::io::stdin();
-        let mut reader = BufReader::new(stdin);
+        let mut rl = DefaultEditor::new().unwrap();
         loop {
-            let mut out = String::new();
+            // maybe put this into config ?
+            let readline = rl.readline("$ ");
 
-            reader
-                .read_line(&mut out)
-                .await
-                .expect("Failed to read console line");
-
-            if !out.is_empty() {
-                let server_clone = server.clone();
-                tokio::spawn(async move {
-                    let dispatcher = server_clone.command_dispatcher.read().await;
+            match readline {
+                Ok(line) => {
+                    rl.add_history_entry(line.as_str()).unwrap();
+                    let dispatcher = server.command_dispatcher.read().await;
                     dispatcher
-                        .handle_command(&mut command::CommandSender::Console, &server_clone, &out)
+                        .handle_command(&mut command::CommandSender::Console, &server, &line)
                         .await;
-                });
+                }
+                Err(_) => {
+                    // TODO: we can handle CTRL+C and stuff here
+                    break;
+                }
             }
         }
     });
