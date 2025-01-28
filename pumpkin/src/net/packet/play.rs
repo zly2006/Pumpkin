@@ -2,6 +2,7 @@ use std::num::NonZeroU8;
 use std::sync::Arc;
 
 use crate::block::block_manager::BlockActionResult;
+use crate::block::block_properties_manager::Direction;
 use crate::entity::mob;
 use crate::net::PlayerConfig;
 use crate::{
@@ -43,7 +44,6 @@ use pumpkin_util::{
 };
 use pumpkin_world::block::block_registry::get_block_collision_shapes;
 use pumpkin_world::block::block_registry::Block;
-use pumpkin_world::entity::FacingDirection;
 use pumpkin_world::item::item_registry::get_item_by_id;
 use pumpkin_world::item::ItemStack;
 use pumpkin_world::{
@@ -1145,15 +1145,15 @@ impl Player {
         Ok(true)
     }
 
-    fn get_player_direction(&self) -> FacingDirection {
+    fn get_player_direction(&self) -> Direction {
         let adjusted_yaw = (self.living_entity.entity.yaw.load() % 360.0 + 360.0) % 360.0; // Normalize yaw to [0, 360)
 
         match adjusted_yaw {
-            0.0..=45.0 | 315.0..=360.0 => FacingDirection::South,
-            45.0..=135.0 => FacingDirection::West,
-            135.0..=225.0 => FacingDirection::North,
-            225.0..=315.0 => FacingDirection::East,
-            _ => FacingDirection::South, // Default case, should not occur
+            0.0..=45.0 | 315.0..=360.0 => Direction::South,
+            45.0..=135.0 => Direction::West,
+            135.0..=225.0 => Direction::North,
+            225.0..=315.0 => Direction::East,
+            _ => Direction::South, // Default case, should not occur
         }
     }
 

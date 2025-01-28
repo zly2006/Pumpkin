@@ -5,11 +5,11 @@ use std::{
 
 use pumpkin_protocol::server::play::SUseItemOn;
 use pumpkin_util::math::position::BlockPos;
+use pumpkin_world::block::block_registry::Block;
 use pumpkin_world::block::{block_registry::Property, BlockFace};
-use pumpkin_world::{block::block_registry::Block, entity::FacingDirection};
 
 use crate::{
-    block::block_properties_manager::{get_property_key, BlockBehavior, BlockProperty},
+    block::block_properties_manager::{get_property_key, BlockBehavior, BlockProperty, Direction},
     world::World,
 };
 
@@ -75,21 +75,21 @@ impl SlabBehavior {
     pub fn evalute_property_type(
         block: &Block,
         clicked_block: &Block,
-        face: BlockFace,
+        face: &BlockFace,
         use_item_on: &SUseItemOn,
     ) -> String {
-        if block.id == clicked_block.id && face == BlockFace::Top {
+        if block.id == clicked_block.id && face == &BlockFace::Top {
             return format!("{}{}", "type", "double");
         }
 
-        if face == BlockFace::Top {
+        if face == &BlockFace::Top {
             return format!("{}{}", "type", "bottom");
         }
 
-        if face == BlockFace::North
-            || face == BlockFace::South
-            || face == BlockFace::West
-            || face == BlockFace::East
+        if face == &BlockFace::North
+            || face == &BlockFace::South
+            || face == &BlockFace::West
+            || face == &BlockFace::East
         {
             let y_pos = use_item_on.cursor_pos.y;
             if y_pos > 0.5 {
@@ -119,7 +119,7 @@ impl BlockBehavior for SlabBehavior {
         face: &BlockFace,
         block_pos: &BlockPos,
         use_item_on: &SUseItemOn,
-        _player_direction: &FacingDirection,
+        _player_direction: &Direction,
     ) -> u16 {
         let clicked_block = world.get_block(block_pos).await.unwrap();
         let mut hmap_key: Vec<String> = Vec::with_capacity(block.properties.len());
@@ -129,7 +129,7 @@ impl BlockBehavior for SlabBehavior {
             let state = match get_property_key(property.name.as_str()).expect("Property not found")
             {
                 BlockProperty::SlabType(_) => {
-                    Self::evalute_property_type(block, clicked_block, *face, use_item_on)
+                    Self::evalute_property_type(block, clicked_block, face, use_item_on)
                 }
                 BlockProperty::Waterlogged(false) => Self::evalute_property_waterlogged(block),
                 _ => panic!("Property not found"),

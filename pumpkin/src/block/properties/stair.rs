@@ -6,13 +6,10 @@ use std::{
 use pumpkin_protocol::server::play::SUseItemOn;
 use pumpkin_util::math::{position::BlockPos, vector3::Vector3};
 use pumpkin_world::block::block_registry::Block;
-use pumpkin_world::{
-    block::{block_registry::Property, BlockFace},
-    entity::FacingDirection,
-};
+use pumpkin_world::block::{block_registry::Property, BlockFace};
 
 use crate::{
-    block::block_properties_manager::{get_property_key, BlockBehavior, BlockProperty},
+    block::block_properties_manager::{get_property_key, BlockBehavior, BlockProperty, Direction},
     world::World,
 };
 
@@ -85,11 +82,11 @@ impl StairBehavior {
     }
 
     fn calculate_positions(
-        player_direction: FacingDirection,
-        block_pos: BlockPos,
+        player_direction: &Direction,
+        block_pos: &BlockPos,
     ) -> (BlockPos, BlockPos) {
         match player_direction {
-            FacingDirection::North => (
+            Direction::North => (
                 BlockPos(Vector3::new(
                     block_pos.0.x,
                     block_pos.0.y,
@@ -101,7 +98,7 @@ impl StairBehavior {
                     block_pos.0.z + 1,
                 )),
             ),
-            FacingDirection::South => (
+            Direction::South => (
                 BlockPos(Vector3::new(
                     block_pos.0.x,
                     block_pos.0.y,
@@ -113,7 +110,7 @@ impl StairBehavior {
                     block_pos.0.z - 1,
                 )),
             ),
-            FacingDirection::East => (
+            Direction::East => (
                 BlockPos(Vector3::new(
                     block_pos.0.x + 1,
                     block_pos.0.y,
@@ -125,7 +122,7 @@ impl StairBehavior {
                     block_pos.0.z,
                 )),
             ),
-            FacingDirection::West => (
+            Direction::West => (
                 BlockPos(Vector3::new(
                     block_pos.0.x - 1,
                     block_pos.0.y,
@@ -145,11 +142,11 @@ impl StairBehavior {
         block_pos: &BlockPos,
         face: &BlockFace,
         use_item_on: &SUseItemOn,
-        player_direction: &FacingDirection,
+        player_direction: &Direction,
     ) -> String {
-        let block_half = Self::evaluate_property_half(*face, use_item_on);
+        let block_half = Self::evaluate_property_half(face, use_item_on);
         let (front_block_pos, back_block_pos) =
-            Self::calculate_positions(*player_direction, *block_pos);
+            Self::calculate_positions(player_direction, block_pos);
 
         let front_block_and_state = world.get_block_and_block_state(&front_block_pos).await;
         let back_block_and_state = world.get_block_and_block_state(&back_block_pos).await;
@@ -169,18 +166,18 @@ impl StairBehavior {
                             let is_facing_south = properties.contains(&"facingsouth".to_owned());
                             let is_facing_east = properties.contains(&"facingeast".to_owned());
 
-                            if (is_facing_north && *player_direction == FacingDirection::West)
-                                || (is_facing_west && *player_direction == FacingDirection::South)
-                                || (is_facing_south && *player_direction == FacingDirection::East)
-                                || (is_facing_east && *player_direction == FacingDirection::North)
+                            if (is_facing_north && *player_direction == Direction::West)
+                                || (is_facing_west && *player_direction == Direction::South)
+                                || (is_facing_south && *player_direction == Direction::East)
+                                || (is_facing_east && *player_direction == Direction::North)
                             {
                                 return "shapeouter_right".to_owned();
                             }
 
-                            if (is_facing_north && *player_direction == FacingDirection::East)
-                                || (is_facing_west && *player_direction == FacingDirection::North)
-                                || (is_facing_south && *player_direction == FacingDirection::West)
-                                || (is_facing_east && *player_direction == FacingDirection::South)
+                            if (is_facing_north && *player_direction == Direction::East)
+                                || (is_facing_west && *player_direction == Direction::North)
+                                || (is_facing_south && *player_direction == Direction::West)
+                                || (is_facing_east && *player_direction == Direction::South)
                             {
                                 return "shapeouter_left".to_owned();
                             }
@@ -210,18 +207,18 @@ impl StairBehavior {
                             let is_facing_south = properties.contains(&"facingsouth".to_owned());
                             let is_facing_east = properties.contains(&"facingeast".to_owned());
 
-                            if (is_facing_north && *player_direction == FacingDirection::West)
-                                || (is_facing_west && *player_direction == FacingDirection::South)
-                                || (is_facing_south && *player_direction == FacingDirection::East)
-                                || (is_facing_east && *player_direction == FacingDirection::North)
+                            if (is_facing_north && *player_direction == Direction::West)
+                                || (is_facing_west && *player_direction == Direction::South)
+                                || (is_facing_south && *player_direction == Direction::East)
+                                || (is_facing_east && *player_direction == Direction::North)
                             {
                                 return "shapeinner_right".to_owned();
                             }
 
-                            if (is_facing_north && *player_direction == FacingDirection::East)
-                                || (is_facing_west && *player_direction == FacingDirection::North)
-                                || (is_facing_south && *player_direction == FacingDirection::West)
-                                || (is_facing_east && *player_direction == FacingDirection::South)
+                            if (is_facing_north && *player_direction == Direction::East)
+                                || (is_facing_west && *player_direction == Direction::North)
+                                || (is_facing_south && *player_direction == Direction::West)
+                                || (is_facing_east && *player_direction == Direction::South)
                             {
                                 return "shapeinner_left".to_owned();
                             }
@@ -250,24 +247,24 @@ impl StairBehavior {
         format!("{}{}", "waterlogged", "false")
     }
 
-    pub fn evaluate_property_facing(face: BlockFace, player_direction: FacingDirection) -> String {
+    pub fn evaluate_property_facing(face: &BlockFace, player_direction: &Direction) -> String {
         let facing = match face {
             BlockFace::North => "south",
             BlockFace::South => "north",
             BlockFace::East => "west",
             BlockFace::West => "east",
             BlockFace::Top | BlockFace::Bottom => match player_direction {
-                FacingDirection::North => "north",
-                FacingDirection::South => "south",
-                FacingDirection::East => "east",
-                FacingDirection::West => "west",
+                Direction::North => "north",
+                Direction::South => "south",
+                Direction::East => "east",
+                Direction::West => "west",
             },
         };
 
         format!("facing{facing}")
     }
 
-    pub fn evaluate_property_half(face: BlockFace, use_item_on: &SUseItemOn) -> String {
+    pub fn evaluate_property_half(face: &BlockFace, use_item_on: &SUseItemOn) -> String {
         match face {
             BlockFace::Top => format!("{}{}", "half", "bottom"),
             BlockFace::Bottom => format!("{}{}", "half", "top"),
@@ -292,7 +289,7 @@ impl BlockBehavior for StairBehavior {
         face: &BlockFace,
         block_pos: &BlockPos,
         use_item_on: &SUseItemOn,
-        player_direction: &FacingDirection,
+        player_direction: &Direction,
     ) -> u16 {
         let mut hmap_key: Vec<String> = Vec::with_capacity(block.properties.len());
         let stair_behaviour = Self::get();
@@ -300,10 +297,8 @@ impl BlockBehavior for StairBehavior {
         for property in &block.properties {
             let state = match get_property_key(property.name.as_str()).expect("Property not found")
             {
-                BlockProperty::Facing(_) => {
-                    Self::evaluate_property_facing(*face, *player_direction)
-                }
-                BlockProperty::Half(_) => Self::evaluate_property_half(*face, use_item_on),
+                BlockProperty::Facing(_) => Self::evaluate_property_facing(face, player_direction),
+                BlockProperty::Half(_) => Self::evaluate_property_half(face, use_item_on),
                 BlockProperty::StairShape(_) => {
                     Self::evaluate_property_shape(
                         world,
@@ -315,7 +310,7 @@ impl BlockBehavior for StairBehavior {
                     .await
                 }
                 BlockProperty::Waterlogged(_) => Self::evaluate_property_waterlogged(block),
-                BlockProperty::SlabType(_) => panic!("SlabType BlockProperty invalid for Stairs"),
+                _ => panic!("BlockProperty invalid for Stairs"),
             };
             hmap_key.push(state);
         }

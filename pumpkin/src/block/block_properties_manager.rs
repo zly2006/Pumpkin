@@ -3,12 +3,9 @@ use std::{collections::HashMap, sync::Arc};
 use async_trait::async_trait;
 use pumpkin_protocol::server::play::SUseItemOn;
 use pumpkin_util::math::position::BlockPos;
-use pumpkin_world::{
-    block::{
-        block_registry::{Block, BLOCKS},
-        BlockFace,
-    },
-    entity::FacingDirection,
+use pumpkin_world::block::{
+    block_registry::{Block, BLOCKS},
+    BlockFace,
 };
 
 use crate::world::World;
@@ -24,7 +21,7 @@ pub trait BlockBehavior: Send + Sync {
         face: &BlockFace,
         block_pos: &BlockPos,
         use_item_on: &SUseItemOn,
-        player_direction: &FacingDirection,
+        player_direction: &Direction,
     ) -> u16;
     async fn is_updateable(
         &self,
@@ -39,6 +36,7 @@ pub trait BlockBehavior: Send + Sync {
 pub enum BlockProperty {
     Waterlogged(bool),
     Facing(Direction),
+    Powered(bool),
     SlabType(SlabPosition),
     StairShape(StairShape),
     Half(BlockHalf), // Add other properties as needed
@@ -66,7 +64,7 @@ pub enum StairShape {
     OuterRight,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Direction {
     North,
     South,
@@ -110,7 +108,7 @@ impl BlockPropertiesManager {
         face: &BlockFace,
         block_pos: &BlockPos,
         use_item_on: &SUseItemOn,
-        player_direction: &FacingDirection,
+        player_direction: &Direction,
     ) -> u16 {
         if let Some(behaviour) = self.properties_registry.get(&block.id) {
             return behaviour
