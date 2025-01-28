@@ -2,7 +2,7 @@ use std::num::NonZeroU8;
 use std::sync::Arc;
 
 use crate::block::block_manager::BlockActionResult;
-use crate::block::block_properties_manager::Direction;
+use crate::block::properties::Direction;
 use crate::entity::mob;
 use crate::net::PlayerConfig;
 use crate::{
@@ -47,7 +47,7 @@ use pumpkin_world::block::block_registry::Block;
 use pumpkin_world::item::item_registry::get_item_by_id;
 use pumpkin_world::item::ItemStack;
 use pumpkin_world::{
-    block::{block_registry::get_block_by_item, BlockFace},
+    block::{block_registry::get_block_by_item, BlockDirection},
     entity::entity_registry::get_entity_id,
     item::item_registry::get_spawn_egg,
 };
@@ -900,7 +900,7 @@ impl Player {
             return Err(BlockPlacingError::BlockOutOfReach.into());
         }
 
-        let Ok(face) = BlockFace::try_from(use_item_on.face.0) else {
+        let Ok(face) = BlockDirection::try_from(use_item_on.face.0) else {
             return Err(BlockPlacingError::InvalidBlockFace.into());
         };
 
@@ -1104,7 +1104,7 @@ impl Player {
         item_t: String,
         server: &Server,
         location: BlockPos,
-        face: &BlockFace,
+        face: &BlockDirection,
     ) -> Result<bool, Box<dyn PumpkinError>> {
         // checks if spawn egg has a corresponding entity name
         if let Some(spawn_item_id) = get_entity_id(&item_t) {
@@ -1163,7 +1163,7 @@ impl Player {
         server: &Server,
         use_item_on: SUseItemOn,
         location: BlockPos,
-        face: &BlockFace,
+        face: &BlockDirection,
     ) -> Result<bool, Box<dyn PumpkinError>> {
         let entity = &self.living_entity.entity;
         let world = &entity.world;
@@ -1206,10 +1206,7 @@ impl Player {
             _ => {}
         }
 
-        let clicked_block_updated_able = server
-            .block_properties_manager
-            .is_updateable(world, &block, face, &clicked_block_pos)
-            .await;
+        let clicked_block_updated_able = false;
 
         let final_block_pos = if clicked_block_state.replaceable || clicked_block_updated_able {
             clicked_block_pos

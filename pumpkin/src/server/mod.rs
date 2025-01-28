@@ -32,7 +32,7 @@ use tokio::sync::{Mutex, RwLock};
 use uuid::Uuid;
 
 use crate::block::block_manager::BlockManager;
-use crate::block::block_properties_manager::BlockPropertiesManager;
+use crate::block::properties::BlockPropertiesManager;
 use crate::block::{default_block_manager, default_block_properties_manager};
 use crate::entity::ai::path::Navigator;
 use crate::entity::living::LivingEntity;

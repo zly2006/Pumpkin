@@ -1,6 +1,6 @@
-use block_properties_manager::BlockPropertiesManager;
 use blocks::chest::ChestBlock;
 use blocks::furnace::FurnaceBlock;
+use properties::BlockPropertiesManager;
 
 use crate::block::block_manager::BlockManager;
 use crate::block::blocks::crafting_table::CraftingTableBlock;
@@ -8,9 +8,8 @@ use crate::block::blocks::jukebox::JukeboxBlock;
 use std::sync::Arc;
 
 pub mod block_manager;
-pub mod block_properties_manager;
 mod blocks;
-mod properties;
+pub mod properties;
 pub mod pumpkin_block;
 
 #[must_use]
