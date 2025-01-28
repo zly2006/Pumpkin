@@ -8,12 +8,8 @@ use crate::{
     entity::{living::LivingEntity, mob::MobEntity, player::Player, Entity, EntityId},
     error::PumpkinError,
     plugin::{
-        block::r#break::BlockBreakEventImpl,
-        player::{
-            join::PlayerJoinEventImpl, leave::PlayerLeaveEventImpl, PlayerJoinEvent,
-            PlayerLeaveEvent,
-        },
-        CancellableEvent,
+        block::BlockBreakEvent,
+        player::{PlayerJoinEvent, PlayerLeaveEvent},
     },
     server::Server,
     PLUGIN_MANAGER,
@@ -779,21 +775,21 @@ impl World {
                 [TextComponent::text(player.gameprofile.name.clone())].into(),
             )
             .color_named(NamedColor::Yellow);
-            let event = PlayerJoinEventImpl::new(player.clone(), msg_comp);
+            let event = PlayerJoinEvent::new(player.clone(), msg_comp);
 
             let event = PLUGIN_MANAGER
                 .lock()
                 .await
-                .fire::<PlayerJoinEventImpl>(event)
+                .fire::<PlayerJoinEvent>(event)
                 .await;
 
-            if !event.is_cancelled() {
+            if !event.cancelled {
                 let current_players = current_players.clone();
                 let players = current_players.lock().await;
                 for player in players.values() {
-                    player.send_system_message(event.get_join_message()).await;
+                    player.send_system_message(&event.join_message).await;
                 }
-                log::info!("{}", event.get_join_message().clone().to_pretty_console());
+                log::info!("{}", event.join_message.clone().to_pretty_console());
             }
         });
     }
@@ -835,20 +831,20 @@ impl World {
             [TextComponent::text(player.gameprofile.name.clone())].into(),
         )
         .color_named(NamedColor::Yellow);
-        let event = PlayerLeaveEventImpl::new(player.clone(), msg_comp);
+        let event = PlayerLeaveEvent::new(player.clone(), msg_comp);
 
         let event = PLUGIN_MANAGER
             .lock()
             .await
-            .fire::<PlayerLeaveEventImpl>(event)
+            .fire::<PlayerLeaveEvent>(event)
             .await;
 
-        if !event.is_cancelled() {
+        if !event.cancelled {
             let players = self.current_players.lock().await;
             for player in players.values() {
-                player.send_system_message(event.get_leave_message()).await;
+                player.send_system_message(&event.leave_message).await;
             }
-            log::info!("{}", event.get_leave_message().clone().to_pretty_console());
+            log::info!("{}", event.leave_message.clone().to_pretty_console());
         }
     }
 
@@ -945,15 +941,15 @@ impl World {
 
     pub async fn break_block(&self, position: &BlockPos, cause: Option<Arc<Player>>) {
         let block = self.get_block(position).await.unwrap();
-        let event = BlockBreakEventImpl::new(cause.clone(), block.clone(), 0, false);
+        let event = BlockBreakEvent::new(cause.clone(), block.clone(), 0, false);
 
         let event = PLUGIN_MANAGER
             .lock()
             .await
-            .fire::<BlockBreakEventImpl>(event)
+            .fire::<BlockBreakEvent>(event)
             .await;
 
-        if !event.is_cancelled() {
+        if !event.cancelled {
             let broken_block_state_id = self.set_block_state(position, 0).await;
 
             let particles_packet = CWorldEvent::new(
