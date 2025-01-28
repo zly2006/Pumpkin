@@ -72,24 +72,24 @@ impl SlabBehavior {
         }
     }
 
-    pub fn evalute_property_type(
+    pub fn evaluate_property_type(
         block: &Block,
         clicked_block: &Block,
-        face: &BlockFace,
+        face: BlockFace,
         use_item_on: &SUseItemOn,
     ) -> String {
-        if block.id == clicked_block.id && face == &BlockFace::Top {
+        if block.id == clicked_block.id && face == BlockFace::Top {
             return format!("{}{}", "type", "double");
         }
 
-        if face == &BlockFace::Top {
+        if face == BlockFace::Top {
             return format!("{}{}", "type", "bottom");
         }
 
-        if face == &BlockFace::North
-            || face == &BlockFace::South
-            || face == &BlockFace::West
-            || face == &BlockFace::East
+        if face == BlockFace::North
+            || face == BlockFace::South
+            || face == BlockFace::West
+            || face == BlockFace::East
         {
             let y_pos = use_item_on.cursor_pos.y;
             if y_pos > 0.5 {
@@ -102,7 +102,7 @@ impl SlabBehavior {
         format!("{}{}", "type", "bottom")
     }
 
-    pub fn evalute_property_waterlogged(block: &Block) -> String {
+    pub fn evaluate_property_waterlogged(block: &Block) -> String {
         if block.name == "water" {
             return format!("{}{}", "waterlogged", "true");
         }
@@ -129,9 +129,9 @@ impl BlockBehavior for SlabBehavior {
             let state = match get_property_key(property.name.as_str()).expect("Property not found")
             {
                 BlockProperty::SlabType(_) => {
-                    Self::evalute_property_type(block, clicked_block, face, use_item_on)
+                    Self::evaluate_property_type(block, clicked_block, *face, use_item_on)
                 }
-                BlockProperty::Waterlogged(false) => Self::evalute_property_waterlogged(block),
+                BlockProperty::Waterlogged(false) => Self::evaluate_property_waterlogged(block),
                 _ => panic!("Property not found"),
             };
             hmap_key.push(state.to_string());

@@ -144,7 +144,7 @@ impl StairBehavior {
         use_item_on: &SUseItemOn,
         player_direction: &Direction,
     ) -> String {
-        let block_half = Self::evaluate_property_half(face, use_item_on);
+        let block_half = Self::evaluate_property_half(*face, use_item_on);
         let (front_block_pos, back_block_pos) =
             Self::calculate_positions(player_direction, block_pos);
 
@@ -247,7 +247,7 @@ impl StairBehavior {
         format!("{}{}", "waterlogged", "false")
     }
 
-    pub fn evaluate_property_facing(face: &BlockFace, player_direction: &Direction) -> String {
+    pub fn evaluate_property_facing(face: BlockFace, player_direction: &Direction) -> String {
         let facing = match face {
             BlockFace::North => "south",
             BlockFace::South => "north",
@@ -264,7 +264,7 @@ impl StairBehavior {
         format!("facing{facing}")
     }
 
-    pub fn evaluate_property_half(face: &BlockFace, use_item_on: &SUseItemOn) -> String {
+    pub fn evaluate_property_half(face: BlockFace, use_item_on: &SUseItemOn) -> String {
         match face {
             BlockFace::Top => format!("{}{}", "half", "bottom"),
             BlockFace::Bottom => format!("{}{}", "half", "top"),
@@ -297,8 +297,8 @@ impl BlockBehavior for StairBehavior {
         for property in &block.properties {
             let state = match get_property_key(property.name.as_str()).expect("Property not found")
             {
-                BlockProperty::Facing(_) => Self::evaluate_property_facing(face, player_direction),
-                BlockProperty::Half(_) => Self::evaluate_property_half(face, use_item_on),
+                BlockProperty::Facing(_) => Self::evaluate_property_facing(*face, player_direction),
+                BlockProperty::Half(_) => Self::evaluate_property_half(*face, use_item_on),
                 BlockProperty::StairShape(_) => {
                     Self::evaluate_property_shape(
                         world,

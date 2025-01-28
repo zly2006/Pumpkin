@@ -38,7 +38,7 @@ pub type EntityId = i32;
 pub struct Entity {
     /// A unique identifier for the entity
     pub entity_id: EntityId,
-    /// A persistant, unique identifier for the entity
+    /// A persistent, unique identifier for the entity
     pub entity_uuid: uuid::Uuid,
     /// The type of entity (e.g., player, zombie, item)
     pub entity_type: EntityType,

@@ -121,7 +121,7 @@ pub struct Player {
     pub watched_section: AtomicCell<Cylindrical>,
     /// Did we send a keep alive Packet and wait for the response?
     pub wait_for_keep_alive: AtomicBool,
-    /// Whats the keep alive packet payload we send, The client should responde with the same id
+    /// Whats the keep alive packet payload we send, The client should respond with the same id
     pub keep_alive_id: AtomicI64,
     /// Last time we send a keep alive
     pub last_keep_alive_time: AtomicCell<Instant>,

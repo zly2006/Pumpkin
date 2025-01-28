@@ -61,7 +61,7 @@ impl Level {
             region_folder,
         };
 
-        // if we fail to lock, lets crash ???. maybe not the best soultion when we have a large server with many worlds and one is locked.
+        // if we fail to lock, lets crash ???. maybe not the best solution when we have a large server with many worlds and one is locked.
         // So TODO
         let locker = AnvilLevelLocker::look(&level_folder).expect("Failed to lock level");
 
