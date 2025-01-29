@@ -94,7 +94,9 @@ impl PumpkinServer {
     pub async fn init_plugins(&self) {
         let mut loader_lock = PLUGIN_MANAGER.lock().await;
         loader_lock.set_server(self.server.clone());
-        loader_lock.load_plugins().await.unwrap();
+        if let Err(err) = loader_lock.load_plugins().await {
+            log::error!("{}", err.to_string());
+        };
     }
 
     pub async fn start(&self) {
