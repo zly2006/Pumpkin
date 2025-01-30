@@ -306,8 +306,9 @@ impl World {
         player.send_permission_lvl_update().await;
         client_cmd_suggestions::send_c_commands_packet(&player, &server.command_dispatcher).await;
         // teleport
-        let mut position = Vector3::new(10.0, 120.0, 10.0);
-        let yaw = 10.0;
+        let info = &self.level.level_info;
+        let mut position = Vector3::new(f64::from(info.spawn_x), 120.0, f64::from(info.spawn_z));
+        let yaw = info.spawn_angle;
         let pitch = 10.0;
 
         let top = self
@@ -498,8 +499,9 @@ impl World {
         player.send_permission_lvl_update().await;
 
         // teleport
-        let mut position = Vector3::new(10.0, 120.0, 10.0);
-        let yaw = 10.0;
+        let info = &self.level.level_info;
+        let mut position = Vector3::new(f64::from(info.spawn_x), 120.0, f64::from(info.spawn_z));
+        let yaw = info.spawn_angle;
         let pitch = 10.0;
 
         let top = self
