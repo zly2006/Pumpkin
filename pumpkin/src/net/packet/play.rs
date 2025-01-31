@@ -13,7 +13,7 @@ use crate::{
     world::player_chunker,
 };
 use pumpkin_config::ADVANCED_CONFIG;
-use pumpkin_data::entity::EntityType;
+use pumpkin_data::entity::{EntityPose, EntityType};
 use pumpkin_data::world::CHAT;
 use pumpkin_inventory::player::PlayerInventory;
 use pumpkin_inventory::InventoryError;
@@ -660,7 +660,7 @@ impl Player {
                     self.gameprofile.name,
                     self.client.id,
                 );
-                self.update_client_information().await;
+                self.send_client_information().await;
             }
         } else {
             self.kick(TextComponent::text("Invalid hand or chat type"))
@@ -719,8 +719,8 @@ impl Player {
                 }
 
                 let world = &entity.world;
-                let player_victim = world.get_player_by_entityid(entity_id.0).await;
-                let entity_victim = world.get_living_entity_by_entityid(entity_id.0).await;
+                let player_victim = world.get_player_by_id(entity_id.0).await;
+                let entity_victim = world.get_entity_by_id(entity_id.0).await;
                 if let Some(player_victim) = player_victim {
                     if player_victim.living_entity.health.load() <= 0.0 {
                         // you can trigger this from a non-modded / innocent client client,
@@ -729,11 +729,15 @@ impl Player {
                     }
                     self.attack(&player_victim).await;
                 } else if let Some(entity_victim) = entity_victim {
-                    if entity_victim.health.load() <= 0.0 {
-                        return;
+                    // Checks if victim is a living entity
+                    if let Some(entity_victim) = entity_victim.get_living_entity() {
+                        if entity_victim.health.load() <= 0.0 {
+                            return;
+                        }
+                        entity_victim.entity.set_pose(EntityPose::Dying).await;
+                        entity_victim.kill().await;
+                        world.clone().remove_entity(&entity_victim.entity).await;
                     }
-                    entity_victim.kill().await;
-                    world.clone().remove_mob_entity(entity_victim).await;
                     // TODO: block entities should be checked here (signs)
                 } else {
                     log::error!(
@@ -836,10 +840,10 @@ impl Player {
                             .await;
                     }
                 }
-                Status::DropItemStack
-                | Status::DropItem
-                | Status::ShootArrowOrFinishEating
-                | Status::SwapItem => {
+                Status::DropItemStack | Status::DropItem => {
+                    self.drop_item(server).await;
+                }
+                Status::ShootArrowOrFinishEating | Status::SwapItem => {
                     log::debug!("todo");
                 }
             },
@@ -1130,12 +1134,10 @@ impl Player {
             .await;
 
             // set the rotation
-            mob.living_entity.entity.set_rotation(yaw, 0.0);
+            mob.get_entity().set_rotation(yaw, 0.0);
 
             // broadcast new mob to all players
-            world
-                .broadcast_packet_all(&mob.living_entity.entity.create_spawn_packet(uuid))
-                .await;
+            world.spawn_entity(uuid, mob).await;
 
             // TODO: send/configure additional commands/data based on type of entity (horse, slime, etc)
         } else {

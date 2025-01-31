@@ -55,7 +55,7 @@ impl Context {
         };
 
         for world in self.server.worlds.read().await.iter() {
-            for player in world.current_players.lock().await.values() {
+            for player in world.players.lock().await.values() {
                 client_cmd_suggestions::send_c_commands_packet(
                     player,
                     &self.server.command_dispatcher,
@@ -72,7 +72,7 @@ impl Context {
         };
 
         for world in self.server.worlds.read().await.iter() {
-            for player in world.current_players.lock().await.values() {
+            for player in world.players.lock().await.values() {
                 client_cmd_suggestions::send_c_commands_packet(
                     player,
                     &self.server.command_dispatcher,

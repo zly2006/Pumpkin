@@ -3,6 +3,8 @@ use std::sync::LazyLock;
 
 use serde::Deserialize;
 
+use crate::loot::LootTable;
+
 pub static BLOCKS: LazyLock<TopLevel> = LazyLock::new(|| {
     serde_json::from_str(include_str!("../../../assets/blocks.json"))
         .expect("Could not parse blocks.json registry.")
@@ -103,13 +105,13 @@ pub fn get_block_collision_shapes(block_id: u16) -> Option<Vec<Shape>> {
 }
 
 #[expect(dead_code)]
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone)]
 pub struct TopLevel {
     block_entity_types: Vec<String>,
     shapes: Vec<Shape>,
     pub blocks: Vec<Block>,
 }
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone)]
 pub struct Block {
     pub id: u16,
     pub item_id: u16,
@@ -117,6 +119,7 @@ pub struct Block {
     pub wall_variant_id: Option<u16>,
     pub translation_key: String,
     pub name: String,
+    pub loot_table: Option<LootTable>,
     pub properties: Vec<Property>,
     pub default_state_id: u16,
     pub states: Vec<State>,
