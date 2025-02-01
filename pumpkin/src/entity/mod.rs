@@ -4,6 +4,7 @@ use std::sync::{atomic::AtomicBool, Arc};
 use async_trait::async_trait;
 use crossbeam::atomic::AtomicCell;
 use living::LivingEntity;
+use player::Player;
 use pumpkin_data::{
     entity::{EntityPose, EntityType},
     sound::{Sound, SoundCategory},
@@ -41,7 +42,7 @@ pub trait EntityBase: Send + Sync {
     /// Gets Called every tick
     async fn tick(&self) {}
     /// Called when a player collides with the entity
-    async fn on_player_collision(&self) {}
+    async fn on_player_collision(&self, _player: Arc<Player>) {}
     fn get_entity(&self) -> &Entity;
     fn get_living_entity(&self) -> Option<&LivingEntity>;
 }

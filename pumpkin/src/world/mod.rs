@@ -99,7 +99,7 @@ pub struct World {
     pub players: Arc<Mutex<HashMap<uuid::Uuid, Arc<Player>>>>,
     /// A map of active entities within the world, keyed by their unique UUID.
     /// This does not include Players
-    pub entities: Arc<Mutex<HashMap<uuid::Uuid, Arc<dyn EntityBase>>>>,
+    pub entities: Arc<RwLock<HashMap<uuid::Uuid, Arc<dyn EntityBase>>>>,
     /// The world's scoreboard, used for tracking scores, objectives, and display information.
     pub scoreboard: Mutex<Scoreboard>,
     /// The world's worldborder, defining the playable area and controlling its expansion or contraction.
@@ -117,7 +117,7 @@ impl World {
         Self {
             level: Arc::new(level),
             players: Arc::new(Mutex::new(HashMap::new())),
-            entities: Arc::new(Mutex::new(HashMap::new())),
+            entities: Arc::new(RwLock::new(HashMap::new())),
             scoreboard: Mutex::new(Scoreboard::new()),
             worldborder: Mutex::new(Worldborder::new(0.0, 0.0, 29_999_984.0, 0, 0, 0)),
             level_time: Mutex::new(LevelTime::new()),
@@ -235,11 +235,13 @@ impl World {
             player.tick().await;
         }
 
+        let entities_to_tick: Vec<_> = self.entities.read().await.values().cloned().collect();
+
         // entities tick
-        for entity in self.entities.lock().await.values() {
+        for entity in entities_to_tick {
             entity.tick().await;
             // this boolean thing prevents deadlocks, since we lock players we can't broadcast packets
-            let mut collied = false;
+            let mut collied_player = None;
             for player in self.players.lock().await.values() {
                 if player
                     .living_entity
@@ -248,12 +250,12 @@ impl World {
                     .load()
                     .intersects(&entity.get_entity().bounding_box.load())
                 {
-                    collied = true;
+                    collied_player = Some(player.clone());
                     break;
                 }
             }
-            if collied {
-                entity.on_player_collision().await;
+            if let Some(player) = collied_player {
+                entity.on_player_collision(player).await;
             }
         }
     }
@@ -643,7 +645,7 @@ impl World {
 
     /// Gets a Entity by entity id
     pub async fn get_entity_by_id(&self, id: EntityId) -> Option<Arc<dyn EntityBase>> {
-        for entity in self.entities.lock().await.values() {
+        for entity in self.entities.read().await.values() {
             if entity.get_entity().entity_id == id {
                 return Some(entity.clone());
             }
@@ -823,7 +825,8 @@ impl World {
             &CRemovePlayerInfo::new(1.into(), &[uuid]),
         )
         .await;
-        self.remove_entity(&player.living_entity.entity).await;
+        self.broadcast_packet_all(&CRemoveEntities::new(&[player.entity_id().into()]))
+            .await;
 
         let msg_comp = TextComponent::translate(
             "multiplayer.player.left",
@@ -860,11 +863,12 @@ impl World {
         let base_entity = entity.get_entity();
         self.broadcast_packet_all(&base_entity.create_spawn_packet())
             .await;
-        let mut current_living_entities = self.entities.lock().await;
+        let mut current_living_entities = self.entities.write().await;
         current_living_entities.insert(base_entity.entity_uuid, entity);
     }
 
     pub async fn remove_entity(&self, entity: &Entity) {
+        self.entities.write().await.remove(&entity.entity_uuid);
         self.broadcast_packet_all(&CRemoveEntities::new(&[entity.entity_id.into()]))
             .await;
     }

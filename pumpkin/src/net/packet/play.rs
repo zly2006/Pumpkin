@@ -369,7 +369,7 @@ impl Player {
             .store(ground.on_ground, std::sync::atomic::Ordering::Relaxed);
     }
 
-    async fn update_single_slot(
+    pub async fn update_single_slot(
         &self,
         inventory: &mut tokio::sync::MutexGuard<'_, PlayerInventory>,
         slot: i16,
@@ -403,8 +403,9 @@ impl Player {
 
         let mut inventory = self.inventory().lock().await;
 
-        let source_slot = inventory.get_slot_with_item(block.item_id);
-        let mut dest_slot = inventory.get_pick_item_hotbar_slot() as usize;
+        // TODO: Max stack
+        let source_slot = inventory.get_slot_with_item(block.item_id, 64);
+        let mut dest_slot = inventory.get_empty_hotbar_slot() as usize;
 
         let dest_slot_data = match inventory.get_slot(dest_slot + 36) {
             Ok(Some(stack)) => Slot::from(&*stack),
@@ -976,19 +977,17 @@ impl Player {
             // Decrease Block count
             if self.gamemode.load() != GameMode::Creative {
                 let mut inventory = self.inventory().lock().await;
-                let item_slot = inventory.held_item_mut();
-                // This should never be possible
-                let Some(item_stack) = item_slot else {
+                if !inventory.decrease_current_stack(1) {
                     return Err(BlockPlacingError::InventoryInvalid.into());
-                };
-                item_stack.item_count -= 1;
-                if item_stack.item_count == 0 {
-                    *item_slot = None;
                 }
-
                 // TODO: this should be by use item on not currently selected as they might be different
                 let _ = self
-                    .handle_decrease_item(server, slot_id as i16, item_slot.as_ref(), &mut state_id)
+                    .handle_decrease_item(
+                        server,
+                        slot_id as i16,
+                        inventory.held_item(),
+                        &mut state_id,
+                    )
                     .await;
             }
         }

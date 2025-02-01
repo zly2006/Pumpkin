@@ -536,7 +536,7 @@ impl Player {
     /// Sends the mobs to just the player.
     // TODO: This should be optimized for larger servers based on current player chunk
     pub async fn send_mobs(&self, world: &World) {
-        let entities = world.entities.lock().await.clone();
+        let entities = world.entities.read().await.clone();
         for (_, entity) in entities {
             self.client
                 .send_packet(&entity.get_entity().create_spawn_packet())
@@ -716,16 +716,18 @@ impl Player {
     }
 
     pub async fn drop_item(&self, server: &Server) {
-        let inv = self.inventory.lock().await;
-        if let Some(item) = inv.held_item() {
+        let mut inv = self.inventory.lock().await;
+        if let Some(item) = inv.held_item_mut() {
             let entity = server.add_entity(
                 self.living_entity.entity.pos.load(),
                 EntityType::Item,
                 self.world(),
             );
-            let item_entity = Arc::new(ItemEntity::new(entity, item));
+            let item_entity = Arc::new(ItemEntity::new(entity, &item.clone()));
             self.world().spawn_entity(item_entity.clone()).await;
             item_entity.send_meta_packet().await;
+            // decrase item in hotbar
+            inv.decrease_current_stack(1);
         }
     }
 
