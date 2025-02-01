@@ -235,7 +235,7 @@ impl Entity {
     pub fn set_rotation(&self, yaw: f32, pitch: f32) {
         // TODO
         self.yaw.store(yaw);
-        self.pitch.store(pitch);
+        self.pitch.store(pitch.clamp(-90.0, 90.0) % 360.0);
     }
 
     /// Removes the Entity from their current World

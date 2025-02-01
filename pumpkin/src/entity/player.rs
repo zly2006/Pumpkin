@@ -484,6 +484,10 @@ impl Player {
         &self.living_entity.entity.world
     }
 
+    pub fn position(&self) -> Vector3<f64> {
+        self.living_entity.entity.pos.load()
+    }
+
     /// Updates the current abilities the Player has
     pub async fn send_abilities_update(&self) {
         let mut b = 0i8;
@@ -984,7 +988,10 @@ impl Player {
                 self.handle_use_item_on(SUseItemOn::read(bytebuf)?, server)
                     .await?;
             }
-            SUseItem::PACKET_ID => self.handle_use_item(&SUseItem::read(bytebuf)?),
+            SUseItem::PACKET_ID => {
+                self.handle_use_item(&SUseItem::read(bytebuf)?, server)
+                    .await;
+            }
             SCommandSuggestion::PACKET_ID => {
                 self.handle_command_suggestion(SCommandSuggestion::read(bytebuf)?, server)
                     .await;

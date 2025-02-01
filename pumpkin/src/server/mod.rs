@@ -30,10 +30,11 @@ use std::{
 };
 use tokio::sync::{Mutex, RwLock};
 
+use crate::block::default_block_properties_manager;
 use crate::block::properties::BlockPropertiesManager;
 use crate::block::registry::BlockRegistry;
-use crate::block::{self, default_block_properties_manager};
 use crate::entity::{Entity, EntityId};
+use crate::item::registry::ItemRegistry;
 use crate::net::EncryptionError;
 use crate::world::custom_bossbar::CustomBossbars;
 use crate::{
@@ -61,6 +62,8 @@ pub struct Server {
     pub command_dispatcher: RwLock<CommandDispatcher>,
     /// Block Behaviour
     pub block_registry: Arc<BlockRegistry>,
+    /// Item Behaviour
+    pub item_registry: Arc<ItemRegistry>,
     /// Creates and stores block property registry and managed behaviours.
     pub block_properties_manager: Arc<BlockPropertiesManager>,
     /// Manages multiple worlds within the server.
@@ -132,7 +135,8 @@ impl Server {
                 DimensionType::TheEnd,
             ],
             command_dispatcher,
-            block_registry: block::default_registry(),
+            block_registry: super::block::default_registry(),
+            item_registry: super::item::default_registry(),
             block_properties_manager: default_block_properties_manager(),
             auth_client,
             key_store: KeyStore::new(),
