@@ -3,8 +3,8 @@ use crate::entity::player::Player;
 use crate::server::Server;
 use pumpkin_inventory::OpenContainer;
 use pumpkin_util::math::position::BlockPos;
-use pumpkin_world::block::block_registry::Block;
-use pumpkin_world::item::item_registry::Item;
+use pumpkin_world::block::registry::Block;
+use pumpkin_world::item::registry::Item;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -16,11 +16,11 @@ pub enum BlockActionResult {
 }
 
 #[derive(Default)]
-pub struct BlockManager {
+pub struct BlockRegistry {
     blocks: HashMap<String, Arc<dyn PumpkinBlock>>,
 }
 
-impl BlockManager {
+impl BlockRegistry {
     pub fn register<T: PumpkinBlock + BlockMetadata + 'static>(&mut self, block: T) {
         self.blocks.insert(block.name(), Arc::new(block));
     }

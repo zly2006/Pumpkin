@@ -20,12 +20,10 @@ use pumpkin_util::permission::PermissionLvl;
 use pumpkin_util::text::TextComponent;
 
 pub mod args;
-pub mod client_cmd_suggestions;
+pub mod client_suggestions;
 mod commands;
 pub mod dispatcher;
 pub mod tree;
-pub mod tree_builder;
-mod tree_format;
 
 pub enum CommandSender<'a> {
     Rcon(&'a tokio::sync::Mutex<Vec<String>>),

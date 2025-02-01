@@ -1,6 +1,6 @@
 use std::{fs, path::Path, sync::Arc};
 
-use crate::command::client_cmd_suggestions;
+use crate::command::client_suggestions;
 use pumpkin_util::PermissionLvl;
 use tokio::sync::RwLock;
 
@@ -56,11 +56,8 @@ impl Context {
 
         for world in self.server.worlds.read().await.iter() {
             for player in world.players.lock().await.values() {
-                client_cmd_suggestions::send_c_commands_packet(
-                    player,
-                    &self.server.command_dispatcher,
-                )
-                .await;
+                client_suggestions::send_c_commands_packet(player, &self.server.command_dispatcher)
+                    .await;
             }
         }
     }
@@ -73,11 +70,8 @@ impl Context {
 
         for world in self.server.worlds.read().await.iter() {
             for player in world.players.lock().await.values() {
-                client_cmd_suggestions::send_c_commands_packet(
-                    player,
-                    &self.server.command_dispatcher,
-                )
-                .await;
+                client_suggestions::send_c_commands_packet(player, &self.server.command_dispatcher)
+                    .await;
             }
         }
     }

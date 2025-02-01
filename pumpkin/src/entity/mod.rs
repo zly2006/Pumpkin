@@ -34,6 +34,7 @@ pub mod item;
 pub mod living;
 pub mod mob;
 pub mod player;
+pub mod projectile;
 
 pub type EntityId = i32;
 

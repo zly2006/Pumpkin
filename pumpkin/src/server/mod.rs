@@ -14,7 +14,7 @@ use pumpkin_util::math::vector2::Vector2;
 use pumpkin_util::math::vector3::Vector3;
 use pumpkin_util::text::TextComponent;
 use pumpkin_util::GameMode;
-use pumpkin_world::block::block_registry::Block;
+use pumpkin_world::block::registry::Block;
 use pumpkin_world::dimension::Dimension;
 use pumpkin_world::entity::entity_registry::get_entity_by_id;
 use rand::prelude::SliceRandom;
@@ -30,9 +30,9 @@ use std::{
 };
 use tokio::sync::{Mutex, RwLock};
 
-use crate::block::block_manager::BlockManager;
 use crate::block::properties::BlockPropertiesManager;
-use crate::block::{default_block_manager, default_block_properties_manager};
+use crate::block::registry::BlockRegistry;
+use crate::block::{self, default_block_properties_manager};
 use crate::entity::{Entity, EntityId};
 use crate::net::EncryptionError;
 use crate::world::custom_bossbar::CustomBossbars;
@@ -59,8 +59,8 @@ pub struct Server {
     server_branding: CachedBranding,
     /// Saves and Dispatches commands to appropriate handlers.
     pub command_dispatcher: RwLock<CommandDispatcher>,
-    /// Saves and calls blocks blocks
-    pub block_manager: Arc<BlockManager>,
+    /// Block Behaviour
+    pub block_registry: Arc<BlockRegistry>,
     /// Creates and stores block property registry and managed behaviours.
     pub block_properties_manager: Arc<BlockPropertiesManager>,
     /// Manages multiple worlds within the server.
@@ -132,7 +132,7 @@ impl Server {
                 DimensionType::TheEnd,
             ],
             command_dispatcher,
-            block_manager: default_block_manager(),
+            block_registry: block::default_registry(),
             block_properties_manager: default_block_properties_manager(),
             auth_client,
             key_store: KeyStore::new(),

@@ -4,7 +4,7 @@ pub mod level_time;
 pub mod player_chunker;
 
 use crate::{
-    command::client_cmd_suggestions,
+    command::client_suggestions,
     entity::{player::Player, Entity, EntityBase, EntityId},
     error::PumpkinError,
     plugin::{
@@ -37,7 +37,7 @@ use pumpkin_util::text::{color::NamedColor, TextComponent};
 use pumpkin_world::chunk::ChunkData;
 use pumpkin_world::level::Level;
 use pumpkin_world::{
-    block::block_registry::{
+    block::registry::{
         get_block_and_state_by_state_id, get_block_by_state_id, get_state_by_state_id,
     },
     coordinates::ChunkRelativeBlockCoordinates,
@@ -322,7 +322,7 @@ impl World {
             .await;
         // permissions, i. e. the commands a player may use
         player.send_permission_lvl_update().await;
-        client_cmd_suggestions::send_c_commands_packet(&player, &server.command_dispatcher).await;
+        client_suggestions::send_c_commands_packet(&player, &server.command_dispatcher).await;
         // teleport
         let info = &self.level.level_info;
         let mut position = Vector3::new(f64::from(info.spawn_x), 120.0, f64::from(info.spawn_z));
@@ -976,7 +976,7 @@ impl World {
     pub async fn get_block(
         &self,
         position: &BlockPos,
-    ) -> Result<&pumpkin_world::block::block_registry::Block, GetBlockError> {
+    ) -> Result<&pumpkin_world::block::registry::Block, GetBlockError> {
         let id = self.get_block_state_id(position).await?;
         get_block_by_state_id(id).ok_or(GetBlockError::InvalidBlockId)
     }
@@ -985,7 +985,7 @@ impl World {
     pub async fn get_block_state(
         &self,
         position: &BlockPos,
-    ) -> Result<&pumpkin_world::block::block_registry::State, GetBlockError> {
+    ) -> Result<&pumpkin_world::block::registry::State, GetBlockError> {
         let id = self.get_block_state_id(position).await?;
         get_state_by_state_id(id).ok_or(GetBlockError::InvalidBlockId)
     }
@@ -996,8 +996,8 @@ impl World {
         position: &BlockPos,
     ) -> Result<
         (
-            &pumpkin_world::block::block_registry::Block,
-            &pumpkin_world::block::block_registry::State,
+            &pumpkin_world::block::registry::Block,
+            &pumpkin_world::block::registry::State,
         ),
         GetBlockError,
     > {

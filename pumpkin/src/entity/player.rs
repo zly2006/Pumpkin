@@ -17,7 +17,7 @@ use pumpkin_data::{
 use pumpkin_inventory::player::PlayerInventory;
 use pumpkin_nbt::compound::NbtCompound;
 use pumpkin_protocol::{
-    bytebuf::packet_id::Packet,
+    bytebuf::packet::Packet,
     client::play::{
         CActionBar, CCombatDeath, CDisguisedChatMessage, CEntityStatus, CGameEvent, CHurtAnimation,
         CKeepAlive, CPlayDisconnect, CPlayerAbilities, CPlayerInfoUpdate, CPlayerPosition,
@@ -59,7 +59,7 @@ use pumpkin_util::{
 use pumpkin_world::{
     cylindrical_chunk_iterator::Cylindrical,
     item::{
-        item_registry::{get_item_by_id, Operation},
+        registry::{get_item_by_id, Operation},
         ItemStack,
     },
 };
@@ -67,7 +67,7 @@ use tokio::sync::{Mutex, Notify, RwLock};
 
 use super::{item::ItemEntity, Entity, EntityId, NBTStorage};
 use crate::{
-    command::{client_cmd_suggestions, dispatcher::CommandDispatcher},
+    command::{client_suggestions, dispatcher::CommandDispatcher},
     data::op_data::OPERATOR_CONFIG,
     net::{
         combat::{self, player_attack_sound, AttackType},
@@ -528,7 +528,7 @@ impl Player {
     ) {
         self.permission_lvl.store(lvl);
         self.send_permission_lvl_update().await;
-        client_cmd_suggestions::send_c_commands_packet(self, command_dispatcher).await;
+        client_suggestions::send_c_commands_packet(self, command_dispatcher).await;
     }
 
     /// Sends the world time to just the player.
