@@ -40,6 +40,8 @@ pub mod mob;
 pub mod player;
 pub mod projectile;
 
+mod combat;
+
 pub type EntityId = i32;
 
 #[async_trait]

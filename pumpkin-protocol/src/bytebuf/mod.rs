@@ -48,7 +48,7 @@ pub trait ByteBuf: Buf {
 
     fn try_get_var_long(&mut self) -> Result<VarLong, ReadingError>;
 
-    fn try_get_identifer(&mut self) -> Result<Identifier, ReadingError>;
+    fn try_get_identifier(&mut self) -> Result<Identifier, ReadingError>;
 
     fn try_get_string(&mut self) -> Result<String, ReadingError>;
 
@@ -170,12 +170,12 @@ impl<T: Buf> ByteBuf for T {
         self.try_copy_to_bytes(bits.div_ceil(8))
     }
 
-    fn try_get_identifer(&mut self) -> Result<Identifier, ReadingError> {
+    fn try_get_identifier(&mut self) -> Result<Identifier, ReadingError> {
         match Identifier::decode(self) {
-            Ok(identifer) => Ok(identifer),
+            Ok(identifier) => Ok(identifier),
             Err(error) => match error {
-                DecodeError::Incomplete => Err(ReadingError::Incomplete("identifer".to_string())),
-                DecodeError::TooLarge => Err(ReadingError::TooLarge("identifer".to_string())),
+                DecodeError::Incomplete => Err(ReadingError::Incomplete("identifier".to_string())),
+                DecodeError::TooLarge => Err(ReadingError::TooLarge("identifier".to_string())),
             },
         }
     }

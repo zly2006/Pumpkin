@@ -10,7 +10,7 @@ use crate::{
     entity::player::{ChatMode, Hand, Player},
     error::PumpkinError,
     server::Server,
-    world::player_chunker,
+    world::chunker,
 };
 use pumpkin_config::ADVANCED_CONFIG;
 use pumpkin_data::entity::{EntityPose, EntityType};
@@ -204,7 +204,7 @@ impl Player {
                 )
                 .await;
         }
-        player_chunker::update_position(self).await;
+        chunker::update_position(self).await;
     }
 
     pub async fn handle_position_rotation(self: &Arc<Self>, packet: SPlayerPositionRotation) {
@@ -296,7 +296,7 @@ impl Player {
                 )
                 .await;
         }
-        player_chunker::update_position(self).await;
+        chunker::update_position(self).await;
     }
 
     pub async fn handle_rotation(&self, rotation: SPlayerRotation) {
@@ -614,9 +614,9 @@ impl Player {
                 return;
             }
 
-            let (update_skin, update_watched) = {
+            let (update_settings, update_watched) = {
                 let mut config = self.config.lock().await;
-                let update_skin = config.main_hand != main_hand
+                let update_settings = config.main_hand != main_hand
                     || config.skin_parts != client_information.skin_parts;
 
                 let old_view_distance = config.view_distance;
@@ -649,14 +649,14 @@ impl Player {
                     text_filtering: client_information.text_filtering,
                     server_listing: client_information.server_listing,
                 };
-                (update_skin, update_watched)
+                (update_settings, update_watched)
             };
 
             if update_watched {
-                player_chunker::update_position(self).await;
+                chunker::update_position(self).await;
             }
 
-            if update_skin {
+            if update_settings {
                 log::debug!(
                     "Player {} ({}) updated their skin.",
                     self.gameprofile.name,

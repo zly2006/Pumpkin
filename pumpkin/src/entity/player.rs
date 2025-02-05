@@ -66,14 +66,15 @@ use pumpkin_world::{
 };
 use tokio::sync::{Mutex, Notify, RwLock};
 
-use super::{item::ItemEntity, Entity, EntityId, NBTStorage};
+use super::{
+    combat::{self, player_attack_sound, AttackType},
+    item::ItemEntity,
+    Entity, EntityId, NBTStorage,
+};
 use crate::{
     command::{client_suggestions, dispatcher::CommandDispatcher},
     data::op_data::OPERATOR_CONFIG,
-    net::{
-        combat::{self, player_attack_sound, AttackType},
-        Client, PlayerConfig,
-    },
+    net::{Client, PlayerConfig},
     server::Server,
     world::World,
 };

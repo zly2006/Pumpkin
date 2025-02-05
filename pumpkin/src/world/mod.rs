@@ -3,8 +3,8 @@ use std::{
     sync::{atomic::Ordering, Arc},
 };
 
-pub mod level_time;
-pub mod player_chunker;
+pub mod chunker;
+pub mod time;
 
 use crate::{
     command::client_suggestions,
@@ -18,7 +18,7 @@ use crate::{
     server::Server,
     PLUGIN_MANAGER,
 };
-use level_time::LevelTime;
+use border::Worldborder;
 use pumpkin_config::BasicConfiguration;
 use pumpkin_data::{
     entity::EntityType,
@@ -50,18 +50,18 @@ use pumpkin_world::{
 use rand::{thread_rng, Rng};
 use scoreboard::Scoreboard;
 use thiserror::Error;
+use time::LevelTime;
 use tokio::sync::{mpsc::Receiver, Mutex};
 use tokio::{
     runtime::Handle,
     sync::{mpsc, RwLock},
 };
-use worldborder::Worldborder;
 
+pub mod border;
 pub mod bossbar;
 pub mod custom_bossbar;
 pub mod scoreboard;
 pub mod weather;
-pub mod worldborder;
 
 use weather::Weather;
 
@@ -223,13 +223,23 @@ impl World {
     }
 
     pub async fn play_record(&self, record_id: i32, position: BlockPos) {
-        self.broadcast_packet_all(&CLevelEvent::new(1010, position, record_id, false))
-            .await;
+        self.broadcast_packet_all(&CLevelEvent::new(
+            WorldEvent::JukeboxStartsPlaying as i32,
+            position,
+            record_id,
+            false,
+        ))
+        .await;
     }
 
     pub async fn stop_record(&self, position: BlockPos) {
-        self.broadcast_packet_all(&CLevelEvent::new(1011, position, 0, false))
-            .await;
+        self.broadcast_packet_all(&CLevelEvent::new(
+            WorldEvent::JukeboxStopsPlaying as i32,
+            position,
+            0,
+            false,
+        ))
+        .await;
     }
 
     pub async fn tick(&self) {
@@ -499,7 +509,7 @@ impl World {
         }
 
         // Spawn in initial chunks
-        player_chunker::player_join(&player).await;
+        chunker::player_join(&player).await;
 
         // if let Some(bossbars) = self..lock().await.get_player_bars(&player.gameprofile.id) {
         //     for bossbar in bossbars {
@@ -600,7 +610,7 @@ impl World {
         .await;
         player.send_client_information().await;
 
-        player_chunker::player_join(player).await;
+        chunker::player_join(player).await;
         // update commands
 
         player.set_health(20.0, 20, 20.0).await;
