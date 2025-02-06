@@ -34,6 +34,7 @@ use serde::Serialize;
 use crate::world::World;
 
 pub mod ai;
+pub mod hunger;
 pub mod item;
 pub mod living;
 pub mod mob;
@@ -447,7 +448,6 @@ pub trait NBTStorage: Send + Sync {
 /// **Purpose:**
 ///
 /// This enum provides a more type-safe and readable way to represent entity flags compared to using raw integer values.
-#[repr(u8)]
 pub enum Flag {
     /// Indicates if the entity is on fire.
     OnFire = 0,
