@@ -355,7 +355,7 @@ impl Player {
 
         victim
             .living_entity
-            .damage(damage as f32, DamageType::PlayerAttack) // PlayerAttack
+            .damage(damage as f32, DamageType::PLAYER_ATTACK)
             .await;
 
         let mut knockback_strength = 1.0;

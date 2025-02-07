@@ -357,9 +357,9 @@ impl Entity {
             .await;
     }
 
-    pub fn is_invulnerable_to(&self, damage_type: DamageType) -> bool {
+    pub fn is_invulnerable_to(&self, damage_type: &DamageType) -> bool {
         self.invulnerable.load(std::sync::atomic::Ordering::Relaxed)
-            || self.damage_immunities.contains(&damage_type)
+            || self.damage_immunities.contains(damage_type)
     }
 }
 
