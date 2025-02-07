@@ -1,8 +1,5 @@
 use core::f32;
-use std::{
-    f32::consts::PI,
-    sync::{atomic::AtomicBool, Arc},
-};
+use std::sync::{atomic::AtomicBool, Arc};
 
 use async_trait::async_trait;
 use crossbeam::atomic::AtomicCell;
@@ -22,7 +19,7 @@ use pumpkin_protocol::{
     codec::var_int::VarInt,
 };
 use pumpkin_util::math::{
-    boundingbox::{BoundingBox, BoundingBoxSize},
+    boundingbox::{BoundingBox, EntityDimensions},
     get_section_cord,
     position::BlockPos,
     vector2::Vector2,
@@ -94,7 +91,7 @@ pub struct Entity {
     /// The bounding box of an entity (hitbox)
     pub bounding_box: AtomicCell<BoundingBox>,
     ///The size (width and height) of the bounding box
-    pub bounding_box_size: AtomicCell<BoundingBoxSize>,
+    pub bounding_box_size: AtomicCell<EntityDimensions>,
     /// Whether this entity is invulnerable to all damage
     pub invulnerable: AtomicBool,
     /// List of damage types this entity is immune to
@@ -111,7 +108,7 @@ impl Entity {
         entity_type: EntityType,
         standing_eye_height: f32,
         bounding_box: AtomicCell<BoundingBox>,
-        bounding_box_size: AtomicCell<BoundingBoxSize>,
+        bounding_box_size: AtomicCell<EntityDimensions>,
         invulnerable: bool,
     ) -> Self {
         let floor_x = position.x.floor() as i32;
@@ -187,8 +184,8 @@ impl Entity {
     /// Returns entity rotation as vector
     pub fn rotation(&self) -> Vector3<f32> {
         // Convert degrees to radians if necessary
-        let yaw_rad = self.yaw.load() * (PI / 180.0);
-        let pitch_rad = self.pitch.load() * (PI / 180.0);
+        let yaw_rad = self.yaw.load().to_radians();
+        let pitch_rad = self.pitch.load().to_radians();
 
         Vector3::new(
             yaw_rad.cos() * pitch_rad.cos(),
@@ -260,17 +257,13 @@ impl Entity {
         CSpawnEntity::new(
             VarInt(self.entity_id),
             self.entity_uuid,
-            VarInt((self.entity_type) as i32),
-            entity_loc.x,
-            entity_loc.y,
-            entity_loc.z,
+            VarInt(i32::from(self.entity_type.id)),
+            entity_loc,
             self.pitch.load(),
             self.yaw.load(),
             self.head_yaw.load(), // todo: head_yaw and yaw are swapped, find out why
             0.into(),
-            entity_vel.x as f32,
-            entity_vel.y as f32,
-            entity_vel.z as f32,
+            entity_vel,
         )
     }
 

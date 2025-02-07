@@ -97,7 +97,7 @@ impl CommandSender<'_> {
     }
 
     #[must_use]
-    pub fn world(&self) -> Option<&World> {
+    pub fn world(&self) -> Option<&Arc<World>> {
         match self {
             // TODO: maybe return first world when console
             CommandSender::Console | CommandSender::Rcon(..) => None,

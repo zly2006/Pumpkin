@@ -47,7 +47,7 @@ use pumpkin_protocol::{
 };
 use pumpkin_util::{
     math::{
-        boundingbox::{BoundingBox, BoundingBoxSize},
+        boundingbox::{BoundingBox, EntityDimensions},
         experience,
         position::BlockPos,
         vector2::Vector2,
@@ -169,9 +169,9 @@ impl Player {
 
         let gameprofile_clone = gameprofile.clone();
         let config = client.config.lock().await.clone().unwrap_or_default();
-        let bounding_box_size = BoundingBoxSize {
-            width: 0.6,
-            height: 1.8,
+        let bounding_box_size = EntityDimensions {
+            width: EntityType::PLAYER.dimension[0],
+            height: EntityType::PLAYER.dimension[1],
         };
 
         Self {
@@ -180,8 +180,8 @@ impl Player {
                 player_uuid,
                 world,
                 Vector3::new(0.0, 0.0, 0.0),
-                EntityType::Player,
-                1.62,
+                EntityType::PLAYER,
+                EntityType::PLAYER.eye_height,
                 AtomicCell::new(BoundingBox::new_default(&bounding_box_size)),
                 AtomicCell::new(bounding_box_size),
                 matches!(gamemode, GameMode::Creative | GameMode::Spectator),
@@ -404,9 +404,7 @@ impl Player {
                 VarInt(i32::from(sound_id)),
                 None,
                 category,
-                position.x,
-                position.y,
-                position.z,
+                position,
                 volume,
                 pitch,
                 seed,
@@ -791,7 +789,7 @@ impl Player {
         if let Some(item) = inv.held_item_mut() {
             let entity = server.add_entity(
                 self.living_entity.entity.pos.load(),
-                EntityType::Item,
+                EntityType::ITEM,
                 self.world(),
             );
             let item_entity = Arc::new(ItemEntity::new(entity, &item.clone()));

@@ -1,6 +1,6 @@
 use heck::{ToPascalCase, ToShoutySnakeCase};
 use proc_macro2::TokenStream;
-use quote::quote;
+use quote::{format_ident, quote};
 use serde::Deserialize;
 use std::collections::HashMap;
 
@@ -29,8 +29,8 @@ pub(crate) fn build() -> TokenStream {
     let mut enum_variants = Vec::new();
 
     for (name, entry) in damage_types {
-        let const_ident = crate::ident(name.to_shouty_snake_case());
-        let enum_ident = crate::ident(name.to_pascal_case());
+        let const_ident = format_ident!("{}", name.to_shouty_snake_case());
+        let enum_ident = format_ident!("{}", name.to_pascal_case());
 
         enum_variants.push(enum_ident.clone());
 
@@ -58,7 +58,7 @@ pub(crate) fn build() -> TokenStream {
 
     let enum_arms = enum_variants.iter().map(|variant| {
         let const_name = variant.to_string().to_shouty_snake_case();
-        let const_ident = crate::ident(&const_name);
+        let const_ident = format_ident!("{}", &const_name);
         quote! {
             DamageType::#variant => &#const_ident,
         }

@@ -53,7 +53,6 @@ use pumpkin_world::item::registry::{get_item_by_id, get_name_by_id};
 use pumpkin_world::item::ItemStack;
 use pumpkin_world::{
     block::{registry::get_block_by_item, BlockDirection},
-    entity::registry::get_entity_id,
     item::registry::get_spawn_egg,
 };
 
@@ -820,8 +819,9 @@ impl Player {
                         let world = &entity.world;
                         let block = world.get_block(&location).await;
 
-                        world.break_block(&location, Some(self.clone())).await;
-
+                        world
+                            .break_block(server, &location, Some(self.clone()), false)
+                            .await;
                         if let Ok(block) = block {
                             server
                                 .block_registry
@@ -864,7 +864,14 @@ impl Player {
                     let world = &entity.world;
                     let block = world.get_block(&location).await;
 
-                    world.break_block(&location, Some(self.clone())).await;
+                    world
+                        .break_block(
+                            server,
+                            &location,
+                            Some(self.clone()),
+                            self.gamemode.load() != GameMode::Creative,
+                        )
+                        .await;
 
                     if let Ok(block) = block {
                         server
@@ -1171,7 +1178,7 @@ impl Player {
         face: &BlockDirection,
     ) -> Result<bool, Box<dyn PumpkinError>> {
         // checks if spawn egg has a corresponding entity name
-        if let Some(spawn_item_id) = get_entity_id(&item_t) {
+        if let Some(entity_type) = EntityType::from_name(&item_t) {
             let world_pos = BlockPos(location.0 + face.to_offset());
             // align position like Vanilla does
             let pos = Vector3::new(
@@ -1185,7 +1192,7 @@ impl Player {
             let world = self.world();
             // create new mob and uuid based on spawn egg id
             let mob = mob::from_type(
-                EntityType::from_raw(*spawn_item_id).unwrap(),
+                EntityType::from_raw(entity_type.id).unwrap(),
                 server,
                 pos,
                 world,
