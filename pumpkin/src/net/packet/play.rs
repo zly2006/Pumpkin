@@ -1333,15 +1333,17 @@ impl Player {
                 .block_registry
                 .on_placed(&block, self, final_block_pos, server)
                 .await;
+
+            self.client
+                .send_packet(&CAcknowledgeBlockChange::new(use_item_on.sequence))
+                .await;
+
+            self.send_sign_packet(block, final_block_pos, face).await;
+            // Block was placed successfully, decrement inventory
+            return Ok(true);
         }
-        self.client
-            .send_packet(&CAcknowledgeBlockChange::new(use_item_on.sequence))
-            .await;
 
-        self.send_sign_packet(block, final_block_pos, face).await;
-
-        // Block was placed successfully, decrement inventory
-        Ok(true)
+        Ok(false)
     }
 
     /// Checks if block placed was a sign, then opens a dialog
