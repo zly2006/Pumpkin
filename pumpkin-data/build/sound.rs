@@ -9,7 +9,7 @@ pub(crate) fn build() -> TokenStream {
 
     let sound: Vec<String> = serde_json::from_str(include_str!("../../assets/sounds.json"))
         .expect("Failed to parse sounds.json");
-    let variants = array_to_tokenstream(sound.clone());
+    let variants = array_to_tokenstream(&sound);
 
     let type_from_name = &sound
         .iter()

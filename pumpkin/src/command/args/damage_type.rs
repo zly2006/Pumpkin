@@ -52,7 +52,7 @@ impl ArgumentConsumer for DamageTypeArgumentConsumer {
 
 impl DefaultNameArgConsumer for DamageTypeArgumentConsumer {
     fn default_name(&self) -> &'static str {
-        "damage_type"
+        "damageType"
     }
 }
 

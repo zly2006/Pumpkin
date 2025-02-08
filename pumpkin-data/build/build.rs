@@ -10,6 +10,7 @@ mod damage_type;
 mod entity_pose;
 mod entity_type;
 mod game_event;
+mod item;
 mod message_type;
 mod noise_parameter;
 mod packet;
@@ -18,6 +19,7 @@ mod scoreboard_slot;
 mod screen;
 mod sound;
 mod sound_category;
+mod spawn_egg;
 mod world_event;
 
 pub fn main() {
@@ -36,9 +38,11 @@ pub fn main() {
     write_generated_file(biome::build(), "biome.rs");
     write_generated_file(damage_type::build(), "damage_type.rs");
     write_generated_file(message_type::build(), "message_type.rs");
+    write_generated_file(spawn_egg::build(), "spawn_egg.rs");
+    write_generated_file(item::build(), "item.rs");
 }
 
-pub fn array_to_tokenstream(array: Vec<String>) -> TokenStream {
+pub fn array_to_tokenstream(array: &[String]) -> TokenStream {
     let mut variants = TokenStream::new();
 
     for item in array.iter() {

@@ -13,6 +13,7 @@ use pumpkin_config::{ADVANCED_CONFIG, BASIC_CONFIG};
 use pumpkin_data::{
     damage::DamageType,
     entity::EntityType,
+    item::Operation,
     sound::{Sound, SoundCategory},
 };
 use pumpkin_inventory::player::PlayerInventory;
@@ -57,13 +58,7 @@ use pumpkin_util::{
     text::TextComponent,
     GameMode,
 };
-use pumpkin_world::{
-    cylindrical_chunk_iterator::Cylindrical,
-    item::{
-        registry::{get_item_by_id, Operation},
-        ItemStack,
-    },
-};
+use pumpkin_world::{cylindrical_chunk_iterator::Cylindrical, item::ItemStack};
 use tokio::sync::{Mutex, Notify, RwLock};
 
 use super::{
@@ -294,17 +289,15 @@ impl Player {
 
         // get attack damage
         if let Some(item_stack) = item_slot {
-            if let Some(item) = get_item_by_id(item_stack.item_id) {
-                // TODO: this should be cached in memory
-                if let Some(modifiers) = &item.components.attribute_modifiers {
-                    for item_mod in &modifiers.modifiers {
-                        if item_mod.operation == Operation::AddValue {
-                            if item_mod.id == "minecraft:base_attack_damage" {
-                                add_damage = item_mod.amount;
-                            }
-                            if item_mod.id == "minecraft:base_attack_speed" {
-                                add_speed = item_mod.amount;
-                            }
+            // TODO: this should be cached in memory
+            if let Some(modifiers) = &item_stack.item.components.attribute_modifiers {
+                for item_mod in modifiers.modifiers {
+                    if item_mod.operation == Operation::AddValue {
+                        if item_mod.id == "minecraft:base_attack_damage" {
+                            add_damage = item_mod.amount;
+                        }
+                        if item_mod.id == "minecraft:base_attack_speed" {
+                            add_speed = item_mod.amount;
                         }
                     }
                 }

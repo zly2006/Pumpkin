@@ -3,7 +3,7 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use serde::Deserialize;
 use std::collections::HashMap;
-use syn::LitInt;
+use syn::{Ident, LitInt};
 
 #[derive(Deserialize)]
 struct DamageTypeEntry {
@@ -13,10 +13,26 @@ struct DamageTypeEntry {
 
 #[derive(Deserialize)]
 pub struct DamageTypeData {
-    death_message_type: Option<String>,
+    death_message_type: Option<DeathMessageType>,
     exhaustion: f32,
     message_id: String,
-    scaling: String,
+    scaling: DamageScaling,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "snake_case")]
+pub enum DamageScaling {
+    Never,
+    WhenCausedByLivingNonPlayer,
+    Always,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "snake_case")]
+pub enum DeathMessageType {
+    Default,
+    FallVariants,
+    IntentionalGameDesign,
 }
 
 pub(crate) fn build() -> TokenStream {
@@ -36,13 +52,20 @@ pub(crate) fn build() -> TokenStream {
 
         let data = &entry.components;
         let death_message_type = match &data.death_message_type {
-            Some(msg) => quote! { Some(#msg) },
+            Some(msg) => {
+                let msg_ident = Ident::new(&format!("{:?}", msg), proc_macro2::Span::call_site());
+                quote! { Some(DeathMessageType::#msg_ident) }
+            }
             None => quote! { None },
         };
 
         let exhaustion = data.exhaustion;
         let message_id = &data.message_id;
-        let scaling = &data.scaling;
+        let scaling_ident = Ident::new(
+            &format!("{:?}", data.scaling),
+            proc_macro2::Span::call_site(),
+        );
+        let scaling = quote! {DamageScaling::#scaling_ident};
         let id_lit = LitInt::new(&entry.id.to_string(), proc_macro2::Span::call_site());
 
         constants.push(quote! {
@@ -68,11 +91,25 @@ pub(crate) fn build() -> TokenStream {
     quote! {
         #[derive(Clone, Copy, Debug, PartialEq)]
         pub struct DamageType {
-            pub death_message_type: Option<&'static str>,
+            pub death_message_type: Option<DeathMessageType>,
             pub exhaustion: f32,
             pub message_id: &'static str,
-            pub scaling: &'static str,
+            pub scaling: DamageScaling,
             pub id: u32,
+        }
+
+        #[derive(Clone, Copy, Debug, PartialEq)]
+        pub enum DeathMessageType {
+            Default,
+            FallVariants,
+            IntentionalGameDesign,
+        }
+
+        #[derive(Clone, Copy, Debug, PartialEq)]
+        pub enum DamageScaling {
+            Never,
+            WhenCausedByLivingNonPlayer,
+            Always,
         }
 
         impl DamageType {
