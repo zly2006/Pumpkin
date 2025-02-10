@@ -13,8 +13,10 @@ use crate::{
     world::chunker,
 };
 use pumpkin_config::ADVANCED_CONFIG;
-use pumpkin_data::entity::{entity_from_egg, EntityPose, EntityType};
+use pumpkin_data::entity::{entity_from_egg, EntityType};
 use pumpkin_data::item::Item;
+use pumpkin_data::sound::Sound;
+use pumpkin_data::sound::SoundCategory;
 use pumpkin_data::world::CHAT;
 use pumpkin_inventory::player::PlayerInventory;
 use pumpkin_inventory::InventoryError;
@@ -741,27 +743,40 @@ impl Player {
                     return;
                 }
 
+                // TODO: set as camera entity when specator
+
                 let world = &entity.world;
                 let player_victim = world.get_player_by_id(entity_id.0).await;
-                let entity_victim = world.get_entity_by_id(entity_id.0).await;
+                if entity_id.0 == self.entity_id() {
+                    // this can't be triggered from a non-modded client.
+                    self.kick(TextComponent::translate(
+                        "multiplayer.disconnect.invalid_entity_attacked",
+                        [].into(),
+                    ))
+                    .await;
+                    return;
+                }
                 if let Some(player_victim) = player_victim {
                     if player_victim.living_entity.health.load() <= 0.0 {
                         // you can trigger this from a non-modded / innocent client client,
                         // so we shouldn't kick the player
                         return;
                     }
-                    self.attack(&player_victim).await;
-                } else if let Some(entity_victim) = entity_victim {
-                    // Checks if victim is a living entity
-                    if let Some(entity_victim) = entity_victim.get_living_entity() {
-                        if entity_victim.health.load() <= 0.0 {
-                            return;
-                        }
-                        entity_victim.entity.set_pose(EntityPose::Dying).await;
-                        entity_victim.kill().await;
-                        world.clone().remove_entity(&entity_victim.entity).await;
+                    if config.protect_creative
+                        && player_victim.gamemode.load() == GameMode::Creative
+                    {
+                        world
+                            .play_sound(
+                                Sound::EntityPlayerAttackNodamage,
+                                SoundCategory::Players,
+                                &player_victim.position(),
+                            )
+                            .await;
+                        return;
                     }
-                    // TODO: block entities should be checked here (signs)
+                    self.attack(player_victim).await;
+                } else if let Some(entity_victim) = world.get_entity_by_id(entity_id.0).await {
+                    self.attack(entity_victim).await;
                 } else {
                     log::error!(
                         "Player id {} interacted with entity id {} which was not found.",
@@ -775,12 +790,6 @@ impl Player {
                     .await;
                     return;
                 };
-
-                if entity_id.0 == self.entity_id() {
-                    // this, however, can't be triggered from a non-modded client.
-                    self.kick(TextComponent::text("You can't attack yourself"))
-                        .await;
-                }
             }
             ActionType::Interact | ActionType::InteractAt => {
                 log::debug!("todo");
