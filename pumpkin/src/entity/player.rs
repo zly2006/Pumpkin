@@ -14,6 +14,7 @@ use pumpkin_data::{
     damage::DamageType,
     entity::EntityType,
     item::Operation,
+    particle::Particle,
     sound::{Sound, SoundCategory},
 };
 use pumpkin_inventory::player::PlayerInventory;
@@ -22,9 +23,9 @@ use pumpkin_protocol::{
     bytebuf::packet::Packet,
     client::play::{
         CActionBar, CCombatDeath, CDisguisedChatMessage, CEntityStatus, CGameEvent, CHurtAnimation,
-        CKeepAlive, CPlayDisconnect, CPlayerAbilities, CPlayerInfoUpdate, CPlayerPosition,
-        CRespawn, CSetExperience, CSetHealth, CSubtitle, CSystemChatMessage, CTitleText,
-        CUnloadChunk, GameEvent, MetaDataType, PlayerAction,
+        CKeepAlive, CParticle, CPlayDisconnect, CPlayerAbilities, CPlayerInfoUpdate,
+        CPlayerPosition, CRespawn, CSetExperience, CSetHealth, CSubtitle, CSystemChatMessage,
+        CTitleText, CUnloadChunk, GameEvent, MetaDataType, PlayerAction,
     },
     server::play::{
         SChatCommand, SChatMessage, SClientCommand, SClientInformationPlay, SClientTickEnd,
@@ -383,6 +384,28 @@ impl Player {
             TitleMode::SubTitle => self.client.send_packet(&CSubtitle::new(text)).await,
             TitleMode::ActionBar => self.client.send_packet(&CActionBar::new(text)).await,
         }
+    }
+
+    pub async fn spawn_particle(
+        &self,
+        position: Vector3<f64>,
+        offset: Vector3<f32>,
+        max_speed: f32,
+        particle_count: i32,
+        pariticle: Particle,
+    ) {
+        self.client
+            .send_packet(&CParticle::new(
+                false,
+                false,
+                position,
+                offset,
+                max_speed,
+                particle_count,
+                VarInt(pariticle as i32),
+                &[],
+            ))
+            .await;
     }
 
     pub async fn play_sound(

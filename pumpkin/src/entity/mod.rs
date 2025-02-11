@@ -273,6 +273,13 @@ impl Entity {
             entity_vel,
         )
     }
+    pub fn width(&self) -> f32 {
+        self.bounding_box_size.load().width
+    }
+
+    pub fn height(&self) -> f32 {
+        self.bounding_box_size.load().height
+    }
 
     /// Applies knockback to the entity, following vanilla Minecraft's mechanics.
     ///

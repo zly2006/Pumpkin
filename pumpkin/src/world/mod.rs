@@ -23,6 +23,7 @@ use border::Worldborder;
 use pumpkin_config::BasicConfiguration;
 use pumpkin_data::{
     entity::EntityType,
+    particle::Particle,
     sound::{Sound, SoundCategory},
     world::WorldEvent,
 };
@@ -184,6 +185,22 @@ impl World {
         let current_players = self.players.lock().await;
         for (_, player) in current_players.iter().filter(|c| !except.contains(c.0)) {
             player.client.send_packet(packet).await;
+        }
+    }
+
+    pub async fn spawn_particle(
+        &self,
+        position: Vector3<f64>,
+        offset: Vector3<f32>,
+        max_speed: f32,
+        particle_count: i32,
+        pariticle: Particle,
+    ) {
+        let players = self.players.lock().await;
+        for (_, player) in players.iter() {
+            player
+                .spawn_particle(position, offset, max_speed, particle_count, pariticle)
+                .await;
         }
     }
 

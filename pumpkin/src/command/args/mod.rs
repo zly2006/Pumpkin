@@ -3,6 +3,7 @@ use std::{collections::HashMap, hash::Hash, sync::Arc};
 use async_trait::async_trait;
 use bounded_num::{NotInBounds, Number};
 use pumpkin_data::damage::DamageType;
+use pumpkin_data::particle::Particle;
 use pumpkin_data::sound::SoundCategory;
 use pumpkin_protocol::client::play::{ArgumentType, CommandSuggestion, SuggestionProviders};
 use pumpkin_util::text::TextComponent;
@@ -32,6 +33,7 @@ pub mod entity;
 pub mod gamemode;
 pub mod item;
 pub mod message;
+pub mod particle;
 pub mod players;
 pub mod position_2d;
 pub mod position_3d;
@@ -93,6 +95,7 @@ pub enum Arg<'a> {
     Block(&'a str),
     BossbarColor(BossbarColor),
     BossbarStyle(BossbarDivisions),
+    Particle(Particle),
     Msg(String),
     TextComponent(TextComponent),
     Time(i32),

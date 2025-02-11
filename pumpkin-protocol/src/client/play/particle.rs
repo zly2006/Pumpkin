@@ -8,10 +8,11 @@ use crate::VarInt;
 #[derive(Serialize)]
 #[client_packet(PLAY_LEVEL_PARTICLES)]
 pub struct CParticle<'a> {
+    force_spawn: bool,
     /// If true, particle distance increases from 256 to 65536.
-    long_distance: bool,
+    important: bool,
     position: Vector3<f64>,
-    offset: Vector3<f64>,
+    offset: Vector3<f32>,
     max_speed: f32,
     particle_count: i32,
     pariticle_id: VarInt,
@@ -19,17 +20,20 @@ pub struct CParticle<'a> {
 }
 
 impl<'a> CParticle<'a> {
+    #[expect(clippy::too_many_arguments)]
     pub fn new(
-        long_distance: bool,
+        force_spawn: bool,
+        important: bool,
         position: Vector3<f64>,
-        offset: Vector3<f64>,
+        offset: Vector3<f32>,
         max_speed: f32,
         particle_count: i32,
         pariticle_id: VarInt,
         data: &'a [u8],
     ) -> Self {
         Self {
-            long_distance,
+            force_spawn,
+            important,
             position,
             offset,
             max_speed,

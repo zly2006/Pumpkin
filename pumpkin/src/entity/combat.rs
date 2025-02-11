@@ -2,10 +2,7 @@ use pumpkin_data::{
     particle::Particle,
     sound::{Sound, SoundCategory},
 };
-use pumpkin_protocol::{
-    client::play::{CEntityVelocity, CParticle},
-    codec::var_int::VarInt,
-};
+use pumpkin_protocol::{client::play::CEntityVelocity, codec::var_int::VarInt};
 use pumpkin_util::math::vector3::Vector3;
 use pumpkin_world::item::ItemStack;
 
@@ -93,19 +90,16 @@ pub async fn spawn_sweep_particle(attacker_entity: &Entity, world: &World, pos: 
     let e = f64::from((yaw.to_radians()).cos());
 
     let scale = 0.5;
-    // TODO: use entity height
-    let body_y = pos.y * 2.0 * scale;
+    let body_y = pos.y + f64::from(attacker_entity.height()) * scale;
 
     world
-        .broadcast_packet_all(&CParticle::new(
-            false,
+        .spawn_particle(
             Vector3::new(pos.x + d, body_y, pos.z + e),
             Vector3::new(0.0, 0.0, 0.0),
             0.0,
             0,
-            VarInt(Particle::SweepAttack as i32), // sweep
-            &[],
-        ))
+            Particle::SweepAttack,
+        )
         .await;
 }
 

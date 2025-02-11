@@ -18,6 +18,7 @@ pub mod msg;
 pub mod op;
 pub mod pardon;
 pub mod pardonip;
+pub mod particle;
 pub mod playsound;
 pub mod plugin;
 pub mod plugins;
