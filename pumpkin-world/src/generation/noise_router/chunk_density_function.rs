@@ -25,8 +25,8 @@ pub struct WrapperData {
 }
 
 pub enum SampleAction {
-    SkipWrappers,
-    Wrappers(WrapperData),
+    SkipCellCaches,
+    CellCaches(WrapperData),
 }
 
 pub struct ChunkNoiseFunctionSampleOptions {
@@ -226,7 +226,7 @@ impl MutableChunkNoiseFunctionComponentImpl for DensityInterpolator {
         sample_options: &ChunkNoiseFunctionSampleOptions,
     ) -> f64 {
         match sample_options.action {
-            SampleAction::Wrappers(WrapperData {
+            SampleAction::CellCaches(WrapperData {
                 cell_x_block_position,
                 cell_y_block_position,
                 cell_z_block_position,
@@ -251,7 +251,7 @@ impl MutableChunkNoiseFunctionComponentImpl for DensityInterpolator {
                     self.result
                 }
             }
-            SampleAction::SkipWrappers => ChunkNoiseFunctionComponent::sample_from_stack(
+            SampleAction::SkipCellCaches => ChunkNoiseFunctionComponent::sample_from_stack(
                 &mut component_stack[..=self.input_index],
                 pos,
                 sample_options,
@@ -459,7 +459,7 @@ impl MutableChunkNoiseFunctionComponentImpl for CacheOnce {
         sample_options: &ChunkNoiseFunctionSampleOptions,
     ) -> f64 {
         match sample_options.action {
-            SampleAction::Wrappers(_) => {
+            SampleAction::CellCaches(_) => {
                 if self.cache_fill_unique_id == sample_options.cache_fill_unique_id
                     && !self.cache.is_empty()
                 {
@@ -478,7 +478,7 @@ impl MutableChunkNoiseFunctionComponentImpl for CacheOnce {
                     result
                 }
             }
-            SampleAction::SkipWrappers => ChunkNoiseFunctionComponent::sample_from_stack(
+            SampleAction::SkipCellCaches => ChunkNoiseFunctionComponent::sample_from_stack(
                 &mut component_stack[..=self.input_index],
                 pos,
                 sample_options,
@@ -560,7 +560,7 @@ impl MutableChunkNoiseFunctionComponentImpl for CellCache {
         sample_options: &ChunkNoiseFunctionSampleOptions,
     ) -> f64 {
         match sample_options.action {
-            SampleAction::Wrappers(WrapperData {
+            SampleAction::CellCaches(WrapperData {
                 cell_x_block_position,
                 cell_y_block_position,
                 cell_z_block_position,
@@ -575,7 +575,7 @@ impl MutableChunkNoiseFunctionComponentImpl for CellCache {
 
                 self.cache[cache_index]
             }
-            SampleAction::SkipWrappers => ChunkNoiseFunctionComponent::sample_from_stack(
+            SampleAction::SkipCellCaches => ChunkNoiseFunctionComponent::sample_from_stack(
                 &mut component_stack[..=self.input_index],
                 pos,
                 sample_options,

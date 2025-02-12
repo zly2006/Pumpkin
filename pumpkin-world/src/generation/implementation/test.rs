@@ -4,7 +4,7 @@ use crate::{
     chunk::{ChunkData, Subchunks},
     coordinates::ChunkRelativeBlockCoordinates,
     generation::{
-        generator::GeneratorInit, noise_router::proto_noise_router::ProtoChunkNoiseRouter,
+        generator::GeneratorInit, noise_router::proto_noise_router::GlobalProtoNoiseRouter,
         proto_chunk::ProtoChunk, GlobalRandomConfig, Seed, WorldGenerator,
     },
     noise_router::NOISE_ROUTER_ASTS,
@@ -13,14 +13,14 @@ use crate::{
 
 pub struct TestGenerator {
     random_config: GlobalRandomConfig,
-    base_router: ProtoChunkNoiseRouter,
+    base_router: GlobalProtoNoiseRouter,
 }
 
 impl GeneratorInit for TestGenerator {
     fn new(seed: Seed) -> Self {
         let random_config = GlobalRandomConfig::new(seed.0);
         let base_router =
-            ProtoChunkNoiseRouter::generate(&NOISE_ROUTER_ASTS.overworld, &random_config);
+            GlobalProtoNoiseRouter::generate(&NOISE_ROUTER_ASTS.overworld, &random_config);
         Self {
             random_config,
             base_router,

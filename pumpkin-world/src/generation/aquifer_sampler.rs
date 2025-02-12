@@ -464,7 +464,7 @@ impl WorldAquiferSampler {
                 let scaled_z = floor_div(k - 5, 16);
 
                 // The 3 closest positions, closest to furthest
-                let mut hypot_packed_block = [(0, i32::MAX); 3];
+                let mut packed_block_and_hypots = [(0, i32::MAX); 3];
                 for offset_y in -1..=1 {
                     for offset_x in 0..=1 {
                         for offset_z in 0..=1 {
@@ -486,30 +486,31 @@ impl WorldAquiferSampler {
                             let hypot_squared =
                                 local_x * local_x + local_y * local_y + local_z * local_z;
 
-                            if hypot_packed_block[2].1 >= hypot_squared {
-                                hypot_packed_block[2] = (packed_random, hypot_squared);
+                            if packed_block_and_hypots[2].1 >= hypot_squared {
+                                packed_block_and_hypots[2] = (packed_random, hypot_squared);
                             }
 
-                            if hypot_packed_block[1].1 >= hypot_squared {
-                                hypot_packed_block[2] = hypot_packed_block[1];
-                                hypot_packed_block[1] = (packed_random, hypot_squared);
+                            if packed_block_and_hypots[1].1 >= hypot_squared {
+                                packed_block_and_hypots[2] = packed_block_and_hypots[1];
+                                packed_block_and_hypots[1] = (packed_random, hypot_squared);
                             }
 
-                            if hypot_packed_block[0].1 >= hypot_squared {
-                                hypot_packed_block[1] = hypot_packed_block[0];
-                                hypot_packed_block[0] = (packed_random, hypot_squared);
+                            if packed_block_and_hypots[0].1 >= hypot_squared {
+                                packed_block_and_hypots[1] = packed_block_and_hypots[0];
+                                packed_block_and_hypots[0] = (packed_random, hypot_squared);
                             }
                         }
                     }
                 }
 
                 let fluid_level2 = self.get_water_level(
-                    hypot_packed_block[0].0,
+                    packed_block_and_hypots[0].0,
                     router,
                     height_estimator,
                     sample_options,
                 );
-                let d = Self::max_distance(hypot_packed_block[0].1, hypot_packed_block[1].1);
+                let d =
+                    Self::max_distance(packed_block_and_hypots[0].1, packed_block_and_hypots[1].1);
                 let block_state = fluid_level2.get_block_state(j);
 
                 if d <= 0f64 {
@@ -527,7 +528,7 @@ impl WorldAquiferSampler {
                 } else {
                     let barrier_sample = router.barrier_noise(pos, sample_options);
                     let fluid_level3 = self.get_water_level(
-                        hypot_packed_block[1].0,
+                        packed_block_and_hypots[1].0,
                         router,
                         height_estimator,
                         sample_options,
@@ -543,13 +544,15 @@ impl WorldAquiferSampler {
                         None
                     } else {
                         let fluid_level4 = self.get_water_level(
-                            hypot_packed_block[2].0,
+                            packed_block_and_hypots[2].0,
                             router,
                             height_estimator,
                             sample_options,
                         );
-                        let f =
-                            Self::max_distance(hypot_packed_block[0].1, hypot_packed_block[2].1);
+                        let f = Self::max_distance(
+                            packed_block_and_hypots[0].1,
+                            packed_block_and_hypots[2].1,
+                        );
                         if f > 0f64 {
                             let g = d
                                 * f
@@ -564,8 +567,10 @@ impl WorldAquiferSampler {
                             }
                         }
 
-                        let g =
-                            Self::max_distance(hypot_packed_block[1].1, hypot_packed_block[2].1);
+                        let g = Self::max_distance(
+                            packed_block_and_hypots[1].1,
+                            packed_block_and_hypots[2].1,
+                        );
                         if g > 0f64 {
                             let h = d
                                 * g
@@ -665,7 +670,7 @@ mod test {
                 chunk_density_function::{ChunkNoiseFunctionSampleOptions, SampleAction},
                 chunk_noise_router::ChunkNoiseRouter,
                 density_function::UnblendedNoisePos,
-                proto_noise_router::ProtoChunkNoiseRouter,
+                proto_noise_router::GlobalProtoNoiseRouter,
             },
             positions::chunk_pos,
             proto_chunk::StandardChunkFluidLevelSampler,
@@ -679,13 +684,13 @@ mod test {
     const SEED: u64 = 0;
     static RANDOM_CONFIG: LazyLock<GlobalRandomConfig> =
         LazyLock::new(|| GlobalRandomConfig::new(SEED));
-    static PROTO_ROUTER: LazyLock<ProtoChunkNoiseRouter> = LazyLock::new(|| {
+    static PROTO_ROUTER: LazyLock<GlobalProtoNoiseRouter> = LazyLock::new(|| {
         let router_ast = NOISE_ROUTER_ASTS.overworld();
-        ProtoChunkNoiseRouter::generate(router_ast, &RANDOM_CONFIG)
+        GlobalProtoNoiseRouter::generate(router_ast, &RANDOM_CONFIG)
     });
 
     fn create_aquifer(
-        base_router: &ProtoChunkNoiseRouter,
+        base_router: &GlobalProtoNoiseRouter,
     ) -> (
         WorldAquiferSampler,
         ChunkNoiseRouter,
@@ -710,7 +715,7 @@ mod test {
             true,
         );
         let options =
-            ChunkNoiseFunctionSampleOptions::new(false, SampleAction::SkipWrappers, 0, 0, 0);
+            ChunkNoiseFunctionSampleOptions::new(false, SampleAction::SkipCellCaches, 0, 0, 0);
         let sampler = match noise.state_sampler {
             BlockStateSampler::Chained(chained) => chained,
             _ => unreachable!(),

@@ -90,14 +90,14 @@ pub enum UnaryOperation {
 }
 
 #[derive(Deserialize, Hash, Copy, Clone)]
-pub enum WierdScaledMapper {
+pub enum WeirdScaledMapper {
     #[serde(rename(deserialize = "TYPE2"))]
     Caves,
     #[serde(rename(deserialize = "TYPE1"))]
     Tunnels,
 }
 
-impl WierdScaledMapper {
+impl WeirdScaledMapper {
     #[inline]
     pub fn max_multiplier(&self) -> f64 {
         match self {
@@ -172,7 +172,7 @@ pub struct WeirdScaledData {
     #[serde(rename(deserialize = "noise"))]
     pub noise_id: String,
     #[serde(rename(deserialize = "rarityValueMapper"))]
-    pub mapper: WierdScaledMapper,
+    pub mapper: WeirdScaledMapper,
 }
 
 #[derive(Deserialize, Hash)]

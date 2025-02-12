@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use pumpkin_util::random::RandomGenerator;
 
 use crate::{
@@ -26,13 +24,13 @@ use super::{
 
 #[derive(Clone)]
 pub struct Noise {
-    pub sampler: Arc<DoublePerlinNoiseSampler>,
+    pub sampler: DoublePerlinNoiseSampler,
     pub xz_scale: f64,
     pub y_scale: f64,
 }
 
 impl Noise {
-    pub fn new(sampler: Arc<DoublePerlinNoiseSampler>, data: &NoiseData) -> Self {
+    pub fn new(sampler: DoublePerlinNoiseSampler, data: &NoiseData) -> Self {
         Self {
             sampler,
             xz_scale: data.xz_scale.0,
@@ -70,11 +68,11 @@ fn shift_sample_3d(sampler: &DoublePerlinNoiseSampler, x: f64, y: f64, z: f64) -
 
 #[derive(Clone)]
 pub struct ShiftA {
-    sampler: Arc<DoublePerlinNoiseSampler>,
+    sampler: DoublePerlinNoiseSampler,
 }
 
 impl ShiftA {
-    pub fn new(sampler: Arc<DoublePerlinNoiseSampler>) -> Self {
+    pub fn new(sampler: DoublePerlinNoiseSampler) -> Self {
         Self { sampler }
     }
 }
@@ -99,11 +97,11 @@ impl StaticIndependentChunkNoiseFunctionComponentImpl for ShiftA {
 
 #[derive(Clone)]
 pub struct ShiftB {
-    sampler: Arc<DoublePerlinNoiseSampler>,
+    sampler: DoublePerlinNoiseSampler,
 }
 
 impl ShiftB {
-    pub fn new(sampler: Arc<DoublePerlinNoiseSampler>) -> Self {
+    pub fn new(sampler: DoublePerlinNoiseSampler) -> Self {
         Self { sampler }
     }
 }
@@ -131,7 +129,7 @@ pub struct ShiftedNoise {
     pub input_x_index: usize,
     pub input_y_index: usize,
     pub input_z_index: usize,
-    pub sampler: Arc<DoublePerlinNoiseSampler>,
+    pub sampler: DoublePerlinNoiseSampler,
     pub xz_scale: f64,
     pub y_scale: f64,
 }
@@ -184,7 +182,7 @@ impl ShiftedNoise {
         input_x_index: usize,
         input_y_index: usize,
         input_z_index: usize,
-        sampler: Arc<DoublePerlinNoiseSampler>,
+        sampler: DoublePerlinNoiseSampler,
         data: &ShiftedNoiseData,
     ) -> Self {
         Self {

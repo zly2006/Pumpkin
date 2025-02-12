@@ -10,7 +10,7 @@ use crate::{
 use super::{
     aquifer_sampler::{FluidLevel, FluidLevelSampler, FluidLevelSamplerImpl},
     chunk_noise::{ChunkNoiseGenerator, LAVA_BLOCK, STONE_BLOCK, WATER_BLOCK},
-    noise_router::proto_noise_router::ProtoChunkNoiseRouter,
+    noise_router::proto_noise_router::GlobalProtoNoiseRouter,
     positions::chunk_pos::{start_block_x, start_block_z},
     GlobalRandomConfig,
 };
@@ -55,7 +55,7 @@ pub struct ProtoChunk<'a> {
 impl<'a> ProtoChunk<'a> {
     pub fn new(
         chunk_pos: Vector2<i32>,
-        base_router: &'a ProtoChunkNoiseRouter,
+        base_router: &'a GlobalProtoNoiseRouter,
         random_config: &'a GlobalRandomConfig,
     ) -> Self {
         let generation_shape = GenerationShape::SURFACE;
@@ -241,7 +241,7 @@ mod test {
         generation::{
             noise_router::{
                 density_function::{NoiseFunctionComponentRange, PassThrough},
-                proto_noise_router::{ProtoChunkNoiseRouter, ProtoNoiseFunctionComponent},
+                proto_noise_router::{GlobalProtoNoiseRouter, ProtoNoiseFunctionComponent},
             },
             GlobalRandomConfig,
         },
@@ -254,8 +254,8 @@ mod test {
     const SEED: u64 = 0;
     static RANDOM_CONFIG: LazyLock<GlobalRandomConfig> =
         LazyLock::new(|| GlobalRandomConfig::new(SEED));
-    static BASE_NOISE_ROUTER: LazyLock<ProtoChunkNoiseRouter> = LazyLock::new(|| {
-        ProtoChunkNoiseRouter::generate(&NOISE_ROUTER_ASTS.overworld, &RANDOM_CONFIG)
+    static BASE_NOISE_ROUTER: LazyLock<GlobalProtoNoiseRouter> = LazyLock::new(|| {
+        GlobalProtoNoiseRouter::generate(&NOISE_ROUTER_ASTS.overworld, &RANDOM_CONFIG)
     });
 
     #[test]

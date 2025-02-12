@@ -13,7 +13,7 @@ use crate::{
         },
     },
     noise_router::density_function_ast::{
-        ClampedYGradientData, RangeChoiceData, WeirdScaledData, WierdScaledMapper,
+        ClampedYGradientData, RangeChoiceData, WeirdScaledData, WeirdScaledMapper,
     },
 };
 
@@ -91,14 +91,14 @@ impl StaticIndependentChunkNoiseFunctionComponentImpl for EndIsland {
 #[derive(Clone)]
 pub struct WeirdScaled {
     pub input_index: usize,
-    pub sampler: Arc<DoublePerlinNoiseSampler>,
-    pub mapper: WierdScaledMapper,
+    pub sampler: DoublePerlinNoiseSampler,
+    pub mapper: WeirdScaledMapper,
 }
 
 impl WeirdScaled {
     pub fn new(
         input_index: usize,
-        sampler: Arc<DoublePerlinNoiseSampler>,
+        sampler: DoublePerlinNoiseSampler,
         data: &WeirdScaledData,
     ) -> Self {
         Self {

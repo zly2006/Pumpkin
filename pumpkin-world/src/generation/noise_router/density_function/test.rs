@@ -103,7 +103,7 @@ macro_rules! build_function {
 }
 
 const TEST_SAMPLE_OPTIONS: ChunkNoiseFunctionSampleOptions =
-    ChunkNoiseFunctionSampleOptions::new(false, SampleAction::SkipWrappers, 0, 0, 0);
+    ChunkNoiseFunctionSampleOptions::new(false, SampleAction::SkipCellCaches, 0, 0, 0);
 
 macro_rules! sample_router_function {
     ($name:ident, $pos: expr) => {{

@@ -1,4 +1,7 @@
-use crate::{generation::biome_coords, noise_router::density_function_ast::WrapperType};
+use crate::{
+    generation::biome_coords, noise_router::density_function_ast::WrapperType,
+    GlobalProtoNoiseRouter,
+};
 
 use super::{
     chunk_density_function::{
@@ -7,7 +10,7 @@ use super::{
     },
     chunk_noise_router::ChunkNoiseFunctionComponent,
     density_function::{NoiseFunctionComponentRange, PassThrough, UnblendedNoisePos},
-    proto_noise_router::{ProtoMultiNoiseSampler, ProtoNoiseFunctionComponent},
+    proto_noise_router::ProtoNoiseFunctionComponent,
 };
 
 pub struct MultiNoiseSamplerBuilderOptions {
@@ -49,7 +52,7 @@ impl<'a> MultiNoiseSampler<'a> {
 
         let pos = UnblendedNoisePos::new(block_x, block_y, block_z);
         let sample_options =
-            ChunkNoiseFunctionSampleOptions::new(false, SampleAction::SkipWrappers, 0, 0, 0);
+            ChunkNoiseFunctionSampleOptions::new(false, SampleAction::SkipCellCaches, 0, 0, 0);
 
         let _temperature = ChunkNoiseFunctionComponent::sample_from_stack(
             &mut self.component_stack[..=self.temperature],
@@ -91,9 +94,12 @@ impl<'a> MultiNoiseSampler<'a> {
     }
 
     pub fn generate(
-        base: &'a ProtoMultiNoiseSampler,
+        base: &'a GlobalProtoNoiseRouter,
         build_options: &MultiNoiseSamplerBuilderOptions,
     ) -> Self {
+        // TODO: It seems kind of wasteful to iter over all components (even those we dont need
+        // because they're for chunk population), but this is the best I've got for now.
+        // (Should we traverse the functions and update the indices?)
         let mut component_stack =
             Vec::<ChunkNoiseFunctionComponent>::with_capacity(base.component_stack.len());
         for base_component in base.component_stack.iter() {
@@ -114,19 +120,19 @@ impl<'a> MultiNoiseSampler<'a> {
                     })
                 }
                 ProtoNoiseFunctionComponent::Wrapper(wrapper) => {
-                    // Due to our previous invariant with the proto-function, it is guaranteed
+                    //NOTE: Due to our previous invariant with the proto-function, it is guaranteed
                     // that the wrapped function is already on the stack
                     let min_value = component_stack[wrapper.input_index].min();
                     let max_value = component_stack[wrapper.input_index].max();
 
                     match wrapper.wrapper_type {
-                        WrapperType::Cache2D => ChunkNoiseFunctionComponent::Chunk(
+                        WrapperType::Cache2D => ChunkNoiseFunctionComponent::Chunk(Box::new(
                             ChunkSpecificNoiseFunctionComponent::Cache2D(Cache2D::new(
                                 wrapper.input_index,
                                 min_value,
                                 max_value,
                             )),
-                        ),
+                        )),
                         WrapperType::CacheFlat => {
                             let mut flat_cache = FlatCache::new(
                                 wrapper.input_index,
@@ -138,7 +144,7 @@ impl<'a> MultiNoiseSampler<'a> {
                             );
                             let sample_options = ChunkNoiseFunctionSampleOptions::new(
                                 false,
-                                SampleAction::SkipWrappers,
+                                SampleAction::SkipCellCaches,
                                 0,
                                 0,
                                 0,
@@ -162,7 +168,7 @@ impl<'a> MultiNoiseSampler<'a> {
                                         block_z_position,
                                     );
 
-                                    // Due to our stack invariant, what is on the stack is a
+                                    //NOTE: Due to our stack invariant, what is on the stack is a
                                     // valid density function
                                     let sample = ChunkNoiseFunctionComponent::sample_from_stack(
                                         &mut component_stack[..=wrapper.input_index],
@@ -176,9 +182,9 @@ impl<'a> MultiNoiseSampler<'a> {
                                 }
                             }
 
-                            ChunkNoiseFunctionComponent::Chunk(
+                            ChunkNoiseFunctionComponent::Chunk(Box::new(
                                 ChunkSpecificNoiseFunctionComponent::FlatCache(flat_cache),
-                            )
+                            ))
                         }
                         _ => {
                             panic!("These density functions should not be a part of the MultiNoiseSampler! We probably need to re-write code");

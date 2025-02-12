@@ -1,7 +1,6 @@
 use std::{
     collections::HashMap,
     hash::{DefaultHasher, Hash, Hasher},
-    sync::Arc,
 };
 
 use enum_dispatch::enum_dispatch;
@@ -66,47 +65,31 @@ pub enum ProtoNoiseFunctionComponent {
     PassThrough(PassThrough),
 }
 
-pub(crate) struct DoublePerlinNoiseBuilder<'a, 'b> {
-    random_config: &'b GlobalRandomConfig,
-    id_to_sampler_map: Vec<(&'a str, Arc<DoublePerlinNoiseSampler>)>,
+pub(crate) struct DoublePerlinNoiseBuilder<'a> {
+    random_config: &'a GlobalRandomConfig,
 }
 
-impl<'a, 'b> DoublePerlinNoiseBuilder<'a, 'b> {
-    pub fn new(rand: &'b GlobalRandomConfig) -> Self {
+impl<'a> DoublePerlinNoiseBuilder<'a> {
+    pub fn new(rand: &'a GlobalRandomConfig) -> Self {
         Self {
             random_config: rand,
-            id_to_sampler_map: Vec::new(),
         }
     }
 
-    fn get_noise_sampler_for_id(&mut self, id: &'a str) -> Arc<DoublePerlinNoiseSampler> {
-        self.id_to_sampler_map
-            .iter()
-            .find_map(|ele| {
-                if ele.0.eq(id) {
-                    Some(ele.1.clone())
-                } else {
-                    None
-                }
-            })
-            .unwrap_or_else(|| {
-                let parameters = DoublePerlinNoiseParameters::id_to_parameters(id)
-                    .unwrap_or_else(|| panic!("Unknown noise id: {}", id));
+    fn get_noise_sampler_for_id(&mut self, id: &str) -> DoublePerlinNoiseSampler {
+        let parameters = DoublePerlinNoiseParameters::id_to_parameters(id)
+            .unwrap_or_else(|| panic!("Unknown noise id: {}", id));
 
-                // Note that the parameters' id is differenent than `id`
-                let mut random = self
-                    .random_config
-                    .base_random_deriver
-                    .split_string(parameters.id());
-                let sampler = DoublePerlinNoiseSampler::new(&mut random, parameters, false);
-                let wrapped = Arc::new(sampler);
-                self.id_to_sampler_map.push((id, wrapped.clone()));
-                wrapped
-            })
+        // Note that the parameters' id is differenent than `id`
+        let mut random = self
+            .random_config
+            .base_random_deriver
+            .split_string(parameters.id());
+        DoublePerlinNoiseSampler::new(&mut random, parameters, false)
     }
 }
 
-// Invariant: all index references point to components that have a lower index than the
+// NOTE: Invariant: all index references point to components that have a lower index than the
 // component referencing it
 
 /// Returns the index of component the AST represents on the stack
@@ -115,7 +98,7 @@ pub(crate) fn recursive_build_proto_stack<'a>(
     random_config: &GlobalRandomConfig,
     stack: &mut Vec<ProtoNoiseFunctionComponent>,
     map: &mut HashMap<u64, usize>,
-    perlin_noise_builder: &mut DoublePerlinNoiseBuilder<'a, '_>,
+    perlin_noise_builder: &mut DoublePerlinNoiseBuilder<'a>,
 ) -> usize {
     let mut hasher = DefaultHasher::new();
     ast.hash(&mut hasher);
@@ -406,7 +389,7 @@ pub(crate) fn recursive_build_proto_stack<'a>(
             }
         };
 
-        // Invariant: the current component is at the top of the stack
+        //NOTE: Invariant: the current component is at the top of the stack
         let component_index = stack.len();
         stack.push(component);
         map.insert(ast_hash, component_index);
@@ -419,7 +402,7 @@ fn recursive_build_spline<'a>(
     random_config: &GlobalRandomConfig,
     stack: &mut Vec<ProtoNoiseFunctionComponent>,
     map: &mut HashMap<u64, usize>,
-    perlin_noise_builder: &mut DoublePerlinNoiseBuilder<'a, '_>,
+    perlin_noise_builder: &mut DoublePerlinNoiseBuilder<'a>,
 ) -> SplineValue {
     match spline_ast {
         SplineRepr::Standard {
@@ -454,7 +437,7 @@ fn recursive_build_spline<'a>(
 }
 
 #[derive(Clone)]
-pub struct ProtoChunkNoiseRouter {
+pub struct GlobalProtoNoiseRouter {
     pub barrier_noise: usize,
     pub fluid_level_floodedness_noise: usize,
     pub fluid_level_spread_noise: usize,
@@ -466,113 +449,14 @@ pub struct ProtoChunkNoiseRouter {
     pub vein_toggle: usize,
     pub vein_ridged: usize,
     pub vein_gap: usize,
-    pub component_stack: Box<[ProtoNoiseFunctionComponent]>,
-}
-
-impl ProtoChunkNoiseRouter {
-    pub fn generate(ast: &NoiseRouterRepr, random_config: &GlobalRandomConfig) -> Self {
-        // Contiguous memory for our function components
-        let mut stack = Vec::<ProtoNoiseFunctionComponent>::new();
-        // Map of AST hash to index in the stack
-        let mut map = HashMap::<u64, usize>::new();
-        let mut perlin_noise_builder = DoublePerlinNoiseBuilder::new(random_config);
-
-        Self {
-            barrier_noise: recursive_build_proto_stack(
-                ast.barrier_noise(),
-                random_config,
-                &mut stack,
-                &mut map,
-                &mut perlin_noise_builder,
-            ),
-            fluid_level_floodedness_noise: recursive_build_proto_stack(
-                ast.fluid_level_floodedness_noise(),
-                random_config,
-                &mut stack,
-                &mut map,
-                &mut perlin_noise_builder,
-            ),
-            fluid_level_spread_noise: recursive_build_proto_stack(
-                ast.fluid_level_spread_noise(),
-                random_config,
-                &mut stack,
-                &mut map,
-                &mut perlin_noise_builder,
-            ),
-            lava_noise: recursive_build_proto_stack(
-                ast.lava_noise(),
-                random_config,
-                &mut stack,
-                &mut map,
-                &mut perlin_noise_builder,
-            ),
-            depth: recursive_build_proto_stack(
-                ast.depth(),
-                random_config,
-                &mut stack,
-                &mut map,
-                &mut perlin_noise_builder,
-            ),
-            erosion: recursive_build_proto_stack(
-                ast.erosion(),
-                random_config,
-                &mut stack,
-                &mut map,
-                &mut perlin_noise_builder,
-            ),
-            final_density: recursive_build_proto_stack(
-                ast.final_density(),
-                random_config,
-                &mut stack,
-                &mut map,
-                &mut perlin_noise_builder,
-            ),
-            initial_density_without_jaggedness: recursive_build_proto_stack(
-                ast.initial_density_without_jaggedness(),
-                random_config,
-                &mut stack,
-                &mut map,
-                &mut perlin_noise_builder,
-            ),
-            vein_gap: recursive_build_proto_stack(
-                ast.vein_gap(),
-                random_config,
-                &mut stack,
-                &mut map,
-                &mut perlin_noise_builder,
-            ),
-            vein_ridged: recursive_build_proto_stack(
-                ast.vein_ridged(),
-                random_config,
-                &mut stack,
-                &mut map,
-                &mut perlin_noise_builder,
-            ),
-            vein_toggle: recursive_build_proto_stack(
-                ast.vein_toggle(),
-                random_config,
-                &mut stack,
-                &mut map,
-                &mut perlin_noise_builder,
-            ),
-            component_stack: stack.into_boxed_slice(),
-        }
-    }
-}
-
-pub struct ProtoMultiNoiseSampler {
-    pub temperature: usize,
-    // AKA: Humidity
-    pub vegetation: usize,
-    pub continents: usize,
-    pub erosion: usize,
-    pub depth: usize,
-    // AKA: Weirdness
     pub ridges: usize,
+    pub temperature: usize,
+    pub continents: usize,
+    pub vegetation: usize,
     pub component_stack: Box<[ProtoNoiseFunctionComponent]>,
 }
 
-impl ProtoMultiNoiseSampler {
+impl GlobalProtoNoiseRouter {
     pub fn generate(ast: &NoiseRouterRepr, random_config: &GlobalRandomConfig) -> Self {
         // Contiguous memory for our function components
         let mut stack = Vec::<ProtoNoiseFunctionComponent>::new();
@@ -580,49 +464,69 @@ impl ProtoMultiNoiseSampler {
         let mut map = HashMap::<u64, usize>::new();
         let mut perlin_noise_builder = DoublePerlinNoiseBuilder::new(random_config);
 
+        // Keep the functions that are called most frequently closer together in memory to try to
+        // keep in it mem cache more. Functions that are added to the stack first are the most dense
+        // with functions being added later the least dense due to only adding one component to the
+        // stack based on the AST hash.
+        //
+        // This was determined visually and should probably be more programatically tested.
+        // E.g. everything with a flat cached gets cached on init so we dont care about where it
+        // lives in memory
+
+        macro_rules! push_ast {
+            ($name:expr) => {
+                recursive_build_proto_stack(
+                    $name,
+                    random_config,
+                    &mut stack,
+                    &mut map,
+                    &mut perlin_noise_builder,
+                )
+            };
+        }
+
+        // The height estimator is called multiple times per aquifer call
+        let initial_density_without_jaggedness =
+            push_ast!(ast.initial_density_without_jaggedness());
+
+        // The aquifer sampler is called most often
+        let final_density = push_ast!(ast.final_density());
+        let barrier_noise = push_ast!(ast.barrier_noise());
+        let fluid_level_floodedness_noise = push_ast!(ast.fluid_level_floodedness_noise());
+        let fluid_level_spread_noise = push_ast!(ast.fluid_level_spread_noise());
+        let lava_noise = push_ast!(ast.lava_noise());
+
+        // Ore sampler is called fewer times than aquifer sampler
+        let vein_toggle = push_ast!(ast.vein_toggle());
+        let vein_ridged = push_ast!(ast.vein_ridged());
+        let vein_gap = push_ast!(ast.vein_gap());
+
+        // These should all be cached so it doesnt matter where their components are
+        let erosion = push_ast!(ast.erosion());
+        let depth = push_ast!(ast.depth());
+
+        //NOTE: Invariant: MultiNoiseSampler functions are pushed after the populate noise functions with
+        let ridges = push_ast!(ast.ridges());
+        let temperature = push_ast!(ast.temperature());
+        let vegetation = push_ast!(ast.vegetation());
+        let continents = push_ast!(ast.continents());
+
         Self {
-            temperature: recursive_build_proto_stack(
-                ast.temperature(),
-                random_config,
-                &mut stack,
-                &mut map,
-                &mut perlin_noise_builder,
-            ),
-            vegetation: recursive_build_proto_stack(
-                ast.vegetation(),
-                random_config,
-                &mut stack,
-                &mut map,
-                &mut perlin_noise_builder,
-            ),
-            continents: recursive_build_proto_stack(
-                ast.continents(),
-                random_config,
-                &mut stack,
-                &mut map,
-                &mut perlin_noise_builder,
-            ),
-            erosion: recursive_build_proto_stack(
-                ast.erosion(),
-                random_config,
-                &mut stack,
-                &mut map,
-                &mut perlin_noise_builder,
-            ),
-            depth: recursive_build_proto_stack(
-                ast.depth(),
-                random_config,
-                &mut stack,
-                &mut map,
-                &mut perlin_noise_builder,
-            ),
-            ridges: recursive_build_proto_stack(
-                ast.ridges(),
-                random_config,
-                &mut stack,
-                &mut map,
-                &mut perlin_noise_builder,
-            ),
+            barrier_noise,
+            fluid_level_floodedness_noise,
+            fluid_level_spread_noise,
+            final_density,
+            lava_noise,
+            erosion,
+            depth,
+            vein_toggle,
+            vein_ridged,
+            vein_gap,
+            ridges,
+            temperature,
+            vegetation,
+            continents,
+            initial_density_without_jaggedness,
             component_stack: stack.into_boxed_slice(),
         }
     }

@@ -294,6 +294,7 @@ impl OctavePerlinNoiseSampler {
     }
 }
 
+#[derive(Clone)]
 pub struct DoublePerlinNoiseSampler {
     first_sampler: OctavePerlinNoiseSampler,
     second_sampler: OctavePerlinNoiseSampler,
