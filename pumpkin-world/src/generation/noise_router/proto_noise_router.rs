@@ -469,7 +469,7 @@ impl GlobalProtoNoiseRouter {
         // with functions being added later the least dense due to only adding one component to the
         // stack based on the AST hash.
         //
-        // This was determined visually and should probably be more programatically tested.
+        // This was determined visually and should probably be more programmatically tested.
         // E.g. everything with a flat cached gets cached on init so we dont care about where it
         // lives in memory
 

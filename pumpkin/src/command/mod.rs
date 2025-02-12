@@ -110,7 +110,7 @@ impl CommandSender<'_> {
 pub fn default_dispatcher() -> CommandDispatcher {
     let mut dispatcher = CommandDispatcher::default();
 
-    // Zerp
+    // Zero
     dispatcher.register(pumpkin::init_command_tree(), PermissionLvl::Zero);
     dispatcher.register(help::init_command_tree(), PermissionLvl::Zero);
     dispatcher.register(list::init_command_tree(), PermissionLvl::Zero);

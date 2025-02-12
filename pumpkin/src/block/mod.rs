@@ -51,7 +51,7 @@ pub fn default_registry() -> Arc<BlockRegistry> {
 }
 
 pub async fn drop_loot(server: &Server, world: &Arc<World>, block: &Block, pos: &BlockPos) {
-    // TODO: Currently only the item block is droped, We should drop the loop table
+    // TODO: Currently only the item block is dropped, We should drop the loop table
     let height = EntityType::ITEM.dimension[1] / 2.0;
     let pos = Vector3::new(
         f64::from(pos.0.x) + 0.5 + rand::thread_rng().gen_range(-0.25..0.25),

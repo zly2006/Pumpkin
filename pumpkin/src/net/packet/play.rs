@@ -747,7 +747,7 @@ impl Player {
                     return;
                 }
 
-                // TODO: set as camera entity when specator
+                // TODO: set as camera entity when spectator
 
                 let world = &entity.world.read().await;
                 let player_victim = world.get_player_by_id(entity_id.0).await;
