@@ -47,16 +47,16 @@ pub static LOGGER_IMPL: LazyLock<Option<(Box<dyn Log>, LevelFilter)>> = LazyLock
             logger = logger.without_timestamps();
         }
 
-        Some((
-            Box::new(
-                logger
-                    .with_level(LevelFilter::Info)
-                    .with_colors(ADVANCED_CONFIG.logging.color)
-                    .with_threads(ADVANCED_CONFIG.logging.threads)
-                    .env(),
-            ),
-            LevelFilter::Info,
-        ))
+        let logger = logger
+            .with_level(LevelFilter::Info)
+            .with_colors(ADVANCED_CONFIG.logging.color)
+            .with_threads(ADVANCED_CONFIG.logging.threads)
+            .env();
+
+        // Incase environment variables change it
+        let max_level = logger.max_level();
+
+        Some((Box::new(logger), max_level))
     } else {
         None
     }
@@ -66,8 +66,8 @@ pub static LOGGER_IMPL: LazyLock<Option<(Box<dyn Log>, LevelFilter)>> = LazyLock
 macro_rules! init_log {
     () => {
         if let Some((logger_impl, level)) = &*pumpkin::LOGGER_IMPL {
-            log::set_max_level(*level);
             log::set_logger(logger_impl).unwrap();
+            log::set_max_level(*level);
         }
     };
 }
