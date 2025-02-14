@@ -873,17 +873,15 @@ impl Player {
                     let entity = &self.living_entity.entity;
                     let world = &entity.world.read().await;
                     let block = world.get_block(&location).await;
-
-                    world
-                        .break_block(
-                            server,
-                            &location,
-                            Some(self.clone()),
-                            self.gamemode.load() != GameMode::Creative,
-                        )
-                        .await;
-
+                    let state = world.get_block_state(&location).await;
                     if let Ok(block) = block {
+                        if let Ok(state) = state {
+                            let drop = self.gamemode.load() != GameMode::Creative
+                                && self.can_harvest(state, &block.name).await;
+                            world
+                                .break_block(server, &location, Some(self.clone()), drop)
+                                .await;
+                        }
                         server
                             .block_registry
                             .broken(block, &self, location, server)

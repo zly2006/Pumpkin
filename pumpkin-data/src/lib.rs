@@ -1,3 +1,5 @@
+pub mod tag;
+
 pub mod item {
     include!(concat!(env!("OUT_DIR"), "/item.rs"));
 }

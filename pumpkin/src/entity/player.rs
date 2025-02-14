@@ -1,3 +1,4 @@
+use pumpkin_world::block::registry::State;
 use std::{
     num::NonZeroU8,
     sync::{
@@ -872,6 +873,16 @@ impl Player {
                 config.main_hand as u8,
             ))
             .await;
+    }
+
+    pub async fn can_harvest(&self, block: &State, block_name: &str) -> bool {
+        !block.tool_required
+            || self
+                .inventory
+                .lock()
+                .await
+                .held_item()
+                .map_or_else(|| false, |e| e.is_correct_for_drops(block_name))
     }
 
     pub async fn send_message(

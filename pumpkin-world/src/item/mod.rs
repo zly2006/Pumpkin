@@ -27,4 +27,16 @@ impl ItemStack {
     pub fn new(item_count: u8, item: Item) -> Self {
         Self { item_count, item }
     }
+
+    pub fn is_correct_for_drops(&self, block: &str) -> bool {
+        if let Some(tool) = self.item.components.tool {
+            for rule in tool.rules {
+                if rule.correct_for_drops.is_none() || !rule.blocks.contains(&block) {
+                    continue;
+                }
+                return rule.correct_for_drops.unwrap();
+            }
+        }
+        false
+    }
 }
