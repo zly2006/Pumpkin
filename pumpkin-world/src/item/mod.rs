@@ -28,6 +28,19 @@ impl ItemStack {
         Self { item_count, item }
     }
 
+    pub fn get_speed(&self, block: &str) -> f32 {
+        if let Some(tool) = self.item.components.tool {
+            for rule in tool.rules {
+                if rule.speed.is_none() || !rule.blocks.contains(&block) {
+                    continue;
+                }
+                return rule.speed.unwrap();
+            }
+            return tool.default_mining_speed.unwrap_or(1.0);
+        }
+        1.0
+    }
+
     pub fn is_correct_for_drops(&self, block: &str) -> bool {
         if let Some(tool) = self.item.components.tool {
             for rule in tool.rules {

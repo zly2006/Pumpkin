@@ -2,7 +2,7 @@ use pumpkin_world::block::registry::State;
 use std::{
     num::NonZeroU8,
     sync::{
-        atomic::{AtomicBool, AtomicI32, AtomicI64, AtomicU32, AtomicU8, Ordering},
+        atomic::{AtomicBool, AtomicI32, AtomicI64, AtomicU32, Ordering},
         Arc,
     },
     time::{Duration, Instant},
@@ -23,10 +23,10 @@ use pumpkin_nbt::compound::NbtCompound;
 use pumpkin_protocol::{
     bytebuf::packet::Packet,
     client::play::{
-        CActionBar, CCombatDeath, CDisguisedChatMessage, CEntityStatus, CGameEvent, CHurtAnimation,
-        CKeepAlive, CParticle, CPlayDisconnect, CPlayerAbilities, CPlayerInfoUpdate,
-        CPlayerPosition, CRespawn, CSetExperience, CSetHealth, CSubtitle, CSystemChatMessage,
-        CTitleText, CUnloadChunk, GameEvent, MetaDataType, PlayerAction,
+        CAcknowledgeBlockChange, CActionBar, CCombatDeath, CDisguisedChatMessage, CEntityStatus,
+        CGameEvent, CHurtAnimation, CKeepAlive, CParticle, CPlayDisconnect, CPlayerAbilities,
+        CPlayerInfoUpdate, CPlayerPosition, CRespawn, CSetExperience, CSetHealth, CSubtitle,
+        CSystemChatMessage, CTitleText, CUnloadChunk, GameEvent, MetaDataType, PlayerAction,
     },
     server::play::{
         SChatCommand, SChatMessage, SClientCommand, SClientInformationPlay, SClientTickEnd,
@@ -70,6 +70,7 @@ use super::{
     Entity, EntityBase, EntityId, NBTStorage,
 };
 use crate::{
+    block,
     command::{client_suggestions, dispatcher::CommandDispatcher},
     data::op_data::OPERATOR_CONFIG,
     net::{Client, PlayerConfig},
@@ -102,7 +103,6 @@ pub struct Player {
     pub open_container: AtomicCell<Option<u64>>,
     /// The item currently being held by the player.
     pub carried_item: AtomicCell<Option<ItemStack>>,
-
     /// send `send_abilities_update` when changed
     /// The player's abilities and special powers.
     ///
@@ -110,9 +110,14 @@ pub struct Player {
     ///
     /// **Note:** When the `abilities` field is updated, the server should send a `send_abilities_update` packet to the client to notify them of the changes.
     pub abilities: Mutex<Abilities>,
-
     /// The current stage of the block the player is breaking.
-    pub current_block_destroy_stage: AtomicU8,
+    pub current_block_destroy_stage: AtomicI32,
+    /// Indicates if the player is currently mining a block.
+    pub mining: AtomicBool,
+    pub start_mining_time: AtomicI32,
+    pub tick_counter: AtomicI32,
+    pub packet_sequence: AtomicI32,
+    pub mining_pos: Mutex<BlockPos>,
     /// A counter for teleport IDs used to track pending teleports.
     pub teleport_id_count: AtomicI32,
     /// The pending teleport information, including the teleport ID and target location.
@@ -189,10 +194,15 @@ impl Player {
             awaiting_teleport: Mutex::new(None),
             // TODO: Load this from previous instance
             hunger_manager: HungerManager::default(),
-            current_block_destroy_stage: AtomicU8::new(0),
+            current_block_destroy_stage: AtomicI32::new(-1),
             open_container: AtomicCell::new(None),
+            tick_counter: AtomicI32::new(0),
+            packet_sequence: AtomicI32::new(-1),
+            start_mining_time: AtomicI32::new(0),
             carried_item: AtomicCell::new(None),
             teleport_id_count: AtomicI32::new(0),
+            mining: AtomicBool::new(false),
+            mining_pos: Mutex::new(BlockPos(Vector3::new(0, 0, 0))),
             abilities: Mutex::new(Abilities::default()),
             gamemode: AtomicCell::new(gamemode),
             // We want this to be an impossible watched section so that `player_chunker::update_position`
@@ -443,7 +453,39 @@ impl Player {
         {
             return;
         }
-        let now = Instant::now();
+        if self.packet_sequence.load(Ordering::Relaxed) > -1 {
+            self.client
+                .send_packet(&CAcknowledgeBlockChange::new(
+                    self.packet_sequence.swap(-1, Ordering::Relaxed).into(),
+                ))
+                .await;
+        }
+
+        self.tick_counter.fetch_add(1, Ordering::Relaxed);
+
+        if self.mining.load(Ordering::Relaxed) {
+            let pos = self.mining_pos.lock().await;
+            let world = self.world().await;
+            let block = world.get_block(&pos).await.unwrap();
+            let state = world.get_block_state(&pos).await.unwrap();
+            // Is block broken ?
+            if state.air {
+                world.set_block_breaking(self.entity_id(), *pos, -1).await;
+                self.current_block_destroy_stage
+                    .store(-1, Ordering::Relaxed);
+                self.mining.store(false, Ordering::Relaxed);
+            } else {
+                self.continue_mining(
+                    *pos,
+                    &world,
+                    state,
+                    &block.name,
+                    self.start_mining_time.load(Ordering::Relaxed),
+                )
+                .await;
+            }
+        }
+
         self.last_attacked_ticks
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
@@ -452,6 +494,8 @@ impl Player {
 
         // timeout/keep alive handling
         self.tick_client_load_timeout();
+
+        let now = Instant::now();
         if now.duration_since(self.last_keep_alive_time.load()) >= Duration::from_secs(15) {
             // We never got a response from our last keep alive we send
             if self
@@ -469,6 +513,26 @@ impl Player {
             self.keep_alive_id
                 .store(id, std::sync::atomic::Ordering::Relaxed);
             self.client.send_packet(&CKeepAlive::new(id)).await;
+        }
+    }
+
+    async fn continue_mining(
+        &self,
+        location: BlockPos,
+        world: &World,
+        state: &State,
+        block_name: &str,
+        starting_time: i32,
+    ) {
+        let time = self.tick_counter.load(Ordering::Relaxed) - starting_time;
+        let speed = block::calc_block_breaking(self, state, block_name).await * (time + 1) as f32;
+        let progress = (speed * 10.0) as i32;
+        if progress != self.current_block_destroy_stage.load(Ordering::Relaxed) {
+            world
+                .set_block_breaking(self.entity_id(), location, progress)
+                .await;
+            self.current_block_destroy_stage
+                .store(progress, Ordering::Relaxed);
         }
     }
 
@@ -508,7 +572,6 @@ impl Player {
     }
 
     pub fn get_attack_cooldown_progress(&self, base_time: f64, attack_speed: f64) -> f64 {
-        #[allow(clippy::cast_precision_loss)]
         let x = f64::from(
             self.last_attacked_ticks
                 .load(std::sync::atomic::Ordering::Acquire),
@@ -849,7 +912,6 @@ impl Player {
             ))
             .await;
 
-        #[allow(clippy::cast_precision_loss)]
         self.client
             .send_packet(&CGameEvent::new(
                 GameEvent::ChangeGameMode,
@@ -883,6 +945,20 @@ impl Player {
                 .await
                 .held_item()
                 .map_or_else(|| false, |e| e.is_correct_for_drops(block_name))
+    }
+
+    pub async fn get_mining_speed(&self, block_name: &str) -> f32 {
+        let mut speed = self
+            .inventory
+            .lock()
+            .await
+            .get_mining_speed(block_name)
+            .await;
+        // TODO: Handle effects
+        if !self.living_entity.entity.on_ground.load(Ordering::Relaxed) {
+            speed /= 5.0;
+        }
+        speed
     }
 
     pub async fn send_message(
@@ -929,7 +1005,6 @@ impl Player {
     }
 
     /// Sets the player's experience level and updates the client
-    #[allow(clippy::cast_precision_loss)]
     pub async fn set_experience(&self, level: i32, progress: f32, points: i32) {
         self.experience_level.store(level, Ordering::Relaxed);
         self.experience_progress.store(progress.clamp(0.0, 1.0));
@@ -945,7 +1020,6 @@ impl Player {
     }
 
     /// Sets the player's experience level directly
-    #[allow(clippy::cast_precision_loss)]
     pub async fn set_experience_level(&self, new_level: i32, keep_progress: bool) {
         let progress = self.experience_progress.load();
         let mut points = self.experience_points.load(Ordering::Relaxed);
@@ -974,7 +1048,6 @@ impl Player {
     }
 
     /// Set the player's experience points directly, Returns true if successful.
-    #[allow(clippy::cast_precision_loss)]
     pub async fn set_experience_points(&self, new_points: i32) -> bool {
         let current_points = self.experience_points.load(Ordering::Relaxed);
 

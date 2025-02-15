@@ -135,6 +135,7 @@ pub struct State {
     pub luminance: u8,
     pub burnable: bool,
     pub tool_required: bool,
+    pub hardness: f32,
     pub opacity: Option<u32>,
     pub replaceable: bool,
     pub collision_shapes: Vec<u16>,

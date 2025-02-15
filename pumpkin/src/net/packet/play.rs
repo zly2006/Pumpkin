@@ -1,6 +1,7 @@
 use std::num::NonZeroU8;
 use std::sync::Arc;
 
+use crate::block;
 use crate::block::properties::Direction;
 use crate::block::registry::BlockActionResult;
 use crate::entity::mob;
@@ -22,16 +23,15 @@ use pumpkin_inventory::player::PlayerInventory;
 use pumpkin_inventory::InventoryError;
 use pumpkin_macros::block_entity;
 use pumpkin_protocol::client::play::{
-    CBlockEntityData, COpenSignEditor, CSetContainerSlot, CSetHeldItem,
+    CBlockEntityData, COpenSignEditor, CSetContainerSlot, CSetHeldItem, EquipmentSlot,
 };
 use pumpkin_protocol::codec::slot::Slot;
 use pumpkin_protocol::codec::var_int::VarInt;
 use pumpkin_protocol::server::play::{SCookieResponse as SPCookieResponse, SUpdateSign};
 use pumpkin_protocol::{
     client::play::{
-        Animation, CAcknowledgeBlockChange, CCommandSuggestions, CEntityAnimation, CHeadRot,
-        CPingResponse, CPlayerChatMessage, CUpdateEntityPos, CUpdateEntityPosRot, CUpdateEntityRot,
-        FilterType,
+        Animation, CCommandSuggestions, CEntityAnimation, CHeadRot, CPingResponse,
+        CPlayerChatMessage, CUpdateEntityPos, CUpdateEntityPosRot, CUpdateEntityRot, FilterType,
     },
     server::play::{
         Action, ActionType, SChatCommand, SChatMessage, SClientCommand, SClientInformationPlay,
@@ -481,6 +481,10 @@ impl Player {
 
         // Update held item
         inventory.set_selected(dest_slot as u32);
+        let empty = &ItemStack::new(0, Item::AIR);
+        let stack = inventory.held_item().unwrap_or(empty);
+        let equipment = vec![(EquipmentSlot::MainHand, *stack)];
+        self.living_entity.send_equipment_changes(equipment).await;
         self.client
             .send_packet(&CSetHeldItem::new(dest_slot as i8))
             .await;
@@ -801,6 +805,7 @@ impl Player {
         }
     }
 
+    #[expect(clippy::too_many_lines)]
     pub async fn handle_player_action(
         self: Arc<Self>,
         player_action: SPlayerAction,
@@ -820,14 +825,16 @@ impl Player {
                         );
                         return;
                     }
+                    let location = player_action.location;
+                    let entity = &self.living_entity.entity;
+                    let world = &entity.world.read().await;
+                    let block = world.get_block(&location).await;
+                    let state = world.get_block_state(&location).await.unwrap();
+
                     // TODO: do validation
                     // TODO: Config
                     if self.gamemode.load() == GameMode::Creative {
-                        let location = player_action.location;
                         // Block break & block break sound
-                        let entity = &self.living_entity.entity;
-                        let world = &entity.world.read().await;
-                        let block = world.get_block(&location).await;
 
                         world
                             .break_block(server, &location, Some(self.clone()), false)
@@ -838,10 +845,38 @@ impl Player {
                                 .broken(block, &self, location, server)
                                 .await;
                         }
+                        return;
                     }
-                    self.client
-                        .send_packet(&CAcknowledgeBlockChange::new(player_action.sequence))
-                        .await;
+                    self.start_mining_time.store(
+                        self.tick_counter.load(std::sync::atomic::Ordering::Relaxed),
+                        std::sync::atomic::Ordering::Relaxed,
+                    );
+                    if let Ok(block) = block {
+                        if !state.air {
+                            let speed = block::calc_block_breaking(&self, state, &block.name).await;
+                            // Instant break
+                            if speed >= 1.0 {
+                                world
+                                    .break_block(server, &location, Some(self.clone()), true)
+                                    .await;
+                                server
+                                    .block_registry
+                                    .broken(block, &self, location, server)
+                                    .await;
+                            } else {
+                                self.mining
+                                    .store(true, std::sync::atomic::Ordering::Relaxed);
+                                *self.mining_pos.lock().await = location;
+                                let progress = (speed * 10.0) as i32;
+                                world
+                                    .set_block_breaking(self.entity_id(), location, progress)
+                                    .await;
+                                self.current_block_destroy_stage
+                                    .store(progress, std::sync::atomic::Ordering::Relaxed);
+                            }
+                        }
+                    }
+                    self.update_sequence(player_action.sequence.0);
                 }
                 Status::CancelledDigging => {
                     if !self.can_interact_with_block_at(&player_action.location, 1.0) {
@@ -852,13 +887,17 @@ impl Player {
                         );
                         return;
                     }
-                    self.current_block_destroy_stage
-                        .store(0, std::sync::atomic::Ordering::Relaxed);
-                    self.client
-                        .send_packet(&CAcknowledgeBlockChange::new(player_action.sequence))
+                    self.mining
+                        .store(false, std::sync::atomic::Ordering::Relaxed);
+                    let entity = &self.living_entity.entity;
+                    let world = &entity.world.read().await;
+                    world
+                        .set_block_breaking(self.entity_id(), player_action.location, -1)
                         .await;
+                    self.update_sequence(player_action.sequence.0);
                 }
                 Status::FinishedDigging => {
+                    dbg!("fuff");
                     // TODO: do validation
                     let location = player_action.location;
                     if !self.can_interact_with_block_at(&location, 1.0) {
@@ -872,6 +911,11 @@ impl Player {
                     // Block break & block break sound
                     let entity = &self.living_entity.entity;
                     let world = &entity.world.read().await;
+                    self.mining
+                        .store(false, std::sync::atomic::Ordering::Relaxed);
+                    world
+                        .set_block_breaking(self.entity_id(), location, -1)
+                        .await;
                     let block = world.get_block(&location).await;
                     let state = world.get_block_state(&location).await;
                     if let Ok(block) = block {
@@ -887,9 +931,7 @@ impl Player {
                             .broken(block, &self, location, server)
                             .await;
                     }
-                    self.client
-                        .send_packet(&CAcknowledgeBlockChange::new(player_action.sequence))
-                        .await;
+                    self.update_sequence(player_action.sequence.0);
                 }
                 Status::DropItemStack | Status::DropItem => {
                     self.drop_item(server).await;
@@ -918,6 +960,18 @@ impl Player {
         }
     }
 
+    pub fn update_sequence(&self, sequence: i32) {
+        if sequence < 0 {
+            log::error!("Expected packet sequence >= 0");
+        }
+        self.packet_sequence.store(
+            self.packet_sequence
+                .load(std::sync::atomic::Ordering::Relaxed)
+                .max(sequence),
+            std::sync::atomic::Ordering::Relaxed,
+        );
+    }
+
     pub async fn handle_player_abilities(&self, player_abilities: SPlayerAbilities) {
         let mut abilities = self.abilities.lock().await;
 
@@ -943,6 +997,7 @@ impl Player {
         if !self.has_client_loaded() {
             return Ok(());
         }
+        self.update_sequence(use_item_on.sequence.0);
 
         let location = use_item_on.location;
         let mut should_try_decrement = false;
@@ -986,9 +1041,6 @@ impl Player {
                     .on_interact(block, block_state, &ItemStack::new(0, Item::AIR))
                     .await;
                 world.set_block_state(&location, new_state).await;
-                self.client
-                    .send_packet(&CAcknowledgeBlockChange::new(use_item_on.sequence))
-                    .await;
             }
             return Ok(());
         };
@@ -1008,9 +1060,6 @@ impl Player {
                 .on_interact(block, block_state, &stack)
                 .await;
             world.set_block_state(&location, new_state).await;
-            self.client
-                .send_packet(&CAcknowledgeBlockChange::new(use_item_on.sequence.clone()))
-                .await;
             match action_result {
                 BlockActionResult::Continue => {}
                 BlockActionResult::Consume => {
@@ -1093,7 +1142,12 @@ impl Player {
             self.kick(TextComponent::text("Invalid held slot")).await;
             return;
         }
-        self.inventory().lock().await.set_selected(slot as u32);
+        let mut inv = self.inventory().lock().await;
+        inv.set_selected(slot as u32);
+        let empty = &ItemStack::new(0, Item::AIR);
+        let stack = inv.held_item().unwrap_or(empty);
+        let equipment = vec![(EquipmentSlot::MainHand, *stack)];
+        self.living_entity.send_equipment_changes(equipment).await;
     }
 
     pub async fn handle_set_creative_slot(
@@ -1253,9 +1307,6 @@ impl Player {
 
         // check block under the world
         if location.0.y + face.to_offset().y < WORLD_LOWEST_Y.into() {
-            self.client
-                .send_packet(&CAcknowledgeBlockChange::new(use_item_on.sequence))
-                .await;
             return Err(BlockPlacingError::BlockOutOfWorld.into());
         }
 
@@ -1270,17 +1321,11 @@ impl Player {
                 true,
             )
             .await;
-            self.client
-                .send_packet(&CAcknowledgeBlockChange::new(use_item_on.sequence))
-                .await;
             return Err(BlockPlacingError::BlockOutOfWorld.into());
         }
 
         match self.gamemode.load() {
             GameMode::Spectator | GameMode::Adventure => {
-                self.client
-                    .send_packet(&CAcknowledgeBlockChange::new(use_item_on.sequence))
-                    .await;
                 return Err(BlockPlacingError::InvalidGamemode.into());
             }
             _ => {}
@@ -1354,10 +1399,6 @@ impl Player {
             server
                 .block_registry
                 .on_placed(&block, self, final_block_pos, server)
-                .await;
-
-            self.client
-                .send_packet(&CAcknowledgeBlockChange::new(use_item_on.sequence))
                 .await;
 
             self.send_sign_packet(block, final_block_pos, face).await;

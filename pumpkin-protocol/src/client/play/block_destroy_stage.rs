@@ -11,11 +11,11 @@ use crate::VarInt;
 pub struct CSetBlockDestroyStage {
     entity_id: VarInt,
     location: BlockPos,
-    destroy_stage: u8,
+    destroy_stage: i8,
 }
 
 impl CSetBlockDestroyStage {
-    pub fn new(entity_id: VarInt, location: BlockPos, destroy_stage: u8) -> Self {
+    pub fn new(entity_id: VarInt, location: BlockPos, destroy_stage: i8) -> Self {
         Self {
             entity_id,
             location,

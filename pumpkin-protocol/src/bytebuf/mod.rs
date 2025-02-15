@@ -12,7 +12,7 @@ use bytes::{Buf, BufMut};
 mod deserializer;
 use thiserror::Error;
 pub mod packet;
-mod serializer;
+pub mod serializer;
 
 #[derive(Debug, Error)]
 pub enum ReadingError {

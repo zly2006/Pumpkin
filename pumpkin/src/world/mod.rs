@@ -28,7 +28,9 @@ use pumpkin_data::{
     world::WorldEvent,
 };
 use pumpkin_macros::send_cancellable;
-use pumpkin_protocol::client::play::{CBlockUpdate, CDisguisedChatMessage, CRespawn, CWorldEvent};
+use pumpkin_protocol::client::play::{
+    CBlockUpdate, CDisguisedChatMessage, CRespawn, CSetBlockDestroyStage, CWorldEvent,
+};
 use pumpkin_protocol::{client::play::CLevelEvent, codec::identifier::Identifier};
 use pumpkin_protocol::{
     client::play::{
@@ -983,6 +985,15 @@ impl World {
         self.entities.write().await.remove(&entity.entity_uuid);
         self.broadcast_packet_all(&CRemoveEntities::new(&[entity.entity_id.into()]))
             .await;
+    }
+
+    pub async fn set_block_breaking(&self, entity_id: EntityId, location: BlockPos, progress: i32) {
+        self.broadcast_packet_all(&CSetBlockDestroyStage::new(
+            entity_id.into(),
+            location,
+            progress as i8,
+        ))
+        .await;
     }
 
     /// Sets a block

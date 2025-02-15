@@ -20,6 +20,7 @@
 #![deny(clippy::print_stderr)]
 // REMOVE SOME WHEN RELEASE
 #![expect(clippy::cargo_common_metadata)]
+#![expect(clippy::cast_precision_loss)]
 #![expect(clippy::multiple_crate_versions)]
 #![expect(clippy::single_call_fn)]
 #![expect(clippy::cast_sign_loss)]

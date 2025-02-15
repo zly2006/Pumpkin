@@ -115,6 +115,11 @@ impl PlayerInventory {
         self.items[self.selected as usize + 36 - 9].as_ref()
     }
 
+    pub async fn get_mining_speed(&self, block_name: &str) -> f32 {
+        self.held_item()
+            .map_or_else(|| 1.0, |e| e.get_speed(block_name))
+    }
+
     pub fn held_item_mut(&mut self) -> &mut Option<ItemStack> {
         debug_assert!((0..9).contains(&self.selected));
         &mut self.items[self.selected as usize + 36 - 9]
