@@ -155,12 +155,11 @@ impl Player {
         entity_id: EntityId,
         gamemode: GameMode,
     ) -> Self {
-        let player_uuid = uuid::Uuid::new_v4();
         let gameprofile = client.gameprofile.lock().await.clone().map_or_else(
             || {
                 log::error!("Client {} has no game profile!", client.id);
                 GameProfile {
-                    id: player_uuid,
+                    id: uuid::Uuid::new_v4(),
                     name: String::new(),
                     properties: vec![],
                     profile_actions: None,
@@ -168,6 +167,7 @@ impl Player {
             },
             |profile| profile,
         );
+        let player_uuid = gameprofile.id;
 
         let gameprofile_clone = gameprofile.clone();
         let config = client.config.lock().await.clone().unwrap_or_default();
@@ -470,7 +470,9 @@ impl Player {
             let state = world.get_block_state(&pos).await.unwrap();
             // Is block broken ?
             if state.air {
-                world.set_block_breaking(self.entity_id(), *pos, -1).await;
+                world
+                    .set_block_breaking(&self.living_entity.entity, *pos, -1)
+                    .await;
                 self.current_block_destroy_stage
                     .store(-1, Ordering::Relaxed);
                 self.mining.store(false, Ordering::Relaxed);
@@ -529,7 +531,7 @@ impl Player {
         let progress = (speed * 10.0) as i32;
         if progress != self.current_block_destroy_stage.load(Ordering::Relaxed) {
             world
-                .set_block_breaking(self.entity_id(), location, progress)
+                .set_block_breaking(&self.living_entity.entity, location, progress)
                 .await;
             self.current_block_destroy_stage
                 .store(progress, Ordering::Relaxed);

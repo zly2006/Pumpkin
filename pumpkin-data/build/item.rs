@@ -94,14 +94,17 @@ impl ToTokens for ItemComponents {
             Some(tool) => {
                 let rules_code = tool.rules.iter().map(|rule| {
                     let mut block_array = Vec::new();
+
+                    // TODO: According to the wiki, this can be a string or a list,
+                    // I dont think there'll be any issues with always using a list, but we can
+                    // probably save bandwidth doing single strings
                     for reg in rule.blocks.get_values() {
-                        for tag in reg.get_values(RegistryKey::Block) {
-                            match tag {
-                                Some(tag) => block_array.extend(quote! { #tag }),
-                                None => continue,
-                            }
-                        }
+                        let tag_string = reg.serialize();
+                        // The client knows what tags are, just send them the tag instead of all the
+                        // blocks that is a part of the tag.
+                        block_array.extend(quote! { #tag_string });
                     }
+
                     let speed = match rule.speed {
                         Some(speed) => {
                             quote! { Some(#speed) }

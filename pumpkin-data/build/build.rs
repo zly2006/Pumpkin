@@ -9,6 +9,7 @@ mod chunk_status;
 mod damage_type;
 mod entity_pose;
 mod entity_type;
+mod fluid;
 mod game_event;
 mod item;
 mod message_type;
@@ -40,6 +41,7 @@ pub fn main() {
     write_generated_file(message_type::build(), "message_type.rs");
     write_generated_file(spawn_egg::build(), "spawn_egg.rs");
     write_generated_file(item::build(), "item.rs");
+    write_generated_file(fluid::build(), "fluid.rs");
 }
 
 pub fn array_to_tokenstream(array: &[String]) -> TokenStream {

@@ -868,9 +868,7 @@ impl Player {
                                     .store(true, std::sync::atomic::Ordering::Relaxed);
                                 *self.mining_pos.lock().await = location;
                                 let progress = (speed * 10.0) as i32;
-                                world
-                                    .set_block_breaking(self.entity_id(), location, progress)
-                                    .await;
+                                world.set_block_breaking(entity, location, progress).await;
                                 self.current_block_destroy_stage
                                     .store(progress, std::sync::atomic::Ordering::Relaxed);
                             }
@@ -892,12 +890,11 @@ impl Player {
                     let entity = &self.living_entity.entity;
                     let world = &entity.world.read().await;
                     world
-                        .set_block_breaking(self.entity_id(), player_action.location, -1)
+                        .set_block_breaking(entity, player_action.location, -1)
                         .await;
                     self.update_sequence(player_action.sequence.0);
                 }
                 Status::FinishedDigging => {
-                    dbg!("fuff");
                     // TODO: do validation
                     let location = player_action.location;
                     if !self.can_interact_with_block_at(&location, 1.0) {
@@ -913,9 +910,7 @@ impl Player {
                     let world = &entity.world.read().await;
                     self.mining
                         .store(false, std::sync::atomic::Ordering::Relaxed);
-                    world
-                        .set_block_breaking(self.entity_id(), location, -1)
-                        .await;
+                    world.set_block_breaking(entity, location, -1).await;
                     let block = world.get_block(&location).await;
                     let state = world.get_block_state(&location).await;
                     if let Ok(block) = block {

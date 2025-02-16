@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 use pumpkin_config::{ADVANCED_CONFIG, BASIC_CONFIG};
 use pumpkin_protocol::{
     client::{
-        config::{CConfigAddResourcePack, CConfigServerLinks, CKnownPacks},
+        config::{CConfigAddResourcePack, CConfigServerLinks, CKnownPacks, CUpdateTags},
         login::{CLoginSuccess, CSetCompression},
     },
     codec::var_int::VarInt,
@@ -351,6 +351,14 @@ impl Client {
             ))
             .await;
         }
+
+        // TODO: Is this the right place to send them?
+        // send tags
+        self.send_packet(&CUpdateTags::new(&[
+            pumpkin_data::tag::RegistryKey::Block,
+            pumpkin_data::tag::RegistryKey::Fluid,
+        ]))
+        .await;
 
         // known data packs
         self.send_packet(&CKnownPacks::new(&[KnownPack {

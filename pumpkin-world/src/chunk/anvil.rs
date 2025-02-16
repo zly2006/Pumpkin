@@ -11,9 +11,8 @@ use std::{
     io::{Read, Seek, SeekFrom, Write},
 };
 
-use crate::{
-    block::registry::BLOCK_ID_TO_REGISTRY_ID, chunk::ChunkWritingError, level::LevelFolder,
-};
+use crate::block::registry::STATE_ID_TO_REGISTRY_ID;
+use crate::{chunk::ChunkWritingError, level::LevelFolder};
 
 use super::{
     ChunkData, ChunkNbt, ChunkReader, ChunkReadingError, ChunkSection, ChunkSectionBlockStates,
@@ -248,8 +247,7 @@ impl ChunkWriter for AnvilChunkFormat {
             .map_err(|err| ChunkWritingError::IoError(err.kind()))?;
 
         // Serialize chunk data
-        let raw_bytes = self
-            .to_bytes(chunk_data)
+        let raw_bytes = Self::to_bytes(chunk_data)
             .map_err(|err| ChunkWritingError::ChunkSerializingError(err.to_string()))?;
 
         // Compress chunk data
@@ -366,7 +364,7 @@ impl ChunkWriter for AnvilChunkFormat {
 }
 
 impl AnvilChunkFormat {
-    pub fn to_bytes(&self, chunk_data: &ChunkData) -> Result<Vec<u8>, ChunkSerializingError> {
+    pub fn to_bytes(chunk_data: &ChunkData) -> Result<Vec<u8>, ChunkSerializingError> {
         let mut sections = Vec::new();
 
         for (i, blocks) in chunk_data.subchunks.array_iter().enumerate() {
@@ -377,7 +375,7 @@ impl AnvilChunkFormat {
                 .into_iter()
                 .enumerate()
                 .map(|(i, block)| {
-                    let name = BLOCK_ID_TO_REGISTRY_ID.get(block).unwrap().as_str();
+                    let name = STATE_ID_TO_REGISTRY_ID.get(block).unwrap();
                     (block, (name, i))
                 })
                 .collect();
@@ -429,8 +427,18 @@ impl AnvilChunkFormat {
                     palette: palette
                         .into_iter()
                         .map(|entry| PaletteEntry {
-                            name: entry.1 .0.to_owned(),
-                            properties: None,
+                            name: entry.1 .0.to_string(),
+                            properties: {
+                                /*
+                                let properties = &get_block(entry.1 .0).unwrap().properties;
+                                let mut map = HashMap::new();
+                                for property in properties {
+                                    map.insert(property.name.to_string(), property.values.clone());
+                                }
+                                Some(map)
+                                */
+                                None
+                            },
                         })
                         .collect(),
                 }),

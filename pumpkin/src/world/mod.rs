@@ -987,12 +987,11 @@ impl World {
             .await;
     }
 
-    pub async fn set_block_breaking(&self, entity_id: EntityId, location: BlockPos, progress: i32) {
-        self.broadcast_packet_all(&CSetBlockDestroyStage::new(
-            entity_id.into(),
-            location,
-            progress as i8,
-        ))
+    pub async fn set_block_breaking(&self, from: &Entity, location: BlockPos, progress: i32) {
+        self.broadcast_packet_except(
+            &[from.entity_uuid],
+            &CSetBlockDestroyStage::new(from.entity_id.into(), location, progress as i8),
+        )
         .await;
     }
 

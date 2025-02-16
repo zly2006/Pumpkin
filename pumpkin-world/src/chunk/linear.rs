@@ -342,8 +342,8 @@ impl LinearFile {
         at: &pumpkin_util::math::vector2::Vector2<i32>,
     ) -> Result<(), ChunkSerializingError> {
         let chunk_index: usize = LinearChunkFormat::get_chunk_index(at);
-        let chunk_raw = AnvilChunkFormat {} //We use Anvil format to serialize the chunk
-            .to_bytes(chunk)?;
+        let chunk_raw = AnvilChunkFormat :: //We use Anvil format to serialize the chunk
+            to_bytes(chunk)?;
 
         let new_chunk_size = chunk_raw.len();
         let old_chunk_size = self.chunks_headers[chunk_index].size as usize;
