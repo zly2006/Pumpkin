@@ -1,8 +1,8 @@
 use bytes::*;
-use fastnbt::LongArray;
 use flate2::bufread::{GzDecoder, GzEncoder, ZlibDecoder, ZlibEncoder};
 use indexmap::IndexMap;
 use pumpkin_config::ADVANCED_CONFIG;
+use pumpkin_nbt::serializer::to_bytes;
 use pumpkin_util::math::ceil_log2;
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::{
@@ -425,7 +425,7 @@ impl AnvilChunkFormat {
             sections.push(ChunkSection {
                 y: i as i8 - 4,
                 block_states: Some(ChunkSectionBlockStates {
-                    data: Some(LongArray::new(section_longs)),
+                    data: Some(section_longs.into_boxed_slice()),
                     palette: palette
                         .into_iter()
                         .map(|entry| PaletteEntry {
@@ -446,7 +446,9 @@ impl AnvilChunkFormat {
             sections,
         };
 
-        fastnbt::to_bytes(&nbt).map_err(ChunkSerializingError::ErrorSerializingChunk)
+        let mut result = Vec::new();
+        to_bytes(&nbt, &mut result).map_err(ChunkSerializingError::ErrorSerializingChunk)?;
+        Ok(result)
     }
 
     /// Returns the next free writable sector
@@ -565,4 +567,47 @@ mod tests {
 
         println!("Checked chunks successfully");
     }
+
+    // TODO
+    /*
+    #[test]
+    fn test_load_java_chunk() {
+        let temp_dir = TempDir::new().unwrap();
+        let level_folder = LevelFolder {
+            root_folder: temp_dir.path().to_path_buf(),
+            region_folder: temp_dir.path().join("region"),
+        };
+
+        fs::create_dir(&level_folder.region_folder).unwrap();
+        fs::copy(
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .unwrap()
+                .join(file!())
+                .parent()
+                .unwrap()
+                .join("../../assets/r.0.0.mca"),
+            level_folder.region_folder.join("r.0.0.mca"),
+        )
+        .unwrap();
+
+        let mut actually_tested = false;
+        for x in 0..(1 << 5) {
+            for z in 0..(1 << 5) {
+                let result = AnvilChunkFormat {}.read_chunk(&level_folder, &Vector2 { x, z });
+
+                match result {
+                    Ok(_) => actually_tested = true,
+                    Err(ChunkReadingError::ParsingError(ChunkParsingError::ChunkNotGenerated)) => {}
+                    Err(ChunkReadingError::ChunkNotExist) => {}
+                    Err(e) => panic!("{:?}", e),
+                }
+
+                println!("=========== OK ===========");
+            }
+        }
+
+        assert!(actually_tested);
+    }
+    */
 }
