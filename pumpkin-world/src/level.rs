@@ -75,10 +75,13 @@ impl Level {
             match error {
                 // If it doesn't exist, just make a new one
                 WorldInfoError::InfoNotFound => (),
-                _ => {
-                    log::error!("Failed to load world info!");
+                WorldInfoError::UnsupportedVersion(version) => {
+                    log::error!("Failed to load world info!, {version}");
                     log::error!("{}", error);
                     panic!("Unsupported world data! See the logs for more info.");
+                }
+                e => {
+                    panic!("World Error {}", e);
                 }
             }
         } else {
