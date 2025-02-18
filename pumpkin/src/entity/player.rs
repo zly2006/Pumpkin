@@ -815,17 +815,19 @@ impl Player {
             return;
         }
 
-        self.client
+        let _ = self
+            .client
             .try_send_packet(&CPlayDisconnect::new(&reason))
-            .await
-            .unwrap_or_else(|_| self.client.close());
+            .await;
+
         log::info!(
             "Kicked Player {} ({}) for {}",
             self.gameprofile.name,
             self.client.id,
             reason.to_pretty_console()
         );
-        self.client.close();
+
+        self.client.close().await;
     }
 
     pub fn can_food_heal(&self) -> bool {
