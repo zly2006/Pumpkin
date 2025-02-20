@@ -1,12 +1,12 @@
-use crate::bytebuf::{serializer::Serializer, ByteBufMut};
+use crate::bytebuf::{ByteBufMut, serializer::Serializer};
 use bytes::BytesMut;
 use pumpkin_data::packet::clientbound::PLAY_SET_EQUIPMENT;
 use pumpkin_macros::client_packet;
 use serde::Serialize;
 
 use crate::{
-    codec::{slot::Slot, var_int::VarInt},
     ClientPacket,
+    codec::{slot::Slot, var_int::VarInt},
 };
 
 #[client_packet(PLAY_SET_EQUIPMENT)]

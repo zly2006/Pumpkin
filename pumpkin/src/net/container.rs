@@ -2,21 +2,21 @@ use crate::entity::player::Player;
 use crate::server::Server;
 use pumpkin_data::item::Item;
 use pumpkin_data::screen::WindowType;
+use pumpkin_inventory::Container;
 use pumpkin_inventory::container_click::{
     Click, ClickType, KeyClick, MouseClick, MouseDragState, MouseDragType,
 };
 use pumpkin_inventory::drag_handler::DragHandler;
 use pumpkin_inventory::window_property::{WindowProperty, WindowPropertyTrait};
-use pumpkin_inventory::Container;
-use pumpkin_inventory::{container_click, InventoryError, OptionallyCombinedContainer};
+use pumpkin_inventory::{InventoryError, OptionallyCombinedContainer, container_click};
 use pumpkin_protocol::client::play::{
     CCloseContainer, COpenScreen, CSetContainerContent, CSetContainerProperty, CSetContainerSlot,
 };
 use pumpkin_protocol::codec::slot::Slot;
 use pumpkin_protocol::codec::var_int::VarInt;
 use pumpkin_protocol::server::play::SClickContainer;
-use pumpkin_util::text::TextComponent;
 use pumpkin_util::GameMode;
+use pumpkin_util::text::TextComponent;
 use pumpkin_world::item::ItemStack;
 use std::sync::Arc;
 

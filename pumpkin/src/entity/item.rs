@@ -1,6 +1,6 @@
 use std::sync::{
-    atomic::{AtomicI8, AtomicU8},
     Arc,
+    atomic::{AtomicI8, AtomicU8},
 };
 
 use async_trait::async_trait;
@@ -10,7 +10,7 @@ use pumpkin_protocol::{
 };
 use pumpkin_world::item::ItemStack;
 
-use super::{living::LivingEntity, player::Player, Entity, EntityBase};
+use super::{Entity, EntityBase, living::LivingEntity, player::Player};
 
 pub struct ItemEntity {
     entity: Entity,

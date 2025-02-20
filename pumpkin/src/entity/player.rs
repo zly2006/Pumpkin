@@ -2,8 +2,8 @@ use pumpkin_world::block::registry::State;
 use std::{
     num::NonZeroU8,
     sync::{
-        atomic::{AtomicBool, AtomicI32, AtomicI64, AtomicU32, Ordering},
         Arc,
+        atomic::{AtomicBool, AtomicI32, AtomicI64, AtomicU32, Ordering},
     },
     time::{Duration, Instant},
 };
@@ -21,6 +21,7 @@ use pumpkin_data::{
 use pumpkin_inventory::player::PlayerInventory;
 use pumpkin_nbt::compound::NbtCompound;
 use pumpkin_protocol::{
+    RawPacket, ServerPacket,
     bytebuf::packet::Packet,
     client::play::{
         CAcknowledgeBlockChange, CActionBar, CCombatDeath, CDisguisedChatMessage, CEntityStatus,
@@ -35,7 +36,6 @@ use pumpkin_protocol::{
         SPlayerRotation, SSetCreativeSlot, SSetHeldItem, SSetPlayerGround, SSwingArm, SUpdateSign,
         SUseItem, SUseItemOn,
     },
-    RawPacket, ServerPacket,
 };
 use pumpkin_protocol::{
     client::play::CSoundEffect,
@@ -49,6 +49,7 @@ use pumpkin_protocol::{
     server::play::{SClickContainer, SKeepAlive},
 };
 use pumpkin_util::{
+    GameMode,
     math::{
         boundingbox::{BoundingBox, EntityDimensions},
         experience,
@@ -58,16 +59,15 @@ use pumpkin_util::{
     },
     permission::PermissionLvl,
     text::TextComponent,
-    GameMode,
 };
 use pumpkin_world::{cylindrical_chunk_iterator::Cylindrical, item::ItemStack};
 use tokio::sync::{Mutex, Notify, RwLock};
 
 use super::{
-    combat::{self, player_attack_sound, AttackType},
+    Entity, EntityBase, EntityId, NBTStorage,
+    combat::{self, AttackType, player_attack_sound},
     hunger::HungerManager,
     item::ItemEntity,
-    Entity, EntityBase, EntityId, NBTStorage,
 };
 use crate::{
     block,
