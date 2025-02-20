@@ -1,9 +1,12 @@
-use std::sync::{atomic::AtomicI8, Arc};
+use std::sync::{
+    atomic::{AtomicI8, AtomicU8},
+    Arc,
+};
 
 use async_trait::async_trait;
 use pumpkin_protocol::{
     client::play::{CTakeItemEntity, MetaDataType, Metadata},
-    codec::{slot::Slot, var_int::VarInt},
+    codec::slot::Slot,
 };
 use pumpkin_world::item::ItemStack;
 
@@ -11,26 +14,24 @@ use super::{living::LivingEntity, player::Player, Entity, EntityBase};
 
 pub struct ItemEntity {
     entity: Entity,
-    item: Slot,
-    id: u16,
-    count: u8,
+    item: ItemStack,
+    count: AtomicU8,
     pickup_delay: AtomicI8,
 }
 
 impl ItemEntity {
-    pub fn new(entity: Entity, stack: &ItemStack) -> Self {
-        let slot = Slot::from(stack);
+    pub fn new(entity: Entity, stack: ItemStack) -> Self {
         Self {
             entity,
-            id: stack.item.id,
-            count: stack.item_count,
-            item: slot,
+            item: stack,
+            count: AtomicU8::new(stack.item_count),
             pickup_delay: AtomicI8::new(10), // Vanilla
         }
     }
     pub async fn send_meta_packet(&self) {
+        let slot = Slot::from(&self.item);
         self.entity
-            .send_meta_data(Metadata::new(8, MetaDataType::ItemStack, &self.item))
+            .send_meta_data(Metadata::new(8, MetaDataType::ItemStack, &slot))
             .await;
     }
 }
@@ -46,26 +47,54 @@ impl EntityBase for ItemEntity {
     async fn on_player_collision(&self, player: Arc<Player>) {
         if self.pickup_delay.load(std::sync::atomic::Ordering::Relaxed) == 0 {
             let mut inv = player.inventory.lock().await;
+            let mut item = self.item;
             // Check if we have space in inv
-            if let Some(slot) = inv.collect_item_slot(self.id) {
-                let mut item = self.item.clone();
+            if let Some(slot) = inv.collect_item_slot(item.item.id) {
+                let max_stack = item.item.components.max_stack_size;
                 if let Some(stack) = inv.get_slot(slot).unwrap() {
-                    // If we merge into an existing stack lets increase its count
-                    stack.item_count += self.count;
-                    // Since we set the slot with the item, we need to also have the new item count,
-                    // So existing count + self.count
-                    item.item_count = VarInt(i32::from(stack.item_count));
+                    if stack.item_count + self.count.load(std::sync::atomic::Ordering::Relaxed)
+                        > max_stack
+                    {
+                        // Fill the stack to max and store the overflow
+                        let overflow = stack.item_count
+                            + self.count.load(std::sync::atomic::Ordering::Relaxed)
+                            - max_stack;
+
+                        stack.item_count = max_stack;
+                        item.item_count = stack.item_count;
+
+                        self.count
+                            .store(overflow, std::sync::atomic::Ordering::Relaxed);
+                    } else {
+                        // Add the item to the stack
+                        stack.item_count += self.count.load(std::sync::atomic::Ordering::Relaxed);
+                        item.item_count = stack.item_count;
+
+                        player
+                            .client
+                            .send_packet(&CTakeItemEntity::new(
+                                self.entity.entity_id.into(),
+                                player.entity_id().into(),
+                                item.item_count.into(),
+                            ))
+                            .await;
+                        self.entity.remove().await;
+                    }
+                } else {
+                    // Add the item as a new stack
+                    item.item_count = self.count.load(std::sync::atomic::Ordering::Relaxed);
+
+                    player
+                        .client
+                        .send_packet(&CTakeItemEntity::new(
+                            self.entity.entity_id.into(),
+                            player.entity_id().into(),
+                            item.item_count.into(),
+                        ))
+                        .await;
+                    self.entity.remove().await;
                 }
                 player.update_single_slot(&mut inv, slot as i16, item).await;
-                player
-                    .client
-                    .send_packet(&CTakeItemEntity::new(
-                        self.entity.entity_id.into(),
-                        player.entity_id().into(),
-                        1.into(),
-                    ))
-                    .await;
-                self.entity.remove().await;
             }
         }
     }
