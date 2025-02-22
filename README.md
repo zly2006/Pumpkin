@@ -72,6 +72,7 @@ and customizable experience. It prioritizes performance and player enjoyment whi
   - [ ] Advancements 
 - Entities
   - [x] Non-Living (Minecart, Eggs...)
+  - [x] Entity Effects
   - [x] Players
   - [x] Mobs
   - [x] Animals
