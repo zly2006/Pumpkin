@@ -2,8 +2,8 @@ use pumpkin_world::block::registry::State;
 use std::{
     num::NonZeroU8,
     sync::{
-        atomic::{AtomicBool, AtomicI32, AtomicI64, AtomicU32, Ordering},
         Arc,
+        atomic::{AtomicBool, AtomicI32, AtomicI64, AtomicU32, Ordering},
     },
     time::{Duration, Instant},
 };
@@ -13,7 +13,7 @@ use crossbeam::atomic::AtomicCell;
 use pumpkin_config::{ADVANCED_CONFIG, BASIC_CONFIG};
 use pumpkin_data::{
     damage::DamageType,
-    entity::EntityType,
+    entity::{EffectType, EntityType},
     item::Operation,
     particle::Particle,
     sound::{Sound, SoundCategory},
@@ -21,12 +21,14 @@ use pumpkin_data::{
 use pumpkin_inventory::player::PlayerInventory;
 use pumpkin_nbt::compound::NbtCompound;
 use pumpkin_protocol::{
+    RawPacket, ServerPacket,
     bytebuf::packet::Packet,
     client::play::{
         CAcknowledgeBlockChange, CActionBar, CCombatDeath, CDisguisedChatMessage, CEntityStatus,
         CGameEvent, CHurtAnimation, CKeepAlive, CParticle, CPlayDisconnect, CPlayerAbilities,
         CPlayerInfoUpdate, CPlayerPosition, CRespawn, CSetExperience, CSetHealth, CSubtitle,
-        CSystemChatMessage, CTitleText, CUnloadChunk, GameEvent, MetaDataType, PlayerAction,
+        CSystemChatMessage, CTitleText, CUnloadChunk, CUpdateMobEffect, GameEvent, MetaDataType,
+        PlayerAction,
     },
     server::play::{
         SChatCommand, SChatMessage, SClientCommand, SClientInformationPlay, SClientTickEnd,
@@ -35,7 +37,6 @@ use pumpkin_protocol::{
         SPlayerRotation, SSetCreativeSlot, SSetHeldItem, SSetPlayerGround, SSwingArm, SUpdateSign,
         SUseItem, SUseItemOn,
     },
-    RawPacket, ServerPacket,
 };
 use pumpkin_protocol::{
     client::play::CSoundEffect,
@@ -49,6 +50,7 @@ use pumpkin_protocol::{
     server::play::{SClickContainer, SKeepAlive},
 };
 use pumpkin_util::{
+    GameMode,
     math::{
         boundingbox::{BoundingBox, EntityDimensions},
         experience,
@@ -58,16 +60,16 @@ use pumpkin_util::{
     },
     permission::PermissionLvl,
     text::TextComponent,
-    GameMode,
 };
 use pumpkin_world::{cylindrical_chunk_iterator::Cylindrical, item::ItemStack};
 use tokio::sync::{Mutex, Notify, RwLock};
 
 use super::{
-    combat::{self, player_attack_sound, AttackType},
+    Entity, EntityBase, EntityId, NBTStorage,
+    combat::{self, AttackType, player_attack_sound},
+    effect::Effect,
     hunger::HungerManager,
     item::ItemEntity,
-    Entity, EntityBase, EntityId, NBTStorage,
 };
 use crate::{
     block,
@@ -958,11 +960,50 @@ impl Player {
             .await
             .get_mining_speed(block_name)
             .await;
-        // TODO: Handle effects
+        // Haste
+        if self.living_entity.has_effect(EffectType::Haste).await
+            || self
+                .living_entity
+                .has_effect(EffectType::ConduitPower)
+                .await
+        {
+            speed *= 1.0 + (self.get_haste_amplifier().await + 1) as f32 * 0.2;
+        }
+        // Fatigue
+        if let Some(fatigue) = self
+            .living_entity
+            .get_effect(EffectType::MiningFatigue)
+            .await
+        {
+            let fatigue_speed = match fatigue.amplifier {
+                0 => 0.3,
+                1 => 0.09,
+                2 => 0.0027,
+                _ => 8.1E-4,
+            };
+            speed *= fatigue_speed;
+        }
+        // TODO: Handle when in Water
         if !self.living_entity.entity.on_ground.load(Ordering::Relaxed) {
             speed /= 5.0;
         }
         speed
+    }
+
+    async fn get_haste_amplifier(&self) -> u32 {
+        let mut i = 0;
+        let mut j = 0;
+        if let Some(effect) = self.living_entity.get_effect(EffectType::Haste).await {
+            i = effect.amplifier;
+        }
+        if let Some(effect) = self
+            .living_entity
+            .get_effect(EffectType::ConduitPower)
+            .await
+        {
+            j = effect.amplifier;
+        }
+        u32::from(i.max(j))
     }
 
     pub async fn send_message(
@@ -982,22 +1023,23 @@ impl Player {
             .await;
     }
 
-    pub async fn drop_item(&self, server: &Server, drop_stack: bool) {
+    pub async fn drop_item(&self, server: &Server, stack: ItemStack) {
+        let entity = server.add_entity(
+            self.living_entity.entity.pos.load(),
+            EntityType::ITEM,
+            &self.world().await,
+        );
+        let item_entity = Arc::new(ItemEntity::new(entity, stack));
+        self.world().await.spawn_entity(item_entity.clone()).await;
+        item_entity.send_meta_packet().await;
+    }
+
+    pub async fn drop_held_item(&self, server: &Server, drop_stack: bool) {
         let mut inv = self.inventory.lock().await;
         if let Some(item) = inv.held_item_mut() {
             let drop_amount = if drop_stack { item.item_count } else { 1 };
-            let entity = server.add_entity(
-                self.living_entity.entity.pos.load(),
-                EntityType::ITEM,
-                &self.world().await,
-            );
-            let item_entity = Arc::new(ItemEntity::new(
-                entity,
-                &ItemStack::new(drop_amount, item.item),
-            ));
-            self.world().await.spawn_entity(item_entity.clone()).await;
-            item_entity.send_meta_packet().await;
-            // decrase item in hotbar
+            self.drop_item(server, ItemStack::new(drop_amount, item.item))
+                .await;
             inv.decrease_current_stack(drop_amount);
         }
     }
@@ -1046,6 +1088,34 @@ impl Player {
         }
 
         self.set_experience(new_level, progress, points).await;
+    }
+
+    pub async fn add_effect(&self, effect: Effect, keep_fading: bool) {
+        let mut flag: i8 = 0;
+
+        if effect.ambient {
+            flag |= 1;
+        }
+        if effect.show_particles {
+            flag |= 2;
+        }
+        if effect.show_icon {
+            flag |= 4;
+        }
+        if keep_fading {
+            flag |= 8;
+        }
+        let effect_id = VarInt(effect.r#type as i32);
+        self.client
+            .send_packet(&CUpdateMobEffect::new(
+                self.entity_id().into(),
+                effect_id,
+                effect.amplifier.into(),
+                effect.duration.into(),
+                flag,
+            ))
+            .await;
+        self.living_entity.add_effect(effect).await;
     }
 
     /// Add experience levels to the player
@@ -1243,7 +1313,7 @@ impl Player {
                     .await;
             }
             SSetCreativeSlot::PACKET_ID => {
-                self.handle_set_creative_slot(SSetCreativeSlot::read(bytebuf)?)
+                self.handle_set_creative_slot(server, SSetCreativeSlot::read(bytebuf)?)
                     .await?;
             }
             SSwingArm::PACKET_ID => {
