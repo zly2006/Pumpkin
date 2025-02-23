@@ -7,8 +7,8 @@ use crate::{ClientPacket, bytebuf::ByteBufMut, codec::identifier::Identifier};
 
 #[packet(CONFIG_REGISTRY_DATA)]
 pub struct CRegistryData<'a> {
-    registry_id: &'a Identifier,
-    entries: &'a [RegistryEntry],
+    pub registry_id: &'a Identifier,
+    pub entries: &'a [RegistryEntry],
 }
 
 impl<'a> CRegistryData<'a> {

@@ -7,7 +7,7 @@ use crate::codec::identifier::Identifier;
 #[packet(CONFIG_COOKIE_REQUEST)]
 /// Requests a cookie that was previously stored.
 pub struct CCookieRequest<'a> {
-    key: &'a Identifier,
+    pub key: &'a Identifier,
 }
 
 impl<'a> CCookieRequest<'a> {

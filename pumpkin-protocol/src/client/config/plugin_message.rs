@@ -5,8 +5,8 @@ use serde::Serialize;
 #[derive(Serialize)]
 #[packet(CONFIG_CUSTOM_PAYLOAD)]
 pub struct CPluginMessage<'a> {
-    channel: &'a str,
-    data: &'a [u8],
+    pub channel: &'a str,
+    pub data: &'a [u8],
 }
 
 impl<'a> CPluginMessage<'a> {

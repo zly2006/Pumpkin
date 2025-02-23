@@ -7,7 +7,7 @@ use crate::VarInt;
 #[derive(Serialize, Deserialize)]
 #[packet(LOGIN_LOGIN_COMPRESSION)]
 pub struct CSetCompression {
-    threshold: VarInt,
+    pub threshold: VarInt,
 }
 
 impl CSetCompression {

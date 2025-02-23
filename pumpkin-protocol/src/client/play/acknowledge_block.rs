@@ -7,7 +7,7 @@ use crate::VarInt;
 #[derive(Serialize, Deserialize)]
 #[packet(PLAY_BLOCK_CHANGED_ACK)]
 pub struct CAcknowledgeBlockChange {
-    sequence_id: VarInt,
+    pub sequence_id: VarInt,
 }
 
 impl CAcknowledgeBlockChange {

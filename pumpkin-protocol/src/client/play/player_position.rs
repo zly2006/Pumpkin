@@ -7,12 +7,12 @@ use crate::{ClientPacket, PositionFlag, VarInt, bytebuf::ByteBufMut};
 
 #[packet(PLAY_PLAYER_POSITION)]
 pub struct CPlayerPosition<'a> {
-    teleport_id: VarInt,
-    position: Vector3<f64>,
-    delta: Vector3<f64>,
-    yaw: f32,
-    pitch: f32,
-    releatives: &'a [PositionFlag],
+    pub teleport_id: VarInt,
+    pub position: Vector3<f64>,
+    pub delta: Vector3<f64>,
+    pub yaw: f32,
+    pub pitch: f32,
+    pub releatives: &'a [PositionFlag],
 }
 
 impl<'a> CPlayerPosition<'a> {

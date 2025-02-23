@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize)]
 #[packet(PLAY_PONG_RESPONSE)]
 pub struct CPingResponse {
-    payload: i64,
+    pub payload: i64,
 }
 
 impl CPingResponse {

@@ -6,7 +6,7 @@ use crate::{ClientPacket, KnownPack, bytebuf::ByteBufMut};
 
 #[packet(CONFIG_SELECT_KNOWN_PACKS)]
 pub struct CKnownPacks<'a> {
-    known_packs: &'a [KnownPack<'a>],
+    pub known_packs: &'a [KnownPack<'a>],
 }
 
 impl<'a> CKnownPacks<'a> {

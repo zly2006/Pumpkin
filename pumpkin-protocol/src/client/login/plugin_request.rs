@@ -7,9 +7,9 @@ use crate::VarInt;
 #[derive(Serialize)]
 #[packet(LOGIN_CUSTOM_QUERY)]
 pub struct CLoginPluginRequest<'a> {
-    message_id: VarInt,
-    channel: &'a str,
-    data: &'a [u8],
+    pub message_id: VarInt,
+    pub channel: &'a str,
+    pub data: &'a [u8],
 }
 
 impl<'a> CLoginPluginRequest<'a> {

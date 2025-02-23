@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize)]
 #[packet(PLAY_DISCONNECT)]
 pub struct CPlayDisconnect {
-    reason: TextComponent,
+    pub reason: TextComponent,
 }
 
 impl CPlayDisconnect {

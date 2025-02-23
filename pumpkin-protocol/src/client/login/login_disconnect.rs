@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize)]
 #[packet(LOGIN_LOGIN_DISCONNECT)]
 pub struct CLoginDisconnect<'a> {
-    json_reason: &'a str,
+    pub json_reason: &'a str,
 }
 
 impl<'a> CLoginDisconnect<'a> {

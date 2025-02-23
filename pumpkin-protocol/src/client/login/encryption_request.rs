@@ -7,12 +7,12 @@ use crate::VarInt;
 #[derive(Serialize, Deserialize)]
 #[packet(LOGIN_HELLO)]
 pub struct CEncryptionRequest<'a> {
-    server_id: &'a str, // 20
-    public_key_length: VarInt,
-    public_key: &'a [u8],
-    verify_token_length: VarInt,
-    verify_token: &'a [u8],
-    should_authenticate: bool,
+    pub server_id: &'a str, // 20
+    pub public_key_length: VarInt,
+    pub public_key: &'a [u8],
+    pub verify_token_length: VarInt,
+    pub verify_token: &'a [u8],
+    pub should_authenticate: bool,
 }
 
 impl<'a> CEncryptionRequest<'a> {

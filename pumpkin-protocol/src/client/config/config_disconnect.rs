@@ -5,7 +5,7 @@ use serde::Deserialize;
 #[derive(serde::Serialize, Deserialize)]
 #[packet(CONFIG_DISCONNECT)]
 pub struct CConfigDisconnect<'a> {
-    reason: &'a str,
+    pub reason: &'a str,
 }
 
 impl<'a> CConfigDisconnect<'a> {
