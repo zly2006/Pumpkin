@@ -23,7 +23,7 @@ impl Client {
     ) {
         log::debug!("Handling client settings");
         if client_information.view_distance <= 0 {
-            self.kick(&TextComponent::text(
+            self.kick(TextComponent::text(
                 "Cannot have zero or negative view distance!",
             ))
             .await;
@@ -47,7 +47,7 @@ impl Client {
                 server_listing: client_information.server_listing,
             });
         } else {
-            self.kick(&TextComponent::text("Invalid hand or chat type"))
+            self.kick(TextComponent::text("Invalid hand or chat type"))
                 .await;
         }
     }
@@ -62,7 +62,7 @@ impl Client {
             log::debug!("got a client brand");
             match str::from_utf8(&plugin_message.data) {
                 Ok(brand) => *self.brand.lock().await = Some(brand.to_string()),
-                Err(e) => self.kick(&TextComponent::text(e.to_string())).await,
+                Err(e) => self.kick(TextComponent::text(e.to_string())).await,
             }
         }
     }
@@ -89,7 +89,7 @@ impl Client {
 
         // We are done with configuring
         log::debug!("finished config");
-        self.send_packet(&CFinishConfig::new()).await;
+        self.send_packet(&CFinishConfig).await;
     }
 
     pub async fn handle_config_acknowledged(&self) {
@@ -97,7 +97,7 @@ impl Client {
         self.connection_state.store(ConnectionState::Play);
 
         if let Some(reason) = self.can_not_join().await {
-            self.kick(&reason).await;
+            self.kick(reason).await;
             return;
         }
 

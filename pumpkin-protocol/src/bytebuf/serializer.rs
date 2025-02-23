@@ -207,7 +207,7 @@ impl<B: BufMut> ser::Serializer for &mut Serializer<B> {
         unimplemented!()
     }
     fn serialize_unit_struct(self, _name: &'static str) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        Ok(())
     }
     fn serialize_unit_variant(
         self,

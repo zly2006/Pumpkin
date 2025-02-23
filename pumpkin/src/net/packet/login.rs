@@ -93,7 +93,7 @@ impl Client {
         // TODO: If client is an operator or otherwise suitable elevated permissions, allow client to bypass this requirement.
         let max_players = BASIC_CONFIG.max_players;
         if max_players > 0 && server.get_player_count().await >= max_players as usize {
-            self.kick(&TextComponent::translate(
+            self.kick(TextComponent::translate(
                 "multiplayer.disconnect.server_full",
                 [],
             ))
@@ -102,7 +102,7 @@ impl Client {
         }
 
         if !is_valid_player_name(&login_start.name) {
-            self.kick(&TextComponent::text("Invalid characters in username"))
+            self.kick(TextComponent::text("Invalid characters in username"))
                 .await;
             return;
         }
@@ -126,7 +126,7 @@ impl Client {
                         self.finish_login(&profile).await;
                         *gameprofile = Some(profile);
                     }
-                    Err(error) => self.kick(&TextComponent::text(error.to_string())).await,
+                    Err(error) => self.kick(TextComponent::text(error.to_string())).await,
                 }
             }
         } else {
@@ -169,14 +169,14 @@ impl Client {
         let shared_secret = server.decrypt(&encryption_response.shared_secret).unwrap();
 
         if let Err(error) = self.set_encryption(Some(&shared_secret)).await {
-            self.kick(&TextComponent::text(error.to_string())).await;
+            self.kick(TextComponent::text(error.to_string())).await;
             return;
         }
 
         let mut gameprofile = self.gameprofile.lock().await;
 
         let Some(profile) = gameprofile.as_mut() else {
-            self.kick(&TextComponent::text("No Game profile")).await;
+            self.kick(TextComponent::text("No Game profile")).await;
             return;
         };
 
@@ -188,7 +188,7 @@ impl Client {
             {
                 Ok(new_profile) => *profile = new_profile,
                 Err(error) => {
-                    self.kick(&match error {
+                    self.kick(match error {
                         AuthError::FailedResponse => {
                             TextComponent::translate("multiplayer.disconnect.authservers_down", [])
                         }
@@ -213,7 +213,7 @@ impl Client {
                 &online_player.client.address.lock().await,
                 &online_player.gameprofile.name
             );
-            self.kick(&TextComponent::translate(
+            self.kick(TextComponent::translate(
                 "multiplayer.disconnect.duplicate_login",
                 [],
             ))
@@ -231,7 +231,7 @@ impl Client {
                 &online_player.client.address.lock().await,
                 &online_player.gameprofile.name
             );
-            self.kick(&TextComponent::translate(
+            self.kick(TextComponent::translate(
                 "multiplayer.disconnect.duplicate_login",
                 [],
             ))
@@ -330,7 +330,7 @@ impl Client {
                     *self.gameprofile.lock().await = Some(profile);
                     *address = new_address;
                 }
-                Err(error) => self.kick(&TextComponent::text(error.to_string())).await,
+                Err(error) => self.kick(TextComponent::text(error.to_string())).await,
             }
         }
     }
