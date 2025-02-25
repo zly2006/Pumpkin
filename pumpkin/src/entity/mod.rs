@@ -1,7 +1,6 @@
-use core::f32;
-use std::sync::{Arc, atomic::AtomicBool};
-
+use crate::server::Server;
 use async_trait::async_trait;
+use core::f32;
 use crossbeam::atomic::AtomicCell;
 use living::LivingEntity;
 use player::Player;
@@ -13,8 +12,8 @@ use pumpkin_data::{
 use pumpkin_nbt::{compound::NbtCompound, tag::NbtTag};
 use pumpkin_protocol::{
     client::play::{
-        CHeadRot, CSetEntityMetadata, CSpawnEntity, CTeleportEntity, CUpdateEntityRot,
-        MetaDataType, Metadata,
+        CEntityVelocity, CHeadRot, CSetEntityMetadata, CSpawnEntity, CTeleportEntity,
+        CUpdateEntityRot, MetaDataType, Metadata,
     },
     codec::var_int::VarInt,
 };
@@ -27,6 +26,7 @@ use pumpkin_util::math::{
     wrap_degrees,
 };
 use serde::Serialize;
+use std::sync::{Arc, atomic::AtomicBool};
 use tokio::sync::RwLock;
 
 use crate::world::World;
@@ -39,6 +39,7 @@ pub mod living;
 pub mod mob;
 pub mod player;
 pub mod projectile;
+pub mod tnt;
 
 mod combat;
 
@@ -47,7 +48,7 @@ pub type EntityId = i32;
 #[async_trait]
 pub trait EntityBase: Send + Sync {
     /// Gets Called every tick
-    async fn tick(&self) {}
+    async fn tick(&self, _server: &Server) {}
     /// Called when a player collides with the entity
     async fn on_player_collision(&self, _player: Arc<Player>) {}
     fn get_entity(&self) -> &Entity;
@@ -141,6 +142,15 @@ impl Entity {
             invulnerable: AtomicBool::new(invulnerable),
             damage_immunities: Vec::new(),
         }
+    }
+
+    pub async fn set_velocity(&self, velocity: Vector3<f64>) {
+        self.velocity.store(velocity);
+        self.world
+            .read()
+            .await
+            .broadcast_packet_all(&CEntityVelocity::new(self.entity_id.into(), velocity))
+            .await;
     }
 
     /// Updates the entity's position, block position, and chunk position.
@@ -384,7 +394,7 @@ impl Entity {
 
 #[async_trait]
 impl EntityBase for Entity {
-    async fn tick(&self) {}
+    async fn tick(&self, _: &Server) {}
 
     fn get_entity(&self) -> &Entity {
         self
