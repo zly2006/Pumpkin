@@ -931,15 +931,10 @@ impl Player {
         let config = self.config.lock().await;
         self.living_entity
             .entity
-            .send_meta_data(Metadata::new(17, MetaDataType::Byte, config.skin_parts))
-            .await;
-        self.living_entity
-            .entity
-            .send_meta_data(Metadata::new(
-                18,
-                MetaDataType::Byte,
-                config.main_hand as u8,
-            ))
+            .send_meta_data(&[
+                Metadata::new(17, MetaDataType::Byte, config.skin_parts),
+                Metadata::new(18, MetaDataType::Byte, config.main_hand as u8),
+            ])
             .await;
     }
 

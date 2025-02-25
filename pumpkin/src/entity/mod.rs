@@ -1,5 +1,6 @@
 use crate::server::Server;
 use async_trait::async_trait;
+use bytes::{BufMut, BytesMut};
 use core::f32;
 use crossbeam::atomic::AtomicCell;
 use living::LivingEntity;
@@ -11,6 +12,7 @@ use pumpkin_data::{
 };
 use pumpkin_nbt::{compound::NbtCompound, tag::NbtTag};
 use pumpkin_protocol::{
+    bytebuf::serializer::Serializer,
     client::play::{
         CEntityVelocity, CHeadRot, CSetEntityMetadata, CSpawnEntity, CTeleportEntity,
         CUpdateEntityRot, MetaDataType, Metadata,
@@ -355,7 +357,7 @@ impl Entity {
         } else {
             b &= !(1 << index);
         }
-        self.send_meta_data(Metadata::new(0, MetaDataType::Byte, b))
+        self.send_meta_data(&[Metadata::new(0, MetaDataType::Byte, b)])
             .await;
     }
 
@@ -368,21 +370,29 @@ impl Entity {
             .await;
     }
 
-    pub async fn send_meta_data<T>(&self, meta: Metadata<T>)
+    pub async fn send_meta_data<T>(&self, meta: &[Metadata<T>])
     where
         T: Serialize,
     {
+        let mut buf = Vec::new();
+        for meta in meta {
+            let serializer_buf = BytesMut::new();
+            let mut serializer = Serializer::new(serializer_buf);
+            meta.serialize(&mut serializer).unwrap();
+            buf.put(serializer.output);
+        }
+        buf.put_u8(255);
         self.world
             .read()
             .await
-            .broadcast_packet_all(&CSetEntityMetadata::new(self.entity_id.into(), meta))
+            .broadcast_packet_all(&CSetEntityMetadata::new(self.entity_id.into(), buf))
             .await;
     }
 
     pub async fn set_pose(&self, pose: EntityPose) {
         self.pose.store(pose);
         let pose = pose as i32;
-        self.send_meta_data(Metadata::new(6, MetaDataType::EntityPose, VarInt(pose)))
+        self.send_meta_data(&[Metadata::new(6, MetaDataType::EntityPose, VarInt(pose))])
             .await;
     }
 

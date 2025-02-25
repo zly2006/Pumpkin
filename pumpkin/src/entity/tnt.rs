@@ -32,18 +32,18 @@ impl TNTEntity {
             .await;
         // We can merge multiple data into one meta packet
         self.entity
-            .send_meta_data(Metadata::new(
-                8,
-                MetaDataType::Integer,
-                VarInt(self.fuse.load(std::sync::atomic::Ordering::Relaxed) as i32),
-            ))
-            .await;
-        self.entity
-            .send_meta_data(Metadata::new(
-                9,
-                MetaDataType::BlockState,
-                VarInt(i32::from(block_state!("tnt").state_id)),
-            ))
+            .send_meta_data(&[
+                Metadata::new(
+                    8,
+                    MetaDataType::Integer,
+                    VarInt(self.fuse.load(std::sync::atomic::Ordering::Relaxed) as i32),
+                ),
+                Metadata::new(
+                    9,
+                    MetaDataType::BlockState,
+                    VarInt(i32::from(block_state!("tnt").state_id)),
+                ),
+            ])
             .await;
     }
 }

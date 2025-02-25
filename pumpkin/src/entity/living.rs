@@ -90,7 +90,7 @@ impl LivingEntity {
         self.health.store(health);
         // tell everyone entities health changed
         self.entity
-            .send_meta_data(Metadata::new(9, MetaDataType::Float, health))
+            .send_meta_data(&[Metadata::new(9, MetaDataType::Float, health)])
             .await;
     }
 
