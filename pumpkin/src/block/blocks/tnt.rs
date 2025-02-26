@@ -9,6 +9,7 @@ use crate::world::World;
 use async_trait::async_trait;
 use pumpkin_data::entity::EntityType;
 use pumpkin_data::item::Item;
+use pumpkin_data::sound::SoundCategory;
 use pumpkin_macros::pumpkin_block;
 use pumpkin_util::math::position::BlockPos;
 use pumpkin_world::block::registry::Block;
@@ -34,11 +35,19 @@ impl PumpkinBlock for TNTBlock {
             return BlockActionResult::Continue;
         }
         let world = player.world().await;
-        world.break_block(server, &location, None, false).await;
+        world.set_block_state(&location, 0).await;
         let entity = server.add_entity(location.to_f64(), EntityType::TNT, &world);
+        let pos = entity.pos.load();
         let tnt = Arc::new(TNTEntity::new(entity, DEFAULT_POWER, DEFAULT_FUSE));
         world.spawn_entity(tnt.clone()).await;
         tnt.send_meta_packet().await;
+        world
+            .play_sound(
+                pumpkin_data::sound::Sound::EntityTntPrimed,
+                SoundCategory::Blocks,
+                &pos,
+            )
+            .await;
         BlockActionResult::Consume
     }
     async fn explode(

@@ -50,8 +50,24 @@ pub type EntityId = i32;
 #[async_trait]
 pub trait EntityBase: Send + Sync {
     /// Gets Called every tick
-    async fn tick(&self, _server: &Server) {}
-    /// Called when a player collides with the entity
+    async fn tick(&self, server: &Server) {
+        if let Some(living) = self.get_living_entity() {
+            living.tick(server).await;
+        } else {
+            self.get_entity().tick(server).await;
+        }
+    }
+
+    /// Returns if damage was successful or not
+    async fn damage(&self, amount: f32, damage_type: DamageType) -> bool {
+        if let Some(living) = self.get_living_entity() {
+            living.damage(amount, damage_type).await
+        } else {
+            self.get_entity().damage(amount, damage_type).await
+        }
+    }
+
+    /// Called when a player collides with a entity
     async fn on_player_collision(&self, _player: Arc<Player>) {}
     fn get_entity(&self) -> &Entity;
     fn get_living_entity(&self) -> Option<&LivingEntity>;
@@ -404,6 +420,10 @@ impl Entity {
 
 #[async_trait]
 impl EntityBase for Entity {
+    async fn damage(&self, _amount: f32, _damage_type: DamageType) -> bool {
+        false
+    }
+
     async fn tick(&self, _: &Server) {}
 
     fn get_entity(&self) -> &Entity {

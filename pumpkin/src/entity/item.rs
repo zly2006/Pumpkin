@@ -1,5 +1,6 @@
 use crate::server::Server;
 use async_trait::async_trait;
+use pumpkin_data::damage::DamageType;
 use pumpkin_protocol::{
     client::play::{CTakeItemEntity, MetaDataType, Metadata},
     codec::slot::Slot,
@@ -53,6 +54,10 @@ impl EntityBase for ItemEntity {
             self.entity.remove().await;
         }
     }
+    async fn damage(&self, _amount: f32, _damage_type: DamageType) -> bool {
+        false
+    }
+
     async fn on_player_collision(&self, player: Arc<Player>) {
         if self.pickup_delay.load(std::sync::atomic::Ordering::Relaxed) == 0 {
             let mut inv = player.inventory.lock().await;

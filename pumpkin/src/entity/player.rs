@@ -25,10 +25,9 @@ use pumpkin_protocol::{
     bytebuf::packet::Packet,
     client::play::{
         CAcknowledgeBlockChange, CActionBar, CCombatDeath, CDisguisedChatMessage, CEntityStatus,
-        CGameEvent, CHurtAnimation, CKeepAlive, CParticle, CPlayDisconnect, CPlayerAbilities,
-        CPlayerInfoUpdate, CPlayerPosition, CRespawn, CSetExperience, CSetHealth, CSubtitle,
-        CSystemChatMessage, CTitleText, CUnloadChunk, CUpdateMobEffect, GameEvent, MetaDataType,
-        PlayerAction,
+        CGameEvent, CKeepAlive, CParticle, CPlayDisconnect, CPlayerAbilities, CPlayerInfoUpdate,
+        CPlayerPosition, CRespawn, CSetExperience, CSetHealth, CSubtitle, CSystemChatMessage,
+        CTitleText, CUnloadChunk, CUpdateMobEffect, GameEvent, MetaDataType, PlayerAction,
     },
     server::play::{
         SChatCommand, SChatMessage, SClientCommand, SClientInformationPlay, SClientTickEnd,
@@ -288,7 +287,6 @@ impl Player {
     pub async fn attack(&self, victim: Arc<dyn EntityBase>) {
         let world = self.world().await;
         let victim_entity = victim.get_entity();
-        let victim_living_entity = victim.get_living_entity();
         let attacker_entity = &self.living_entity.entity;
         let config = &ADVANCED_CONFIG.pvp;
 
@@ -336,56 +334,45 @@ impl Player {
 
         let pos = victim_entity.pos.load();
 
-        if let Some(living) = victim_living_entity {
-            if !living.check_damage(damage as f32) {
-                world
-                    .play_sound(
-                        Sound::EntityPlayerAttackNodamage,
-                        SoundCategory::Players,
-                        &pos,
-                    )
-                    .await;
-                return;
-            }
-        }
-
-        world
-            .play_sound(Sound::EntityPlayerHurt, SoundCategory::Players, &pos)
-            .await;
-
         let attack_type = AttackType::new(self, attack_cooldown_progress as f32).await;
-
-        player_attack_sound(&pos, &world, attack_type).await;
 
         if matches!(attack_type, AttackType::Critical) {
             damage *= 1.5;
         }
 
-        if let Some(living) = victim_living_entity {
-            living
-                .damage(damage as f32, DamageType::PLAYER_ATTACK)
-                .await;
-        }
-
-        let mut knockback_strength = 1.0;
-        match attack_type {
-            AttackType::Knockback => knockback_strength += 1.0,
-            AttackType::Sweeping => {
-                combat::spawn_sweep_particle(attacker_entity, &world, &pos).await;
-            }
-            _ => {}
-        };
-
-        if config.knockback {
-            combat::handle_knockback(attacker_entity, &world, victim_entity, knockback_strength)
-                .await;
-        }
-
-        if config.hurt_animation {
-            let entity_id = VarInt(victim_entity.entity_id);
+        if !victim
+            .damage(damage as f32, DamageType::PLAYER_ATTACK)
+            .await
+        {
             world
-                .broadcast_packet_all(&CHurtAnimation::new(entity_id, attacker_entity.yaw.load()))
+                .play_sound(
+                    Sound::EntityPlayerAttackNodamage,
+                    SoundCategory::Players,
+                    &self.living_entity.entity.pos.load(),
+                )
                 .await;
+            return;
+        }
+
+        if victim.get_living_entity().is_some() {
+            let mut knockback_strength = 1.0;
+            player_attack_sound(&pos, &world, attack_type).await;
+            match attack_type {
+                AttackType::Knockback => knockback_strength += 1.0,
+                AttackType::Sweeping => {
+                    combat::spawn_sweep_particle(attacker_entity, &world, &pos).await;
+                }
+                _ => {}
+            };
+            if config.knockback {
+                combat::handle_knockback(
+                    attacker_entity,
+                    &world,
+                    victim_entity,
+                    knockback_strength,
+                )
+                .await;
+            }
         }
 
         if config.swing {}
@@ -447,7 +434,7 @@ impl Player {
         self.cancel_tasks.notified().await;
     }
 
-    pub async fn tick(&self) {
+    pub async fn tick(&self, server: &Server) {
         if self
             .client
             .closed
@@ -493,7 +480,7 @@ impl Player {
         self.last_attacked_ticks
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
-        self.living_entity.tick();
+        self.living_entity.tick(server).await;
         self.hunger_manager.tick(self).await;
 
         // timeout/keep alive handling
@@ -1186,6 +1173,18 @@ impl NBTStorage for Player {
 
 #[async_trait]
 impl EntityBase for Player {
+    async fn damage(&self, amount: f32, damage_type: DamageType) -> bool {
+        self.world()
+            .await
+            .play_sound(
+                Sound::EntityPlayerHurt,
+                SoundCategory::Players,
+                &self.living_entity.entity.pos.load(),
+            )
+            .await;
+        self.living_entity.damage(amount, damage_type).await
+    }
+
     fn get_entity(&self) -> &Entity {
         &self.living_entity.entity
     }

@@ -284,7 +284,7 @@ impl World {
 
         // player ticks
         for player in self.players.read().await.values() {
-            player.tick().await;
+            player.tick(server).await;
         }
 
         let entities_to_tick: Vec<_> = self.entities.read().await.values().cloned().collect();
