@@ -23,7 +23,7 @@ use border::Worldborder;
 use explosion::Explosion;
 use pumpkin_config::BasicConfiguration;
 use pumpkin_data::{
-    entity::EntityType,
+    entity::{EntityStatus, EntityType},
     particle::Particle,
     sound::{Sound, SoundCategory},
     world::WorldEvent,
@@ -32,8 +32,8 @@ use pumpkin_macros::send_cancellable;
 use pumpkin_protocol::{
     ClientPacket,
     client::play::{
-        CChunkData, CGameEvent, CLogin, CPlayerInfoUpdate, CRemoveEntities, CRemovePlayerInfo,
-        CSpawnEntity, GameEvent, PlayerAction,
+        CChunkData, CEntityStatus, CGameEvent, CLogin, CPlayerInfoUpdate, CRemoveEntities,
+        CRemovePlayerInfo, CSpawnEntity, GameEvent, PlayerAction,
     },
 };
 use pumpkin_protocol::{client::play::CLevelEvent, codec::identifier::Identifier};
@@ -147,6 +147,12 @@ impl World {
 
     pub async fn save(&self) {
         self.level.save().await;
+    }
+
+    pub async fn send_entity_status(&self, entity: &Entity, status: EntityStatus) {
+        // TODO: only nearby
+        self.broadcast_packet_all(&CEntityStatus::new(entity.entity_id, status as i8))
+            .await;
     }
 
     /// Broadcasts a packet to all connected players within the world.

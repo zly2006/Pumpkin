@@ -13,7 +13,7 @@ use crossbeam::atomic::AtomicCell;
 use pumpkin_config::{ADVANCED_CONFIG, BASIC_CONFIG};
 use pumpkin_data::{
     damage::DamageType,
-    entity::{EffectType, EntityType},
+    entity::{EffectType, EntityStatus, EntityType},
     item::Operation,
     particle::Particle,
     sound::{Sound, SoundCategory},
@@ -24,8 +24,8 @@ use pumpkin_protocol::{
     RawPacket, ServerPacket,
     bytebuf::packet::Packet,
     client::play::{
-        CAcknowledgeBlockChange, CActionBar, CCombatDeath, CDisguisedChatMessage, CEntityStatus,
-        CGameEvent, CKeepAlive, CParticle, CPlayDisconnect, CPlayerAbilities, CPlayerInfoUpdate,
+        CAcknowledgeBlockChange, CActionBar, CCombatDeath, CDisguisedChatMessage, CGameEvent,
+        CKeepAlive, CParticle, CPlayDisconnect, CPlayerAbilities, CPlayerInfoUpdate,
         CPlayerPosition, CRespawn, CSetExperience, CSetHealth, CSubtitle, CSystemChatMessage,
         CTitleText, CUnloadChunk, CUpdateMobEffect, GameEvent, MetaDataType, PlayerAction,
     },
@@ -613,11 +613,16 @@ impl Player {
 
     /// syncs the players permission level with the client
     pub async fn send_permission_lvl_update(&self) {
-        self.client
-            .send_packet(&CEntityStatus::new(
-                self.entity_id(),
-                24 + self.permission_lvl.load() as i8,
-            ))
+        let status = match self.permission_lvl.load() {
+            PermissionLvl::Zero => EntityStatus::SetOpLevel0,
+            PermissionLvl::One => EntityStatus::SetOpLevel1,
+            PermissionLvl::Two => EntityStatus::SetOpLevel2,
+            PermissionLvl::Three => EntityStatus::SetOpLevel3,
+            PermissionLvl::Four => EntityStatus::SetOpLevel4,
+        };
+        self.world()
+            .await
+            .send_entity_status(&self.living_entity.entity, status)
             .await;
     }
 
