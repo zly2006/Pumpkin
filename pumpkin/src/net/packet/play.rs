@@ -20,7 +20,9 @@ use pumpkin_data::sound::Sound;
 use pumpkin_data::sound::SoundCategory;
 use pumpkin_data::world::CHAT;
 use pumpkin_inventory::InventoryError;
-use pumpkin_inventory::player::PlayerInventory;
+use pumpkin_inventory::player::{
+    PlayerInventory, SLOT_HOTBAR_END, SLOT_HOTBAR_START, SLOT_OFFHAND,
+};
 use pumpkin_macros::block_entity;
 use pumpkin_protocol::client::play::{
     CBlockEntityData, COpenSignEditor, CSetContainerSlot, CSetHeldItem, EquipmentSlot,
@@ -395,20 +397,22 @@ impl Player {
 
     pub async fn update_single_slot(
         &self,
-        inventory: &mut tokio::sync::MutexGuard<'_, PlayerInventory>,
-        slot: i16,
+        inventory: &mut PlayerInventory,
+        slot: usize,
         stack: ItemStack,
     ) {
-        inventory.state_id += 1;
+        inventory.increment_state_id();
         let slot_data = Slot::from(&stack);
-        let dest_packet = CSetContainerSlot::new(0, inventory.state_id as i32, slot, &slot_data);
-        self.client.send_packet(&dest_packet).await;
-
-        if inventory
-            .set_slot(slot as usize, Some(stack), false)
-            .is_err()
-        {
-            log::error!("Pick item set slot error!");
+        if let Err(err) = inventory.set_slot(slot, Some(stack), false) {
+            log::error!("Pick item set slot error: {}", err);
+        } else {
+            let dest_packet = CSetContainerSlot::new(
+                PlayerInventory::CONTAINER_ID,
+                inventory.state_id as i32,
+                slot as i16,
+                &slot_data,
+            );
+            self.client.send_packet(&dest_packet).await;
         }
     }
 
@@ -430,10 +434,10 @@ impl Player {
         let mut inventory = self.inventory().lock().await;
 
         let source_slot = inventory.get_slot_with_item(block.item_id);
-        let mut dest_slot = inventory.get_empty_hotbar_slot() as usize;
+        let mut dest_slot = inventory.get_empty_hotbar_slot();
 
-        let dest_slot_data = match inventory.get_slot(dest_slot + 36) {
-            Ok(Some(stack)) => *stack,
+        let dest_slot_data = match inventory.get_slot(dest_slot + SLOT_HOTBAR_START) {
+            Ok(Some(stack)) => stack.clone(),
             _ => ItemStack::new(0, Item::AIR),
         };
 
@@ -443,35 +447,39 @@ impl Player {
         }
 
         match source_slot {
-            Some(slot_index) if (36..=44).contains(&slot_index) => {
+            Some(slot_index) if (SLOT_HOTBAR_START..=SLOT_HOTBAR_END).contains(&slot_index) => {
                 // Case where item is in hotbar
-                dest_slot = slot_index - 36;
+                dest_slot = slot_index - SLOT_HOTBAR_START;
             }
             Some(slot_index) => {
                 // Case where item is in inventory
 
                 // Update destination slot
                 let source_slot_data = match inventory.get_slot(slot_index) {
-                    Ok(Some(stack)) => *stack,
+                    Ok(Some(stack)) => stack.clone(),
                     _ => return,
                 };
-                self.update_single_slot(&mut inventory, dest_slot as i16 + 36, source_slot_data)
-                    .await;
+                self.update_single_slot(
+                    &mut inventory,
+                    dest_slot + SLOT_HOTBAR_START,
+                    source_slot_data,
+                )
+                .await;
 
                 // Update source slot
-                self.update_single_slot(&mut inventory, slot_index as i16, dest_slot_data)
+                self.update_single_slot(&mut inventory, slot_index, dest_slot_data)
                     .await;
             }
             None if self.gamemode.load() == GameMode::Creative => {
                 // Case where item is not present, if in creative mode create the item
                 let item_stack = ItemStack::new(1, Item::from_id(block.item_id).unwrap());
-                self.update_single_slot(&mut inventory, dest_slot as i16 + 36, item_stack)
+                self.update_single_slot(&mut inventory, dest_slot + SLOT_HOTBAR_START, item_stack)
                     .await;
 
                 // Check if there is any empty slot in the player inventory
                 if let Some(slot_index) = inventory.get_empty_slot_no_order() {
-                    inventory.state_id += 1;
-                    self.update_single_slot(&mut inventory, slot_index as i16, dest_slot_data)
+                    inventory.increment_state_id();
+                    self.update_single_slot(&mut inventory, slot_index, dest_slot_data)
                         .await;
                 }
             }
@@ -479,10 +487,10 @@ impl Player {
         }
 
         // Update held item
-        inventory.set_selected(dest_slot as u32);
+        inventory.set_selected(dest_slot);
         let empty = &ItemStack::new(0, Item::AIR);
         let stack = inventory.held_item().unwrap_or(empty);
-        let equipment = &[(EquipmentSlot::MainHand, *stack)];
+        let equipment = &[(EquipmentSlot::MainHand, stack.clone())];
         self.living_entity.send_equipment_changes(equipment).await;
         self.client
             .send_packet(&CSetHeldItem::new(dest_slot as i8))
@@ -1008,19 +1016,18 @@ impl Player {
             return Err(BlockPlacingError::InvalidBlockFace.into());
         };
 
-        let mut inventory = self.inventory().lock().await;
-        let entity = &self.living_entity.entity;
-        let world = &entity.world.read().await;
-        let slot_id = inventory.get_selected();
-        let mut state_id = inventory.state_id;
-        let item_slot = *inventory.held_item_mut();
+        let inventory = self.inventory().lock().await;
+        let slot_id = inventory.get_selected_slot();
+        let held_item = inventory.held_item().cloned();
         drop(inventory);
 
+        let entity = &self.living_entity.entity;
+        let world = &entity.world.read().await;
         let Ok(block) = world.get_block(&location).await else {
             return Err(BlockPlacingError::NoBaseBlock.into());
         };
 
-        let Some(stack) = item_slot else {
+        let Some(stack) = held_item else {
             if !self
                 .living_entity
                 .entity
@@ -1082,6 +1089,7 @@ impl Player {
             // Decrease Block count
             if self.gamemode.load() != GameMode::Creative {
                 let mut inventory = self.inventory().lock().await;
+
                 if !inventory.decrease_current_stack(1) {
                     return Err(BlockPlacingError::InventoryInvalid.into());
                 }
@@ -1090,8 +1098,8 @@ impl Player {
                     .handle_decrease_item(
                         server,
                         slot_id as i16,
-                        inventory.held_item(),
-                        &mut state_id,
+                        inventory.held_item().cloned().as_ref(),
+                        &mut inventory.state_id,
                     )
                     .await;
             }
@@ -1140,10 +1148,10 @@ impl Player {
             return;
         }
         let mut inv = self.inventory().lock().await;
-        inv.set_selected(slot as u32);
+        inv.set_selected(slot as usize);
         let empty = &ItemStack::new(0, Item::AIR);
         let stack = inv.held_item().unwrap_or(empty);
-        let equipment = &[(EquipmentSlot::MainHand, *stack)];
+        let equipment = &[(EquipmentSlot::MainHand, stack.clone())];
         self.living_entity.send_equipment_changes(equipment).await;
     }
 
@@ -1155,16 +1163,18 @@ impl Player {
         if self.gamemode.load() != GameMode::Creative {
             return Err(InventoryError::PermissionError);
         }
-        let valid_slot = packet.slot >= 0 && packet.slot <= 45;
-        let item_stack = packet.clicked_item.to_item();
+        let valid_slot = packet.slot >= 0 && packet.slot as usize <= SLOT_OFFHAND;
+        // TODO: Handle error
+        let item_stack = packet.clicked_item.to_stack().unwrap();
         if valid_slot {
             self.inventory()
                 .lock()
                 .await
                 .set_slot(packet.slot as usize, item_stack, true)?;
-        } else {
+        } else if let Some(item_stack) = item_stack {
             // Item drop
-            self.drop_item(server, item_stack.unwrap()).await;
+            self.drop_item(server, item_stack.item.id, u32::from(item_stack.item_count))
+                .await;
         };
         Ok(())
     }
@@ -1180,9 +1190,6 @@ impl Player {
         //     return;
         // };
         // window_id 0 represents both 9x1 Generic AND inventory here
-        let mut inventory = self.inventory().lock().await;
-
-        inventory.state_id = 0;
         let open_container = self.open_container.load();
         if let Some(id) = open_container {
             let mut open_containers = server.open_containers.write().await;
@@ -1198,6 +1205,13 @@ impl Player {
                 }
                 // Remove the player from the container
                 container.remove_player(self.entity_id());
+
+                let mut inventory = self.inventory().lock().await;
+                if inventory.state_id >= 2 {
+                    inventory.state_id -= 2;
+                } else {
+                    inventory.state_id = 0;
+                }
             }
             self.open_container.store(None);
         }
