@@ -2,7 +2,7 @@ use crate::server::Server;
 use async_trait::async_trait;
 use pumpkin_data::damage::DamageType;
 use pumpkin_protocol::{
-    client::play::{CTakeItemEntity, MetaDataType, Metadata},
+    client::play::{MetaDataType, Metadata},
     codec::slot::Slot,
 };
 use pumpkin_world::item::ItemStack;
@@ -23,6 +23,7 @@ pub struct ItemEntity {
 
 impl ItemEntity {
     pub fn new(entity: Entity, stack: ItemStack) -> Self {
+        entity.yaw.store(rand::random::<f32>() * 360.0);
         Self {
             entity,
             item: stack,
@@ -85,12 +86,8 @@ impl EntityBase for ItemEntity {
                         item.item_count = stack.item_count;
 
                         player
-                            .client
-                            .send_packet(&CTakeItemEntity::new(
-                                self.entity.entity_id.into(),
-                                player.entity_id().into(),
-                                item.item_count.into(),
-                            ))
+                            .living_entity
+                            .pickup(&self.entity, u32::from(item.item_count))
                             .await;
                         self.entity.remove().await;
                     }
@@ -99,12 +96,8 @@ impl EntityBase for ItemEntity {
                     item.item_count = self.count.load(std::sync::atomic::Ordering::Relaxed);
 
                     player
-                        .client
-                        .send_packet(&CTakeItemEntity::new(
-                            self.entity.entity_id.into(),
-                            player.entity_id().into(),
-                            item.item_count.into(),
-                        ))
+                        .living_entity
+                        .pickup(&self.entity, u32::from(item.item_count))
                         .await;
                     self.entity.remove().await;
                 }

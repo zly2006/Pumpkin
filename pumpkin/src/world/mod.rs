@@ -1003,15 +1003,7 @@ impl World {
         }
     }
 
-    /// Adds a living entity to the world.
-    ///
-    /// This function takes a living entity's UUID and an `Arc<LivingEntity>` reference.
-    /// It inserts the living entity into the world's `current_living_entities` map using the UUID as the key.
-    ///
-    /// # Arguments
-    ///
-    /// * `uuid`: The unique UUID of the living entity to add.
-    /// * `living_entity`: A `Arc<LivingEntity>` reference to the living entity object.
+    /// Adds a entity to the world.
     pub async fn spawn_entity(&self, entity: Arc<dyn EntityBase>) {
         let base_entity = entity.get_entity();
         self.broadcast_packet_all(&base_entity.create_spawn_packet())
@@ -1120,7 +1112,7 @@ impl World {
             );
 
             if drop {
-                block::drop_loot(server, self, block, position).await;
+                block::drop_loot(server, self, block, position, true).await;
             }
 
             match cause {

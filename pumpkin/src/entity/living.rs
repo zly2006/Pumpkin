@@ -8,7 +8,7 @@ use pumpkin_config::ADVANCED_CONFIG;
 use pumpkin_data::entity::{EffectType, EntityStatus};
 use pumpkin_data::{damage::DamageType, sound::Sound};
 use pumpkin_nbt::tag::NbtTag;
-use pumpkin_protocol::client::play::CHurtAnimation;
+use pumpkin_protocol::client::play::{CHurtAnimation, CTakeItemEntity};
 use pumpkin_protocol::codec::var_int::VarInt;
 use pumpkin_protocol::{
     client::play::{CDamageEvent, CSetEquipment, EquipmentSlot, MetaDataType, Metadata},
@@ -67,6 +67,21 @@ impl LivingEntity {
                 &[self.entity.entity_uuid],
                 &CSetEquipment::new(self.entity_id().into(), equipment),
             )
+            .await;
+    }
+
+    /// Picks up and Item entity or XP Orb
+    pub async fn pickup(&self, item: &Entity, stack_amount: u32) {
+        // TODO: Only nearby
+        self.entity
+            .world
+            .read()
+            .await
+            .broadcast_packet_all(&CTakeItemEntity::new(
+                item.entity_id.into(),
+                self.entity.entity_id.into(),
+                stack_amount.into(),
+            ))
             .await;
     }
 

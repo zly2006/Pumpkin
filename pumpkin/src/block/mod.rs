@@ -25,12 +25,12 @@ use pumpkin_world::block::registry::{Block, State};
 use pumpkin_world::item::ItemStack;
 use rand::Rng;
 
-use crate::block::blocks::jukebox::JukeboxBlock;
 use crate::block::registry::BlockRegistry;
 use crate::entity::item::ItemEntity;
 use crate::server::Server;
 use crate::world::World;
 use crate::{block::blocks::crafting_table::CraftingTableBlock, entity::player::Player};
+use crate::{block::blocks::jukebox::JukeboxBlock, entity::experience_orb::ExperienceOrbEntity};
 use std::sync::Arc;
 
 mod blocks;
@@ -52,7 +52,13 @@ pub fn default_registry() -> Arc<BlockRegistry> {
     Arc::new(manager)
 }
 
-pub async fn drop_loot(server: &Server, world: &Arc<World>, block: &Block, pos: &BlockPos) {
+pub async fn drop_loot(
+    server: &Server,
+    world: &Arc<World>,
+    block: &Block,
+    pos: &BlockPos,
+    experience: bool,
+) {
     // TODO: Currently only the item block is dropped, We should drop the loop table
     let height = EntityType::ITEM.dimension[1] / 2.0;
     let pos = Vector3::new(
@@ -68,6 +74,16 @@ pub async fn drop_loot(server: &Server, world: &Arc<World>, block: &Block, pos: 
     ));
     world.spawn_entity(item_entity.clone()).await;
     item_entity.send_meta_packet().await;
+
+    if experience {
+        if let Some(experience) = &block.experience {
+            let amount = experience.experience.get();
+            // TODO: Silk touch gives no exp
+            if amount > 0 {
+                ExperienceOrbEntity::spawn(world, server, pos, amount as u32).await;
+            }
+        }
+    }
 }
 
 pub async fn calc_block_breaking(player: &Player, state: &State, block_name: &str) -> f32 {

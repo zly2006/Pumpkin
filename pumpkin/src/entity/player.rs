@@ -147,6 +147,7 @@ pub struct Player {
     pub experience_progress: AtomicCell<f32>,
     /// The player's total experience points
     pub experience_points: AtomicI32,
+    pub experience_pick_up_delay: Mutex<u32>,
 }
 
 impl Player {
@@ -201,6 +202,7 @@ impl Player {
             packet_sequence: AtomicI32::new(-1),
             start_mining_time: AtomicI32::new(0),
             carried_item: AtomicCell::new(None),
+            experience_pick_up_delay: Mutex::new(0),
             teleport_id_count: AtomicI32::new(0),
             mining: AtomicBool::new(false),
             mining_pos: Mutex::new(BlockPos(Vector3::new(0, 0, 0))),
@@ -448,6 +450,12 @@ impl Player {
                     self.packet_sequence.swap(-1, Ordering::Relaxed).into(),
                 ))
                 .await;
+        }
+        {
+            let mut xp = self.experience_pick_up_delay.lock().await;
+            if *xp > 0 {
+                *xp -= 1;
+            }
         }
 
         self.tick_counter.fetch_add(1, Ordering::Relaxed);
@@ -1050,8 +1058,8 @@ impl Player {
         self.client
             .send_packet(&CSetExperience::new(
                 progress.clamp(0.0, 1.0),
-                level.into(),
                 points.into(),
+                level.into(),
             ))
             .await;
     }
@@ -1140,7 +1148,7 @@ impl Player {
         let total_exp = experience::points_to_level(current_level) + current_points;
         let new_total_exp = total_exp + added_points;
         let (new_level, new_points) = experience::total_to_level_and_points(new_total_exp);
-        let progress = experience::progress_in_level(new_level, new_points);
+        let progress = experience::progress_in_level(new_points, new_level);
         self.set_experience(new_level, progress, new_points).await;
     }
 }
