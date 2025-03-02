@@ -257,13 +257,10 @@ impl Level {
         let chunk_writer = self.chunk_writer.clone();
         let level_folder = self.level_folder.clone();
 
-        // TODO: Save the join handles to await them when stopping the server
-        tokio::spawn(async move {
-            let data = chunk_to_write.1.read().await;
-            if let Err(error) = chunk_writer.write_chunk(&data, &level_folder, &chunk_to_write.0) {
-                log::error!("Failed writing Chunk to disk {}", error.to_string());
-            }
-        });
+        let data = chunk_to_write.1.read().await;
+        if let Err(error) = chunk_writer.write_chunk(&data, &level_folder, &chunk_to_write.0) {
+            log::error!("Failed writing Chunk to disk {}", error.to_string());
+        }
     }
 
     fn load_chunk_from_save(
