@@ -24,12 +24,12 @@ impl ExperienceOrbEntity {
         }
     }
 
-    pub async fn spawn(world: &Arc<World>, server: &Server, position: Vector3<f64>, amount: u32) {
+    pub async fn spawn(world: &Arc<World>, position: Vector3<f64>, amount: u32) {
         let mut amount = amount;
         while amount > 0 {
             let i = Self::round_to_orb_size(amount);
             amount -= i;
-            let entity = server.add_entity(position, EntityType::EXPERIENCE_ORB, world);
+            let entity = world.create_entity(position, EntityType::EXPERIENCE_ORB);
             let orb = Arc::new(Self::new(entity, i));
             world.spawn_entity(orb).await;
         }

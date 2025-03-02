@@ -844,7 +844,7 @@ impl Player {
                         // Block break & block break sound
 
                         world
-                            .break_block(server, &location, Some(self.clone()), false)
+                            .break_block(&location, Some(self.clone()), false)
                             .await;
                         if let Ok(block) = block {
                             server
@@ -863,9 +863,7 @@ impl Player {
                             let speed = block::calc_block_breaking(&self, state, &block.name).await;
                             // Instant break
                             if speed >= 1.0 {
-                                world
-                                    .break_block(server, &location, Some(self.clone()), true)
-                                    .await;
+                                world.break_block(&location, Some(self.clone()), true).await;
                                 server
                                     .block_registry
                                     .broken(block, &self, location, server)
@@ -924,9 +922,7 @@ impl Player {
                         if let Ok(state) = state {
                             let drop = self.gamemode.load() != GameMode::Creative
                                 && self.can_harvest(state, &block.name).await;
-                            world
-                                .break_block(server, &location, Some(self.clone()), drop)
-                                .await;
+                            world.break_block(&location, Some(self.clone()), drop).await;
                         }
                         server
                             .block_registry
@@ -936,10 +932,10 @@ impl Player {
                     self.update_sequence(player_action.sequence.0);
                 }
                 Status::DropItem => {
-                    self.drop_held_item(server, false).await;
+                    self.drop_held_item(false).await;
                 }
                 Status::DropItemStack => {
-                    self.drop_held_item(server, true).await;
+                    self.drop_held_item(true).await;
                 }
                 Status::ShootArrowOrFinishEating | Status::SwapItem => {
                     log::debug!("todo");
@@ -1079,8 +1075,7 @@ impl Player {
         }
         // check if item is a spawn egg
         if let Some(entity) = entity_from_egg(stack.item.id) {
-            self.spawn_entity_from_egg(entity, server, location, &face)
-                .await;
+            self.spawn_entity_from_egg(entity, location, &face).await;
             should_try_decrement = true;
         };
 
@@ -1137,7 +1132,7 @@ impl Player {
             return;
         }
         if let Some(held) = self.inventory().lock().await.held_item() {
-            server.item_registry.on_use(&held.item, self, server).await;
+            server.item_registry.on_use(&held.item, self).await;
         }
     }
 
@@ -1157,7 +1152,6 @@ impl Player {
 
     pub async fn handle_set_creative_slot(
         &self,
-        server: &Server,
         packet: SSetCreativeSlot,
     ) -> Result<(), InventoryError> {
         if self.gamemode.load() != GameMode::Creative {
@@ -1173,7 +1167,7 @@ impl Player {
                 .set_slot(packet.slot as usize, item_stack, true)?;
         } else if let Some(item_stack) = item_stack {
             // Item drop
-            self.drop_item(server, item_stack.item.id, u32::from(item_stack.item_count))
+            self.drop_item(item_stack.item.id, u32::from(item_stack.item_count))
                 .await;
         };
         Ok(())
@@ -1258,7 +1252,6 @@ impl Player {
     async fn spawn_entity_from_egg(
         &self,
         entity_type: EntityType,
-        server: &Server,
         location: BlockPos,
         face: &BlockDirection,
     ) {
@@ -1274,13 +1267,7 @@ impl Player {
 
         let world = self.world().await;
         // create new mob and uuid based on spawn egg id
-        let mob = mob::from_type(
-            EntityType::from_raw(entity_type.id).unwrap(),
-            server,
-            pos,
-            &world,
-        )
-        .await;
+        let mob = mob::from_type(EntityType::from_raw(entity_type.id).unwrap(), pos, &world).await;
 
         // set the rotation
         mob.get_entity().set_rotation(yaw, 0.0);

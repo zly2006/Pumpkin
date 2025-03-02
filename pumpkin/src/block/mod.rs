@@ -28,7 +28,6 @@ use rand::Rng;
 
 use crate::block::registry::BlockRegistry;
 use crate::entity::item::ItemEntity;
-use crate::server::Server;
 use crate::world::World;
 use crate::{block::blocks::crafting_table::CraftingTableBlock, entity::player::Player};
 use crate::{block::blocks::jukebox::JukeboxBlock, entity::experience_orb::ExperienceOrbEntity};
@@ -53,17 +52,11 @@ pub fn default_registry() -> Arc<BlockRegistry> {
     Arc::new(manager)
 }
 
-pub async fn drop_loot(
-    server: &Server,
-    world: &Arc<World>,
-    block: &Block,
-    pos: &BlockPos,
-    experience: bool,
-) {
+pub async fn drop_loot(world: &Arc<World>, block: &Block, pos: &BlockPos, experience: bool) {
     if let Some(table) = &block.loot_table {
         let loot = table.get_loot();
         for item in loot {
-            drop_stack(server, world, pos, item).await;
+            drop_stack(world, pos, item).await;
         }
     }
 
@@ -72,13 +65,13 @@ pub async fn drop_loot(
             let amount = experience.experience.get();
             // TODO: Silk touch gives no exp
             if amount > 0 {
-                ExperienceOrbEntity::spawn(world, server, pos.to_f64(), amount as u32).await;
+                ExperienceOrbEntity::spawn(world, pos.to_f64(), amount as u32).await;
             }
         }
     }
 }
 
-async fn drop_stack(server: &Server, world: &Arc<World>, pos: &BlockPos, stack: ItemStack) {
+async fn drop_stack(world: &Arc<World>, pos: &BlockPos, stack: ItemStack) {
     let height = EntityType::ITEM.dimension[1] / 2.0;
     let pos = Vector3::new(
         f64::from(pos.0.x) + 0.5 + rand::thread_rng().gen_range(-0.25..0.25),
@@ -86,7 +79,7 @@ async fn drop_stack(server: &Server, world: &Arc<World>, pos: &BlockPos, stack: 
         f64::from(pos.0.z) + 0.5 + rand::thread_rng().gen_range(-0.25..0.25),
     );
 
-    let entity = server.add_entity(pos, EntityType::ITEM, world);
+    let entity = world.create_entity(pos, EntityType::ITEM);
     let item_entity = Arc::new(ItemEntity::new(
         entity,
         stack.item.id,

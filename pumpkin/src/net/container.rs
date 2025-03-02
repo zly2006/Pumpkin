@@ -158,7 +158,6 @@ impl Player {
 
         let click_slot = click.slot;
         self.match_click_behaviour(
-            server,
             opened_container.as_deref_mut(),
             click,
             drag_handler,
@@ -221,7 +220,6 @@ impl Player {
 
     async fn match_click_behaviour(
         &self,
-        server: &Server,
         opened_container: Option<&mut Box<dyn Container>>,
         click: Click,
         drag_handler: &DragHandler,
@@ -231,7 +229,6 @@ impl Player {
         match click.click_type {
             ClickType::MouseClick(mouse_click) => {
                 self.mouse_click(
-                    server,
                     opened_container,
                     mouse_click,
                     click.slot,
@@ -288,7 +285,6 @@ impl Player {
                         match drop_type {
                             DropType::FullStack => {
                                 self.drop_item(
-                                    server,
                                     item_stack.item.id,
                                     u32::from(item_stack.item_count),
                                 )
@@ -296,7 +292,7 @@ impl Player {
                                 *slots[slot] = None;
                             }
                             DropType::SingleItem => {
-                                self.drop_item(server, item_stack.item.id, 1).await;
+                                self.drop_item(item_stack.item.id, 1).await;
                                 item_stack.item_count -= 1;
                                 if item_stack.item_count == 0 {
                                     *slots[slot] = None;
@@ -312,7 +308,6 @@ impl Player {
 
     async fn mouse_click(
         &self,
-        server: &Server,
         opened_container: Option<&mut Box<dyn Container>>,
         mouse_click: MouseClick,
         slot: container_click::Slot,
@@ -329,16 +324,12 @@ impl Player {
                 if let Some(item_stack) = carried_item.as_mut() {
                     match mouse_click {
                         MouseClick::Left => {
-                            self.drop_item(
-                                server,
-                                item_stack.item.id,
-                                u32::from(item_stack.item_count),
-                            )
-                            .await;
+                            self.drop_item(item_stack.item.id, u32::from(item_stack.item_count))
+                                .await;
                             *carried_item = None;
                         }
                         MouseClick::Right => {
-                            self.drop_item(server, item_stack.item.id, 1).await;
+                            self.drop_item(item_stack.item.id, 1).await;
                             item_stack.item_count -= 1;
                             if item_stack.item_count == 0 {
                                 *carried_item = None;

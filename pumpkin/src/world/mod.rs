@@ -1003,6 +1003,15 @@ impl World {
         }
     }
 
+    pub fn create_entity(
+        self: &Arc<Self>,
+        position: Vector3<f64>,
+        entity_type: EntityType,
+    ) -> Entity {
+        let uuid = uuid::Uuid::new_v4();
+        Entity::new(uuid, self.clone(), position, entity_type, false)
+    }
+
     /// Adds a entity to the world.
     pub async fn spawn_entity(&self, entity: Arc<dyn EntityBase>) {
         let base_entity = entity.get_entity();
@@ -1087,7 +1096,6 @@ impl World {
 
     pub async fn break_block(
         self: &Arc<Self>,
-        server: &Server,
         position: &BlockPos,
         cause: Option<Arc<Player>>,
         drop: bool,
@@ -1112,7 +1120,7 @@ impl World {
             );
 
             if drop {
-                block::drop_loot(server, self, block, position, true).await;
+                block::drop_loot(self, block, position, true).await;
             }
 
             match cause {

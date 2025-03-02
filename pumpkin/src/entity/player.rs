@@ -51,10 +51,7 @@ use pumpkin_protocol::{
 use pumpkin_util::{
     GameMode,
     math::{
-        boundingbox::{BoundingBox, EntityDimensions},
-        experience,
-        position::BlockPos,
-        vector2::Vector2,
+        boundingbox::BoundingBox, experience, position::BlockPos, vector2::Vector2,
         vector3::Vector3,
     },
     permission::PermissionLvl,
@@ -151,12 +148,7 @@ pub struct Player {
 }
 
 impl Player {
-    pub async fn new(
-        client: Arc<Client>,
-        world: Arc<World>,
-        entity_id: EntityId,
-        gamemode: GameMode,
-    ) -> Self {
+    pub async fn new(client: Arc<Client>, world: Arc<World>, gamemode: GameMode) -> Self {
         let gameprofile = client.gameprofile.lock().await.clone().map_or_else(
             || {
                 log::error!("Client {} has no game profile!", client.id);
@@ -173,21 +165,13 @@ impl Player {
 
         let gameprofile_clone = gameprofile.clone();
         let config = client.config.lock().await.clone().unwrap_or_default();
-        let bounding_box_size = EntityDimensions {
-            width: EntityType::PLAYER.dimension[0],
-            height: EntityType::PLAYER.dimension[1],
-        };
 
         Self {
             living_entity: LivingEntity::new(Entity::new(
-                entity_id,
                 player_uuid,
                 world,
                 Vector3::new(0.0, 0.0, 0.0),
                 EntityType::PLAYER,
-                EntityType::PLAYER.eye_height,
-                AtomicCell::new(BoundingBox::new_default(&bounding_box_size)),
-                AtomicCell::new(bounding_box_size),
                 matches!(gamemode, GameMode::Creative | GameMode::Spectator),
             )),
             config: Mutex::new(config),
@@ -1018,12 +1002,11 @@ impl Player {
             .await;
     }
 
-    pub async fn drop_item(&self, server: &Server, item_id: u16, count: u32) {
-        let entity = server.add_entity(
-            self.living_entity.entity.pos.load(),
-            EntityType::ITEM,
-            &self.world().await,
-        );
+    pub async fn drop_item(&self, item_id: u16, count: u32) {
+        let entity = self
+            .world()
+            .await
+            .create_entity(self.living_entity.entity.pos.load(), EntityType::ITEM);
 
         // TODO: Merge stacks together
         let item_entity = Arc::new(ItemEntity::new(entity, item_id, count));
@@ -1031,11 +1014,11 @@ impl Player {
         item_entity.send_meta_packet().await;
     }
 
-    pub async fn drop_held_item(&self, server: &Server, drop_stack: bool) {
+    pub async fn drop_held_item(&self, drop_stack: bool) {
         let mut inv = self.inventory.lock().await;
         if let Some(item_stack) = inv.held_item_mut() {
             let drop_amount = if drop_stack { item_stack.item_count } else { 1 };
-            self.drop_item(server, item_stack.item.id, u32::from(drop_amount))
+            self.drop_item(item_stack.item.id, u32::from(drop_amount))
                 .await;
             inv.decrease_current_stack(drop_amount);
         }
@@ -1323,7 +1306,7 @@ impl Player {
                     .await;
             }
             SSetCreativeSlot::PACKET_ID => {
-                self.handle_set_creative_slot(server, SSetCreativeSlot::read(bytebuf)?)
+                self.handle_set_creative_slot(SSetCreativeSlot::read(bytebuf)?)
                     .await?;
             }
             SSwingArm::PACKET_ID => {
