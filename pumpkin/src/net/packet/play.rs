@@ -744,7 +744,7 @@ impl Player {
         if entity.sneaking.load(std::sync::atomic::Ordering::Relaxed) != sneaking {
             entity.set_sneaking(sneaking).await;
         }
-        let Ok(action) = ActionType::try_from(interact.typ.0) else {
+        let Ok(action) = ActionType::try_from(interact.r#type.0) else {
             self.kick(TextComponent::text("Invalid action type")).await;
             return;
         };
