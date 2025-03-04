@@ -105,6 +105,14 @@ impl NbtCompound {
             self.child_tags.push((name, value.into()));
         }
     }
+    
+    pub fn put_string(&mut self, name: &str, value: String) {
+        self.put(name, NbtTag::String(value));
+    }
+    
+    pub fn put_list(&mut self, name: &str, value: Box<[NbtTag]>)  {
+        self.put(name, NbtTag::List(value));
+    }
 
     pub fn put_byte(&mut self, name: &str, value: i8) {
         self.put(name, NbtTag::Byte(value));
