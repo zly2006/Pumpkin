@@ -62,7 +62,7 @@ pub fn plugin_impl(_attr: TokenStream, item: TokenStream) -> TokenStream {
             #(#methods)*
         }
 
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub fn plugin() -> Box<dyn pumpkin::plugin::Plugin> {
             Box::new(#struct_ident::new())
         }
