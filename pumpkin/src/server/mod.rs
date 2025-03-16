@@ -327,7 +327,7 @@ impl Server {
         let mut players = Vec::<Arc<Player>>::new();
 
         for world in self.worlds.read().await.iter() {
-            for (_, player) in world.players.read().await.iter() {
+            for player in world.players.read().await.values() {
                 if player.client.address.lock().await.ip() == ip {
                     players.push(player.clone());
                 }
@@ -342,7 +342,7 @@ impl Server {
         let mut players = Vec::<Arc<Player>>::new();
 
         for world in self.worlds.read().await.iter() {
-            for (_, player) in world.players.read().await.iter() {
+            for player in world.players.read().await.values() {
                 players.push(player.clone());
             }
         }
