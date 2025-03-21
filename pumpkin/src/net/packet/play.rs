@@ -8,6 +8,7 @@ use crate::net::PlayerConfig;
 use crate::plugin::player::player_chat::PlayerChatEvent;
 use crate::plugin::player::player_command_send::PlayerCommandSendEvent;
 use crate::plugin::player::player_move::PlayerMoveEvent;
+use crate::world::BlockFlags;
 use crate::{
     command::CommandSender,
     entity::player::{ChatMode, Hand, Player},
@@ -962,7 +963,11 @@ impl Player {
 
                         let broken_state = world.get_block_state(&location).await.unwrap();
                         world
-                            .break_block(&location, Some(self.clone()), false, None)
+                            .break_block(
+                                &location,
+                                Some(self.clone()),
+                                BlockFlags::NOTIFY_NEIGHBORS | BlockFlags::SKIP_DROPS,
+                            )
                             .await;
                         server
                             .block_registry
@@ -987,7 +992,11 @@ impl Player {
                         if speed >= 1.0 {
                             let broken_state = world.get_block_state(&location).await.unwrap();
                             world
-                                .break_block(&location, Some(self.clone()), true, None)
+                                .break_block(
+                                    &location,
+                                    Some(self.clone()),
+                                    BlockFlags::NOTIFY_NEIGHBORS,
+                                )
                                 .await;
                             server
                                 .block_registry
@@ -1055,7 +1064,15 @@ impl Player {
                             let drop = self.gamemode.load() != GameMode::Creative
                                 && self.can_harvest(&state, block.name).await;
                             world
-                                .break_block(&location, Some(self.clone()), drop, None)
+                                .break_block(
+                                    &location,
+                                    Some(self.clone()),
+                                    if drop {
+                                        BlockFlags::NOTIFY_NEIGHBORS
+                                    } else {
+                                        BlockFlags::SKIP_DROPS | BlockFlags::NOTIFY_NEIGHBORS
+                                    },
+                                )
                                 .await;
                         }
                         server
@@ -1515,20 +1532,11 @@ impl Player {
         if !intersects
             && server
                 .block_registry
-                .can_place(
-                    server,
-                    world,
-                    &block,
-                    face,
-                    &final_block_pos,
-                    &self.get_player_direction(),
-                )
+                .can_place_at(world, &block, &final_block_pos)
                 .await
         {
-            let _replaced_id = world.set_block_state(&final_block_pos, new_state).await;
-            server
-                .block_registry
-                .on_placed(world, &block, self, final_block_pos, server)
+            let _replaced_id = world
+                .set_block_state(&final_block_pos, new_state, BlockFlags::NOTIFY_ALL)
                 .await;
 
             self.send_sign_packet(block, final_block_pos, face).await;

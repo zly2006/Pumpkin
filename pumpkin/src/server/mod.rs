@@ -98,12 +98,15 @@ impl Server {
         // First register the default commands. After that, plugins can put in their own.
         let command_dispatcher = RwLock::new(default_dispatcher());
 
+        let block_registry = super::block::default_registry();
+
         let world = World::load(
             Dimension::Overworld.into_level(
                 // TODO: load form config
                 "./world".parse().unwrap(),
             ),
             DimensionType::Overworld,
+            block_registry.clone(),
         );
 
         Self {
@@ -119,7 +122,7 @@ impl Server {
                 DimensionType::TheEnd,
             ],
             command_dispatcher,
-            block_registry: super::block::default_registry(),
+            block_registry,
             item_registry: super::item::items::default_registry(),
             auth_client,
             key_store: KeyStore::new(),
