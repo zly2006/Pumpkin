@@ -54,7 +54,7 @@ pub trait PumpkinBlock: Send + Sync {
         _world: &World,
         block: &Block,
         _face: &BlockDirection,
-        _block_pos: &BlockPos,
+        _pos: &BlockPos,
         _use_item_on: &SUseItemOn,
         _player_direction: &HorizontalFacing,
         _other: bool,

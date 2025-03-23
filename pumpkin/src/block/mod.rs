@@ -1,4 +1,6 @@
+use blocks::dirt_path::DirtPathBlock;
 use blocks::doors::register_door_blocks;
+use blocks::farmland::FarmLandBlock;
 use blocks::fence_gates::register_fence_gate_blocks;
 use blocks::fences::register_fence_blocks;
 use blocks::logs::register_log_blocks;
@@ -49,6 +51,8 @@ pub fn default_registry() -> Arc<BlockRegistry> {
     manager.register(ChestBlock);
     manager.register(TNTBlock);
     manager.register(LeverBlock);
+    manager.register(DirtPathBlock);
+    manager.register(FarmLandBlock);
     manager.register(RedstoneWireBlock);
     manager.register(RedstoneBlock);
     manager.register(RedstoneLamp);

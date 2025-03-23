@@ -7,7 +7,9 @@ use crate::{entity::player::Player, server::Server};
 
 pub(crate) mod chest;
 pub(crate) mod crafting_table;
+pub(crate) mod dirt_path;
 pub(crate) mod doors;
+pub(crate) mod farmland;
 pub(crate) mod fence_gates;
 pub(crate) mod fences;
 pub(crate) mod furnace;
