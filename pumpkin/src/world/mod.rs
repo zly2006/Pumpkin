@@ -52,7 +52,7 @@ use pumpkin_registry::DimensionType;
 use pumpkin_util::math::{position::BlockPos, vector3::Vector3};
 use pumpkin_util::math::{position::chunk_section_from_pos, vector2::Vector2};
 use pumpkin_util::text::{TextComponent, color::NamedColor};
-use pumpkin_world::level::SyncChunk;
+use pumpkin_world::{GENERATION_SETTINGS, GeneratorSetting, biome, level::SyncChunk};
 use pumpkin_world::{block::BlockDirection, chunk::ChunkData};
 use pumpkin_world::{
     block::registry::{
@@ -145,6 +145,7 @@ pub struct World {
     pub level_time: Mutex<LevelTime>,
     /// The type of dimension the world is in.
     pub dimension_type: DimensionType,
+    pub sea_level: i32,
     /// The world's weather, including rain and thunder levels.
     pub weather: Mutex<Weather>,
     /// Block Behaviour
@@ -161,6 +162,10 @@ impl World {
         dimension_type: DimensionType,
         block_registry: Arc<BlockRegistry>,
     ) -> Self {
+        // TODO
+        let generation_settings = GENERATION_SETTINGS
+            .get(&GeneratorSetting::Overworld)
+            .unwrap();
         Self {
             level: Arc::new(level),
             players: Arc::new(RwLock::new(HashMap::new())),
@@ -171,6 +176,7 @@ impl World {
             dimension_type,
             weather: Mutex::new(Weather::new()),
             block_registry,
+            sea_level: generation_settings.sea_level,
             unsent_block_changes: Mutex::new(HashMap::new()),
         }
     }
@@ -456,14 +462,14 @@ impl World {
                 false,
                 (self.dimension_type as u8).into(),
                 self.dimension_type.name(),
-                0, // seed
+                biome::hash_seed(self.level.seed.0 as i64), // seed
                 gamemode as u8,
                 base_config.default_gamemode as i8,
                 false,
                 false,
                 None,
                 0.into(),
-                0.into(),
+                self.sea_level.into(),
                 false,
             ))
             .await;
@@ -736,14 +742,14 @@ impl World {
             .enqueue_packet(&CRespawn::new(
                 (self.dimension_type as u8).into(),
                 self.dimension_type.name(),
-                0, // seed
+                biome::hash_seed(self.level.seed.0 as i64), // seed
                 player.gamemode.load() as u8,
                 player.gamemode.load() as i8,
                 false,
                 false,
                 Some((death_dimension, death_location)),
                 0.into(),
-                0.into(),
+                self.sea_level.into(),
                 data_kept,
             ))
             .await;
