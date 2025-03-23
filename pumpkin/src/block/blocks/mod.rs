@@ -14,6 +14,7 @@ pub(crate) mod furnace;
 pub(crate) mod jukebox;
 pub(crate) mod logs;
 pub(crate) mod redstone;
+pub(crate) mod sugar_cane;
 pub(crate) mod tnt;
 pub(crate) mod torches;
 /// The standard destroy with container removes the player forcibly from the container,

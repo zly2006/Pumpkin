@@ -1158,15 +1158,9 @@ impl World {
         block_state_id: u16,
         flags: BlockFlags,
     ) -> u16 {
-        let (chunk_coordinate, relative_coordinates) = position.chunk_and_chunk_relative_position();
-
-        // Since we divide by 16, remnant can never exceed `u8::MAX`
-        let relative = ChunkRelativeBlockCoordinates::from(relative_coordinates);
-
-        let chunk = match self.level.try_get_chunk(chunk_coordinate) {
-            Some(chunk) => chunk.clone(),
-            None => self.receive_chunk(chunk_coordinate).await.0,
-        };
+        let chunk = self.get_chunk(position).await;
+        let (_, relative) = position.chunk_and_chunk_relative_position();
+        let relative = ChunkRelativeBlockCoordinates::from(relative);
         let mut chunk = chunk.write().await;
         let replaced_block_state_id = chunk
             .blocks
@@ -1274,7 +1268,7 @@ impl World {
         priority: TickPriority,
     ) {
         self.level
-            .schedule_block_tick(block.id, &block_pos, delay, priority)
+            .schedule_block_tick(block.id, block_pos, delay, priority)
             .await;
     }
 
@@ -1356,13 +1350,20 @@ impl World {
         }
     }
 
-    pub async fn get_block_state_id(&self, position: &BlockPos) -> Result<u16, GetBlockError> {
-        let (chunk_coordinate, relative) = position.chunk_and_chunk_relative_position();
-        let relative = ChunkRelativeBlockCoordinates::from(relative);
+    pub async fn get_chunk(&self, position: &BlockPos) -> Arc<RwLock<ChunkData>> {
+        let (chunk_coordinate, _) = position.chunk_and_chunk_relative_position();
         let chunk = match self.level.try_get_chunk(chunk_coordinate) {
             Some(chunk) => chunk.clone(),
             None => self.receive_chunk(chunk_coordinate).await.0,
         };
+        chunk
+    }
+
+    pub async fn get_block_state_id(&self, position: &BlockPos) -> Result<u16, GetBlockError> {
+        let chunk = self.get_chunk(position).await;
+        let (_, relative) = position.chunk_and_chunk_relative_position();
+        let relative = ChunkRelativeBlockCoordinates::from(relative);
+
         let chunk: tokio::sync::RwLockReadGuard<ChunkData> = chunk.read().await;
 
         let Some(id) = chunk.blocks.get_block(relative) else {

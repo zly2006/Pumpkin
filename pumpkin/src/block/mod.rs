@@ -11,6 +11,7 @@ use blocks::redstone::redstone_torch::register_redstone_torch_blocks;
 use blocks::redstone::redstone_wire::RedstoneWireBlock;
 use blocks::redstone::repeater::RepeaterBlock;
 use blocks::redstone::target_block::TargetBlock;
+use blocks::sugar_cane::SugarCaneBlock;
 use blocks::torches::register_torch_blocks;
 use blocks::{
     chest::ChestBlock, furnace::FurnaceBlock, redstone::lever::LeverBlock, tnt::TNTBlock,
@@ -42,6 +43,7 @@ pub fn default_registry() -> Arc<BlockRegistry> {
     let mut manager = BlockRegistry::default();
 
     manager.register(JukeboxBlock);
+    manager.register(SugarCaneBlock);
     manager.register(CraftingTableBlock);
     manager.register(FurnaceBlock);
     manager.register(ChestBlock);
