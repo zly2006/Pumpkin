@@ -48,6 +48,7 @@ pub(crate) fn build() -> TokenStream {
             .temperature_modifier
             .clone()
             .unwrap_or(TemperatureModifier::None);
+
         let temperature_modifier = match temperature_modifier {
             TemperatureModifier::Frozen => quote! { TemperatureModifier::Frozen },
             TemperatureModifier::None => quote! { TemperatureModifier::None },
@@ -56,37 +57,43 @@ pub(crate) fn build() -> TokenStream {
 
         variants.extend([quote! {
             pub const #format_name: Biome = Biome {
-               index: #index,
-               has_precipitation: #has_precipitation,
-               temperature: #temperature,
-               temperature_modifier: #temperature_modifier,
-               downfall: #downfall,
-              features: &[#(&[#(#features),*]),*]
+               id: #index,
+               weather: Weather::new(
+                    #has_precipitation,
+                    #temperature,
+                    #temperature_modifier,
+                    #downfall
+               ),
+               features: &[#(&[#(#features),*]),*]
             };
         }]);
 
         type_to_name.extend(quote! { Self::#format_name => #name, });
-        name_to_type.extend(quote! { #name => Some(Self::#format_name), });
+        name_to_type.extend(quote! { #name => Some(&Self::#format_name), });
         type_to_id.extend(quote! { Self::#format_name => #index, });
         id_to_type.extend(quote! { #index => Some(Self::#format_name), });
     }
 
     quote! {
+        use pumpkin_util::biome::{TemperatureModifier, Weather};
         use serde::{de, Deserializer};
         use std::fmt;
 
-        #[derive(Clone, Copy, PartialEq, Debug)]
+        #[derive(Clone, Debug)]
         pub struct Biome {
-            pub index: u8,
-            pub has_precipitation: bool,
-            pub temperature: f32,
-            pub temperature_modifier: TemperatureModifier,
-            pub downfall: f32,
-           // carvers: &'static [&str],
+            pub id: u8,
+            pub weather: Weather,
+            // carvers: &'static [&str],
             pub features: &'static [&'static [&'static str]]
         }
 
-        impl<'de> Deserialize<'de> for Biome {
+        impl PartialEq for Biome {
+            fn eq(&self, other: &Biome) -> bool {
+                self.id == other.id
+            }
+        }
+
+        impl<'de> Deserialize<'de> for &'static Biome {
             fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
             where
                 D: Deserializer<'de>,
@@ -94,7 +101,7 @@ pub(crate) fn build() -> TokenStream {
                 struct BiomeVisitor;
 
                 impl de::Visitor<'_> for BiomeVisitor {
-                    type Value = Biome;
+                    type Value = &'static Biome;
 
                     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                         formatter.write_str("a biome name as a string")
@@ -121,23 +128,17 @@ pub(crate) fn build() -> TokenStream {
             }
         }
 
-        #[derive(Clone, Copy, PartialEq, Debug)]
-        pub enum TemperatureModifier {
-            None,
-            Frozen
-        }
-
         impl Biome {
             #variants
 
-            pub fn from_name(name: &str) -> Option<Self> {
+            pub fn from_name(name: &str) -> Option<&'static Self> {
                 match name {
                     #name_to_type
                     _ => None
                 }
             }
 
-            pub const fn from_id(id: u16) -> Option<Self> {
+            pub const fn from_id(id: u8) -> Option<Self> {
                 match id {
                     #id_to_type
                     _ => None
