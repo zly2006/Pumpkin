@@ -14,6 +14,7 @@ pub struct Biome {
     temperature_modifier: Option<TemperatureModifier>,
     //carvers: Vec<String>,
     features: Vec<Vec<String>>,
+    id: u8,
 }
 
 #[derive(Deserialize, Clone)]
@@ -35,7 +36,7 @@ pub(crate) fn build() -> TokenStream {
     let mut type_to_id = TokenStream::new();
     let mut id_to_type = TokenStream::new();
 
-    for (i, (name, biome)) in biomes.iter().enumerate() {
+    for (name, biome) in biomes.iter() {
         // let full_name = format!("minecraft:{name}");
         let format_name = format_ident!("{}", name.to_shouty_snake_case());
         let has_precipitation = biome.has_precipitation;
@@ -51,7 +52,7 @@ pub(crate) fn build() -> TokenStream {
             TemperatureModifier::Frozen => quote! { TemperatureModifier::Frozen },
             TemperatureModifier::None => quote! { TemperatureModifier::None },
         };
-        let index = LitInt::new(&i.to_string(), Span::call_site());
+        let index = LitInt::new(&biome.id.to_string(), Span::call_site());
 
         variants.extend([quote! {
             pub const #format_name: Biome = Biome {

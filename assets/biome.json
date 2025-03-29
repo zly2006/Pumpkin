@@ -207,7 +207,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 0
   },
   "bamboo_jungle": {
     "has_precipitation": true,
@@ -433,7 +434,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 1
   },
   "basalt_deltas": {
     "has_precipitation": false,
@@ -535,7 +537,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 2
   },
   "beach": {
     "has_precipitation": true,
@@ -704,7 +707,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 3
   },
   "birch_forest": {
     "has_precipitation": true,
@@ -906,7 +910,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 4
   },
   "cherry_grove": {
     "has_precipitation": true,
@@ -1100,7 +1105,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 5
   },
   "cold_ocean": {
     "has_precipitation": true,
@@ -1291,7 +1297,8 @@
         }
       ]
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 6
   },
   "crimson_forest": {
     "has_precipitation": false,
@@ -1401,7 +1408,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 7
   },
   "dark_forest": {
     "has_precipitation": true,
@@ -1604,7 +1612,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 8
   },
   "deep_cold_ocean": {
     "has_precipitation": true,
@@ -1795,7 +1804,8 @@
         }
       ]
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 9
   },
   "deep_dark": {
     "has_precipitation": true,
@@ -1902,7 +1912,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 10
   },
   "deep_frozen_ocean": {
     "has_precipitation": true,
@@ -2097,7 +2108,8 @@
         }
       ]
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 11
   },
   "deep_lukewarm_ocean": {
     "has_precipitation": true,
@@ -2300,7 +2312,8 @@
         }
       ]
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 12
   },
   "deep_ocean": {
     "has_precipitation": true,
@@ -2491,7 +2504,8 @@
         }
       ]
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 13
   },
   "desert": {
     "has_precipitation": false,
@@ -2689,7 +2703,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 14
   },
   "dripstone_caves": {
     "has_precipitation": true,
@@ -2872,7 +2887,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 15
   },
   "end_barrens": {
     "has_precipitation": false,
@@ -2910,7 +2926,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 16
   },
   "end_highlands": {
     "has_precipitation": false,
@@ -2963,7 +2980,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 17
   },
   "end_midlands": {
     "has_precipitation": false,
@@ -3001,7 +3019,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 18
   },
   "eroded_badlands": {
     "has_precipitation": false,
@@ -3211,7 +3230,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 19
   },
   "flower_forest": {
     "has_precipitation": true,
@@ -3417,7 +3437,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 20
   },
   "forest": {
     "has_precipitation": true,
@@ -3624,7 +3645,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 21
   },
   "frozen_ocean": {
     "has_precipitation": true,
@@ -3819,7 +3841,8 @@
         }
       ]
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 22
   },
   "frozen_peaks": {
     "has_precipitation": true,
@@ -3996,7 +4019,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 23
   },
   "frozen_river": {
     "has_precipitation": true,
@@ -4180,7 +4204,8 @@
         }
       ]
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 24
   },
   "grove": {
     "has_precipitation": true,
@@ -4371,7 +4396,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 25
   },
   "ice_spikes": {
     "has_precipitation": true,
@@ -4557,7 +4583,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 26
   },
   "jagged_peaks": {
     "has_precipitation": true,
@@ -4734,7 +4761,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 27
   },
   "jungle": {
     "has_precipitation": true,
@@ -4960,7 +4988,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 28
   },
   "lukewarm_ocean": {
     "has_precipitation": true,
@@ -5163,7 +5192,8 @@
         }
       ]
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 29
   },
   "lush_caves": {
     "has_precipitation": true,
@@ -5352,7 +5382,8 @@
       ],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 30
   },
   "mangrove_swamp": {
     "has_precipitation": true,
@@ -5554,7 +5585,8 @@
       ],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 31
   },
   "meadow": {
     "has_precipitation": true,
@@ -5747,7 +5779,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 32
   },
   "mushroom_fields": {
     "has_precipitation": true,
@@ -5866,7 +5899,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 33
   },
   "nether_wastes": {
     "has_precipitation": false,
@@ -5982,7 +6016,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 34
   },
   "ocean": {
     "has_precipitation": true,
@@ -6173,7 +6208,8 @@
         }
       ]
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 35
   },
   "old_growth_birch_forest": {
     "has_precipitation": true,
@@ -6375,7 +6411,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 36
   },
   "old_growth_pine_taiga": {
     "has_precipitation": true,
@@ -6598,7 +6635,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 37
   },
   "old_growth_spruce_taiga": {
     "has_precipitation": true,
@@ -6821,7 +6859,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 38
   },
   "pale_garden": {
     "has_precipitation": true,
@@ -6988,7 +7027,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 39
   },
   "plains": {
     "has_precipitation": true,
@@ -7190,7 +7230,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 40
   },
   "river": {
     "has_precipitation": true,
@@ -7375,7 +7416,8 @@
         }
       ]
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 41
   },
   "savanna": {
     "has_precipitation": false,
@@ -7582,7 +7624,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 42
   },
   "savanna_plateau": {
     "has_precipitation": false,
@@ -7801,7 +7844,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 43
   },
   "small_end_islands": {
     "has_precipitation": false,
@@ -7843,7 +7887,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 44
   },
   "snowy_beach": {
     "has_precipitation": true,
@@ -8005,7 +8050,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 45
   },
   "snowy_plains": {
     "has_precipitation": true,
@@ -8188,7 +8234,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 46
   },
   "snowy_slopes": {
     "has_precipitation": true,
@@ -8372,7 +8419,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 47
   },
   "snowy_taiga": {
     "has_precipitation": true,
@@ -8580,7 +8628,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 48
   },
   "soul_sand_valley": {
     "has_precipitation": false,
@@ -8707,7 +8756,8 @@
         "energy_budget": 0.15,
         "charge": 0.7
       }
-    }
+    },
+    "id": 49
   },
   "sparse_jungle": {
     "has_precipitation": true,
@@ -8920,7 +8970,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 50
   },
   "stony_peaks": {
     "has_precipitation": true,
@@ -9089,7 +9140,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 51
   },
   "stony_shore": {
     "has_precipitation": true,
@@ -9251,7 +9303,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 52
   },
   "sunflower_plains": {
     "has_precipitation": true,
@@ -9453,7 +9506,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 53
   },
   "swamp": {
     "has_precipitation": true,
@@ -9679,7 +9733,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 54
   },
   "taiga": {
     "has_precipitation": true,
@@ -9887,7 +9942,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 55
   },
   "the_end": {
     "has_precipitation": false,
@@ -9941,7 +9997,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 56
   },
   "the_void": {
     "has_precipitation": false,
@@ -9986,7 +10043,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 57
   },
   "warm_ocean": {
     "has_precipitation": true,
@@ -10184,7 +10242,8 @@
         }
       ]
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 58
   },
   "warped_forest": {
     "has_precipitation": false,
@@ -10289,7 +10348,8 @@
         "energy_budget": 0.12,
         "charge": 1.0
       }
-    }
+    },
+    "id": 59
   },
   "windswept_forest": {
     "has_precipitation": true,
@@ -10487,7 +10547,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 60
   },
   "windswept_gravelly_hills": {
     "has_precipitation": true,
@@ -10685,7 +10746,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 61
   },
   "windswept_hills": {
     "has_precipitation": true,
@@ -10883,7 +10945,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 62
   },
   "windswept_savanna": {
     "has_precipitation": false,
@@ -11089,7 +11152,8 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 63
   },
   "wooded_badlands": {
     "has_precipitation": false,
@@ -11306,6 +11370,7 @@
       "water_ambient": [],
       "water_creature": []
     },
-    "spawn_costs": {}
+    "spawn_costs": {},
+    "id": 64
   }
 }
