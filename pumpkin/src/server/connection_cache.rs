@@ -153,7 +153,9 @@ impl CachedStatus {
             }),
             description: config.motd.clone(),
             favicon,
-            enforce_secure_chat: false,
+            // This should stay true even when reports are disabled.
+            // It prevents the annoying popup when joining the server.
+            enforce_secure_chat: true,
         }
     }
 }
