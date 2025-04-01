@@ -1,4 +1,5 @@
 use chunk::ChunkConfig;
+use fun::FunConfig;
 use log::warn;
 use logging::LoggingConfig;
 use pumpkin_util::{Difficulty, GameMode, PermissionLvl};
@@ -12,6 +13,7 @@ use std::{
     path::Path,
     sync::LazyLock,
 };
+pub mod fun;
 pub mod logging;
 pub mod networking;
 
@@ -99,6 +101,7 @@ pub struct AdvancedConfiguration {
     pub pvp: PVPConfig,
     pub server_links: ServerLinksConfig,
     pub player_data: PlayerDataConfig,
+    pub fun: FunConfig,
 }
 
 #[derive(Serialize, Deserialize)]
