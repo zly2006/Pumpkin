@@ -12,7 +12,7 @@ pub fn is_april() -> bool {
 
 #[must_use]
 pub fn modify_chat_message(message: &str) -> Option<String> {
-    if !advanced_config().fun.april_fools && is_april() {
+    if !advanced_config().fun.april_fools || !is_april() {
         return None;
     }
     let mut words: Vec<&str> = message.split_whitespace().collect();
