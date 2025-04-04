@@ -793,8 +793,13 @@ impl Player {
                 *config = PlayerConfig {
                     locale: client_information.locale,
                     // A negative view distance would be impossible and makes no sense, right? Mojang: Let's make it signed :D
-                    view_distance: unsafe {
-                        NonZeroU8::new_unchecked(client_information.view_distance as u8)
+                    // client_information.view_distance was checked above to be > 0, so compiler should optimize this out.
+                    view_distance: match NonZeroU8::new(client_information.view_distance as u8) {
+                        Some(dist) => dist,
+                        None => {
+                            // Unreachable branch
+                            return;
+                        }
                     },
                     chat_mode,
                     chat_colors: client_information.chat_colors,
