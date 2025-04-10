@@ -827,6 +827,8 @@ pub fn chunk_to_bytes(chunk_data: &ChunkData) -> Result<Vec<u8>, ChunkSerializin
             y: i as i8 + section_coords::block_to_section(chunk_data.section.min_y) as i8,
             block_states,
             biomes,
+            block_light: section.block_light.clone(), // :c
+            sky_light: section.sky_light.clone(),     // :c
         });
     }
 

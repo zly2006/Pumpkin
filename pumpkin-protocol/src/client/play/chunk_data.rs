@@ -8,10 +8,7 @@ use crate::{
 
 use pumpkin_data::packet::clientbound::PLAY_LEVEL_CHUNK_WITH_LIGHT;
 use pumpkin_macros::packet;
-use pumpkin_world::chunk::{
-    ChunkData,
-    palette::{BlockPalette, NetworkPalette},
-};
+use pumpkin_world::chunk::{ChunkData, palette::NetworkPalette};
 
 #[packet(PLAY_LEVEL_CHUNK_WITH_LIGHT)]
 pub struct CChunkData<'a>(pub &'a ChunkData);
@@ -45,21 +42,40 @@ impl ClientPacket for CChunkData<'_> {
         }
 
         let mut data_buf = Vec::new();
-        let mut light_buf = Vec::new();
 
-        for section in self.0.section.sections.iter() {
-            // 2 blocks per byte for block lights
-            let chunk_light_len = BlockPalette::VOLUME / 2;
-            // TODO: Implement, currently default to full bright
-            let chunk_light = vec![0xFFu8; chunk_light_len];
+        let mut sky_light_buf = Vec::new();
+        let mut sky_light_empty_mask = 0;
+        let mut sky_light_mask = 0;
+        let mut block_light_buf = Vec::new();
+        let mut block_light_empty_mask = 0;
+        let mut block_light_mask = 0;
 
-            light_buf.write_var_int(&chunk_light_len.try_into().map_err(|_| {
-                WritingError::Message(format!(
-                    "{} is not representable as a VarInt!",
-                    chunk_light_len
-                ))
-            })?)?;
-            light_buf.write_slice(&chunk_light)?;
+        for (i, section) in self.0.section.sections.iter().enumerate() {
+            // Write sky light
+            if let Some(sky_light) = &section.sky_light {
+                let mut buf = Vec::new();
+                buf.write_var_int(&sky_light.len().try_into().map_err(|_| {
+                    WritingError::Message("sky_light not representable as a VarInt!".to_string())
+                })?)?;
+                buf.write_slice(sky_light)?;
+                sky_light_buf.push(buf);
+                sky_light_mask |= 1 << i;
+            } else {
+                sky_light_empty_mask |= 1 << i;
+            }
+
+            // Write block light
+            if let Some(block_light) = &section.block_light {
+                let mut buf = Vec::new();
+                buf.write_var_int(&block_light.len().try_into().map_err(|_| {
+                    WritingError::Message("block_light not representable as a VarInt!".to_string())
+                })?)?;
+                buf.write_slice(block_light)?;
+                block_light_buf.push(buf);
+                block_light_mask |= 1 << i;
+            } else {
+                block_light_empty_mask |= 1 << i;
+            }
 
             // Block count
             let non_empty_block_count = section.block_states.non_air_block_count() as i16;
@@ -131,27 +147,29 @@ impl ClientPacket for CChunkData<'_> {
         // TODO: block entities
         write.write_var_int(&VarInt(0))?;
 
-        // Sky Light Mask
         // All of the chunks, this is not optimal and uses way more data than needed but will be
         // overhauled with a full lighting system.
-        write.write_bitset(&BitSet(Box::new([0b01111111111111111111111110])))?;
+
+        // Sky Light Mask
+        write.write_bitset(&BitSet(Box::new([sky_light_mask])))?;
         // Block Light Mask
-        write.write_bitset(&BitSet(Box::new([0])))?;
+        write.write_bitset(&BitSet(Box::new([block_light_mask])))?;
         // Empty Sky Light Mask
-        write.write_bitset(&BitSet(Box::new([0])))?;
+        write.write_bitset(&BitSet(Box::new([sky_light_empty_mask])))?;
         // Empty Block Light Mask
-        write.write_bitset(&BitSet(Box::new([0])))?;
+        write.write_bitset(&BitSet(Box::new([block_light_empty_mask])))?;
 
         // Sky light
-        write.write_var_int(&self.0.section.sections.len().try_into().map_err(|_| {
-            WritingError::Message(format!(
-                "{} is not representable as a VarInt!",
-                self.0.section.sections.len()
-            ))
-        })?)?;
-        write.write_slice(&light_buf)?;
+        write.write_var_int(&VarInt(sky_light_buf.len() as i32))?;
+        for sky_buf in sky_light_buf {
+            write.write_slice(&sky_buf)?;
+        }
 
-        // Block Lighting
-        write.write_var_int(&VarInt(0))
+        // Block Light
+        write.write_var_int(&VarInt(block_light_buf.len() as i32))?;
+        for block_buf in block_light_buf {
+            write.write_slice(&block_buf)?;
+        }
+        Ok(())
     }
 }
