@@ -41,7 +41,7 @@ impl ClientPacket for CChunkData<'_> {
             write.write_i64_be(*mb)?;
         }
 
-        let mut data_buf = Vec::new();
+        let mut blocks_and_biomes_buf = Vec::new();
 
         let mut sky_light_buf = Vec::new();
         let mut sky_light_empty_mask = 0;
@@ -79,50 +79,52 @@ impl ClientPacket for CChunkData<'_> {
 
             // Block count
             let non_empty_block_count = section.block_states.non_air_block_count() as i16;
-            data_buf.write_i16_be(non_empty_block_count)?;
+            blocks_and_biomes_buf.write_i16_be(non_empty_block_count)?;
 
             // This is a bit messy, but we dont have access to VarInt in pumpkin-world
             let network_repr = section.block_states.convert_network();
-            data_buf.write_u8_be(network_repr.bits_per_entry)?;
+            blocks_and_biomes_buf.write_u8_be(network_repr.bits_per_entry)?;
             match network_repr.palette {
                 NetworkPalette::Single(registry_id) => {
-                    data_buf.write_var_int(&registry_id.into())?;
+                    blocks_and_biomes_buf.write_var_int(&registry_id.into())?;
                 }
                 NetworkPalette::Indirect(palette) => {
-                    data_buf.write_var_int(&palette.len().try_into().map_err(|_| {
-                        WritingError::Message(format!(
-                            "{} is not representable as a VarInt!",
-                            palette.len()
-                        ))
-                    })?)?;
+                    blocks_and_biomes_buf.write_var_int(&palette.len().try_into().map_err(
+                        |_| {
+                            WritingError::Message(format!(
+                                "{} is not representable as a VarInt!",
+                                palette.len()
+                            ))
+                        },
+                    )?)?;
                     for registry_id in palette {
-                        data_buf.write_var_int(&registry_id.into())?;
+                        blocks_and_biomes_buf.write_var_int(&registry_id.into())?;
                     }
                 }
                 NetworkPalette::Direct => {}
             }
 
-            // NOTE: Not updated in wiki; i64 array length is now determined by the bits per entry
-            //data_buf.write_var_int(&network_repr.packed_data.len().into())?;
             for packed in network_repr.packed_data {
-                data_buf.write_i64_be(packed)?;
+                blocks_and_biomes_buf.write_i64_be(packed)?;
             }
 
             let network_repr = section.biomes.convert_network();
-            data_buf.write_u8_be(network_repr.bits_per_entry)?;
+            blocks_and_biomes_buf.write_u8_be(network_repr.bits_per_entry)?;
             match network_repr.palette {
                 NetworkPalette::Single(registry_id) => {
-                    data_buf.write_var_int(&registry_id.into())?;
+                    blocks_and_biomes_buf.write_var_int(&registry_id.into())?;
                 }
                 NetworkPalette::Indirect(palette) => {
-                    data_buf.write_var_int(&palette.len().try_into().map_err(|_| {
-                        WritingError::Message(format!(
-                            "{} is not representable as a VarInt!",
-                            palette.len()
-                        ))
-                    })?)?;
+                    blocks_and_biomes_buf.write_var_int(&palette.len().try_into().map_err(
+                        |_| {
+                            WritingError::Message(format!(
+                                "{} is not representable as a VarInt!",
+                                palette.len()
+                            ))
+                        },
+                    )?)?;
                     for registry_id in palette {
-                        data_buf.write_var_int(&registry_id.into())?;
+                        blocks_and_biomes_buf.write_var_int(&registry_id.into())?;
                     }
                 }
                 NetworkPalette::Direct => {}
@@ -131,18 +133,18 @@ impl ClientPacket for CChunkData<'_> {
             // NOTE: Not updated in wiki; i64 array length is now determined by the bits per entry
             //data_buf.write_var_int(&network_repr.packed_data.len().into())?;
             for packed in network_repr.packed_data {
-                data_buf.write_i64_be(packed)?;
+                blocks_and_biomes_buf.write_i64_be(packed)?;
             }
         }
 
         // Chunk data
-        write.write_var_int(&data_buf.len().try_into().map_err(|_| {
+        write.write_var_int(&blocks_and_biomes_buf.len().try_into().map_err(|_| {
             WritingError::Message(format!(
                 "{} is not representable as a VarInt!",
-                data_buf.len()
+                blocks_and_biomes_buf.len()
             ))
         })?)?;
-        write.write_slice(&data_buf)?;
+        write.write_slice(&blocks_and_biomes_buf)?;
 
         // TODO: block entities
         write.write_var_int(&VarInt(0))?;
