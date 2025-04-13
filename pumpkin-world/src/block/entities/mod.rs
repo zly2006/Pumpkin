@@ -1,11 +1,15 @@
 use std::sync::Arc;
 
+use bed::BedBlockEntity;
 use chest::ChestBlockEntity;
+use comparator::ComparatorBlockEntity;
 use pumpkin_nbt::compound::NbtCompound;
 use pumpkin_util::math::position::BlockPos;
 use sign::SignBlockEntity;
 
+pub mod bed;
 pub mod chest;
+pub mod comparator;
 pub mod sign;
 
 pub trait BlockEntity: Send + Sync {
@@ -48,6 +52,10 @@ pub fn block_entity_from_nbt(nbt: &NbtCompound) -> Option<Arc<dyn BlockEntity>> 
     match id.as_str() {
         ChestBlockEntity::ID => Some(Arc::new(block_entity_from_generic::<ChestBlockEntity>(nbt))),
         SignBlockEntity::ID => Some(Arc::new(block_entity_from_generic::<SignBlockEntity>(nbt))),
+        BedBlockEntity::ID => Some(Arc::new(block_entity_from_generic::<BedBlockEntity>(nbt))),
+        ComparatorBlockEntity::ID => Some(Arc::new(block_entity_from_generic::<
+            ComparatorBlockEntity,
+        >(nbt))),
         _ => None,
     }
 }
