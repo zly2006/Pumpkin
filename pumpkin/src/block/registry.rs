@@ -24,17 +24,17 @@ pub enum BlockActionResult {
 
 #[derive(Default)]
 pub struct BlockRegistry {
-    blocks: HashMap<String, Arc<dyn PumpkinBlock>>,
-    fluids: HashMap<String, Arc<dyn PumpkinFluid>>,
+    blocks: HashMap<Vec<String>, Arc<dyn PumpkinBlock>>,
+    fluids: HashMap<Vec<String>, Arc<dyn PumpkinFluid>>,
 }
 
 impl BlockRegistry {
     pub fn register<T: PumpkinBlock + BlockMetadata + 'static>(&mut self, block: T) {
-        self.blocks.insert(block.name(), Arc::new(block));
+        self.blocks.insert(block.names(), Arc::new(block));
     }
 
     pub fn register_fluid<T: PumpkinFluid + BlockMetadata + 'static>(&mut self, fluid: T) {
-        self.fluids.insert(fluid.name(), Arc::new(fluid));
+        self.fluids.insert(fluid.names(), Arc::new(fluid));
     }
 
     pub async fn on_use(
@@ -345,14 +345,18 @@ impl BlockRegistry {
 
     #[must_use]
     pub fn get_pumpkin_block(&self, block: &Block) -> Option<&Arc<dyn PumpkinBlock>> {
-        self.blocks
-            .get(format!("minecraft:{}", block.name).as_str())
+        self.blocks.iter().find_map(|(ids, pumpkin_block)| {
+            ids.contains(&format!("minecraft:{}", block.name))
+                .then_some(pumpkin_block)
+        })
     }
 
     #[must_use]
     pub fn get_pumpkin_fluid(&self, fluid: &Fluid) -> Option<&Arc<dyn PumpkinFluid>> {
-        self.fluids
-            .get(format!("{}:{}", "minecraft", fluid.name).as_str())
+        self.fluids.iter().find_map(|(ids, pumpkin_block)| {
+            ids.contains(&format!("minecraft:{}", fluid.name))
+                .then_some(pumpkin_block)
+        })
     }
 
     pub async fn emits_redstone_power(

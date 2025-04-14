@@ -14,9 +14,12 @@ use std::sync::Arc;
 
 pub trait BlockMetadata {
     fn namespace(&self) -> &'static str;
-    fn id(&self) -> &'static str;
-    fn name(&self) -> String {
-        format!("{}:{}", self.namespace(), self.id())
+    fn ids(&self) -> &'static [&'static str];
+    fn names(&self) -> Vec<String> {
+        self.ids()
+            .iter()
+            .map(|f| format!("{}:{}", self.namespace(), f))
+            .collect()
     }
 }
 
