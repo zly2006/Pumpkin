@@ -674,7 +674,7 @@ impl Client {
             let ops = OPERATOR_CONFIG.read().await;
             let whitelist = WHITELIST_CONFIG.read().await;
 
-            if ops.get_entry(&profile.id).is_some() && !whitelist.is_whitelisted(profile) {
+            if ops.get_entry(&profile.id).is_none() && !whitelist.is_whitelisted(profile) {
                 return Some(TextComponent::translate(
                     "multiplayer.disconnect.not_whitelisted",
                     &[],

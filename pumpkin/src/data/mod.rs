@@ -57,8 +57,6 @@ pub trait LoadJSONConfiguration {
 }
 
 pub trait SaveJSONConfiguration: LoadJSONConfiguration {
-    // suppress clippy warning
-
     fn save(&self)
     where
         Self: Sized + Default + Serialize + for<'de> Deserialize<'de>,
