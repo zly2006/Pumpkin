@@ -35,7 +35,8 @@ use pumpkin_inventory::player::{
 };
 use pumpkin_macros::send_cancellable;
 use pumpkin_protocol::client::play::{
-    CBlockUpdate, COpenSignEditor, CPlayerInfoUpdate, CPlayerPosition, CSetContainerSlot, CSetHeldItem, CSystemChatMessage, CWorldEvent, EquipmentSlot, InitChat, PlayerAction
+    CBlockUpdate, COpenSignEditor, CPlayerInfoUpdate, CPlayerPosition, CSetContainerSlot,
+    CSetHeldItem, CSystemChatMessage, CWorldEvent, EquipmentSlot, InitChat, PlayerAction,
 };
 use pumpkin_protocol::codec::item_stack_seralizer::ItemStackSerializer;
 use pumpkin_protocol::codec::var_int::VarInt;
