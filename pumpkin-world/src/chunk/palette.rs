@@ -26,19 +26,6 @@ pub struct HeterogeneousPaletteData<V: Hash + Eq + Copy, const DIM: usize> {
 }
 
 impl<V: Hash + Eq + Copy, const DIM: usize> HeterogeneousPaletteData<V, DIM> {
-    fn from_cube(cube: Box<AbstractCube<V, DIM>>) -> Self {
-        let counts =
-            cube.as_flattened()
-                .as_flattened()
-                .iter()
-                .fold(HashMap::new(), |mut acc, key| {
-                    acc.entry(*key).and_modify(|count| *count += 1).or_insert(1);
-                    acc
-                });
-
-        Self { cube, counts }
-    }
-
     fn get(&self, x: usize, y: usize, z: usize) -> V {
         debug_assert!(x < DIM);
         debug_assert!(y < DIM);
@@ -80,6 +67,23 @@ pub enum PalettedContainer<V: Hash + Eq + Copy + Default, const DIM: usize> {
 impl<V: Hash + Eq + Copy + Default, const DIM: usize> PalettedContainer<V, DIM> {
     pub const SIZE: usize = DIM;
     pub const VOLUME: usize = DIM * DIM * DIM;
+
+    fn from_cube(cube: Box<AbstractCube<V, DIM>>) -> Self {
+        let counts =
+            cube.as_flattened()
+                .as_flattened()
+                .iter()
+                .fold(HashMap::new(), |mut acc, key| {
+                    acc.entry(*key).and_modify(|count| *count += 1).or_insert(1);
+                    acc
+                });
+
+        if counts.len() == 1 {
+            Self::Homogeneous(*counts.keys().next().unwrap())
+        } else {
+            Self::Heterogeneous(Box::new(HeterogeneousPaletteData { cube, counts }))
+        }
+    }
 
     fn bits_per_entry(&self) -> u8 {
         match self {
@@ -181,7 +185,7 @@ impl<V: Hash + Eq + Copy + Default, const DIM: usize> PalettedContainer<V, DIM> 
                     });
                 });
 
-            Self::Heterogeneous(Box::new(HeterogeneousPaletteData::from_cube(cube)))
+            Self::from_cube(cube)
         }
     }
 
@@ -202,8 +206,7 @@ impl<V: Hash + Eq + Copy + Default, const DIM: usize> PalettedContainer<V, DIM> 
                 if value != *original {
                     let mut cube = Box::new([[[*original; DIM]; DIM]; DIM]);
                     cube[y][z][x] = value;
-                    let data = HeterogeneousPaletteData::from_cube(cube);
-                    *self = Self::Heterogeneous(Box::new(data));
+                    *self = Self::from_cube(cube);
                 }
             }
             Self::Heterogeneous(data) => {
