@@ -1,5 +1,5 @@
 use crate::VarInt;
-use crate::codec::item_stack_seralizer::ItemStackSerializer;
+use crate::codec::item_stack_serializer::ItemStackSerializer;
 
 use pumpkin_data::packet::clientbound::PLAY_CONTAINER_SET_CONTENT;
 use pumpkin_macros::packet;

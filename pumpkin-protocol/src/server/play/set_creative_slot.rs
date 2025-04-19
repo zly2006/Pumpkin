@@ -1,7 +1,7 @@
 use pumpkin_data::packet::serverbound::PLAY_SET_CREATIVE_MODE_SLOT;
 use pumpkin_macros::packet;
 
-use crate::codec::item_stack_seralizer::ItemStackSerializer;
+use crate::codec::item_stack_serializer::ItemStackSerializer;
 
 #[derive(serde::Deserialize, Debug)]
 #[packet(PLAY_SET_CREATIVE_MODE_SLOT)]

@@ -7,7 +7,7 @@ use serde::Serialize;
 
 use crate::{
     ClientPacket,
-    codec::{item_stack_seralizer::ItemStackSerializer, var_int::VarInt},
+    codec::{item_stack_serializer::ItemStackSerializer, var_int::VarInt},
 };
 
 #[packet(PLAY_SET_EQUIPMENT)]
