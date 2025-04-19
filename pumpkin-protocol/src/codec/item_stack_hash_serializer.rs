@@ -45,28 +45,21 @@ impl<'de> Deserialize<'de> for ItemStackHashSerializer<'static> {
                     let num_components_to_add = seq
                         .next_element::<VarInt>()?
                         .ok_or(de::Error::custom("No component add length VarInt!"))?;
-                    for i in 0..num_components_to_add.0 {
-                        let component_reg_id = seq
+                    for _ in 0..num_components_to_add.0 {
+                        let _component_reg_id = seq
                             .next_element::<VarInt>()?
                             .ok_or(de::Error::custom("No component reg ID VarInt!"))?;
-                        let hash = seq
+                        let _hash = seq
                             .next_element::<VarInt>()?
                             .ok_or(de::Error::custom("No hash length VarInt!"))?;
                     }
                     let num_components_to_remove = seq
                         .next_element::<VarInt>()?
                         .ok_or(de::Error::custom("No component remove length VarInt!"))?;
-                    for i in 0..num_components_to_remove.0 {
-                        let component_reg_id = seq
+                    for _ in 0..num_components_to_remove.0 {
+                        let _component_reg_id = seq
                             .next_element::<VarInt>()?
                             .ok_or(de::Error::custom("No component reg ID VarInt!"))?;
-                    }
-
-                    if num_components_to_add.0 != 0 || num_components_to_remove.0 != 0 {
-                        // now the components should be parsed normally
-                        // return Err(de::Error::custom(
-                        //     "Item components are currently unsupported",
-                        // ));
                     }
 
                     let item_id: u16 = item_id
