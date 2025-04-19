@@ -13,7 +13,7 @@ use pumpkin_inventory::{InventoryError, OptionallyCombinedContainer, container_c
 use pumpkin_protocol::client::play::{
     CCloseContainer, COpenScreen, CSetContainerContent, CSetContainerProperty, CSetContainerSlot,
 };
-use pumpkin_protocol::codec::item_stack_seralizer::ItemStackSerializer;
+use pumpkin_protocol::codec::item_stack_serializer::ItemStackSerializer;
 use pumpkin_protocol::codec::var_int::VarInt;
 use pumpkin_protocol::server::play::SClickContainer;
 use pumpkin_util::text::TextComponent;

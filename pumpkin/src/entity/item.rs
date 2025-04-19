@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use pumpkin_data::{damage::DamageType, item::Item};
 use pumpkin_protocol::{
     client::play::{CTakeItemEntity, MetaDataType, Metadata},
-    codec::item_stack_seralizer::ItemStackSerializer,
+    codec::item_stack_serializer::ItemStackSerializer,
 };
 use pumpkin_util::math::vector3::Vector3;
 use pumpkin_world::item::ItemStack;

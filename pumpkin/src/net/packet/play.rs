@@ -38,7 +38,7 @@ use pumpkin_protocol::client::play::{
     CBlockUpdate, COpenSignEditor, CPlayerInfoUpdate, CPlayerPosition, CSetContainerSlot,
     CSetHeldItem, CSystemChatMessage, EquipmentSlot, InitChat, PlayerAction,
 };
-use pumpkin_protocol::codec::item_stack_seralizer::ItemStackSerializer;
+use pumpkin_protocol::codec::item_stack_serializer::ItemStackSerializer;
 use pumpkin_protocol::codec::var_int::VarInt;
 use pumpkin_protocol::server::play::{
     SChunkBatch, SCookieResponse as SPCookieResponse, SPlayerSession, SUpdateSign,
