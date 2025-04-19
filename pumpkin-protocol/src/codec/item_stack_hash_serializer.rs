@@ -112,7 +112,7 @@ impl Serialize for ItemStackHashSerializer<'_> {
                 components_to_add: 0.into(),
                 components_to_remove: 0.into(),
             }
-                .serialize(serializer)
+            .serialize(serializer)
         }
     }
 }
