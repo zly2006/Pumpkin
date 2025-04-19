@@ -1591,7 +1591,7 @@ impl Player {
                             self.kick(TextComponent::text(kick_reason)).await;
                         } else {
                             self.kick(TextComponent::text(format!(
-                                "Error while handling incoming packet: {e}"
+                                "Error while handling incoming packet {e}"
                             )))
                             .await;
                         }

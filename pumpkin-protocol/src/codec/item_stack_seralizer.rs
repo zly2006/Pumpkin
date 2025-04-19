@@ -28,48 +28,27 @@ impl<'de> Deserialize<'de> for ItemStackSerializer<'static> {
             where
                 A: SeqAccess<'de>,
             {
-                // bool, only 0 & 1
-                let has_value = seq
+                let item_count = seq
                     .next_element::<VarInt>()?
-                    .ok_or(de::Error::custom("Failed to decode item optional"))?;
+                    .ok_or(de::Error::custom("Failed to decode VarInt"))?;
 
-                let slot = if has_value.0 == 0 {
+                let slot = if item_count.0 == 0 {
                     ItemStackSerializer(Cow::Borrowed(&ItemStack::EMPTY))
                 } else {
                     let item_id = seq
                         .next_element::<VarInt>()?
                         .ok_or(de::Error::custom("No item id VarInt!"))?;
-                    let item_count = seq
-                        .next_element::<VarInt>()?
-                        .ok_or(de::Error::custom("No item count VarInt!"))?;
                     let num_components_to_add = seq
                         .next_element::<VarInt>()?
                         .ok_or(de::Error::custom("No component add length VarInt!"))?;
-                    for i in 0..num_components_to_add.0 {
-                        let component_reg_id = seq
-                            .next_element::<VarInt>()?
-                            .ok_or(de::Error::custom("No component reg ID VarInt!"))?;
-                        println!("+[{}] Component Reg ID: {}", i, component_reg_id.0);
-                        let hash = seq
-                            .next_element::<VarInt>()?
-                            .ok_or(de::Error::custom("No hash length VarInt!"))?;
-                        println!("+[{}] Hash: {}", i, hash.0);
-                    }
                     let num_components_to_remove = seq
                         .next_element::<VarInt>()?
                         .ok_or(de::Error::custom("No component remove length VarInt!"))?;
-                    for i in 0..num_components_to_remove.0 {
-                        let component_reg_id = seq
-                            .next_element::<VarInt>()?
-                            .ok_or(de::Error::custom("No component reg ID VarInt!"))?;
-                        println!("-[{}] Component Reg ID: {}", i, component_reg_id.0);
-                    }
 
                     if num_components_to_add.0 != 0 || num_components_to_remove.0 != 0 {
-                        // now the components should be parsed normally
-                        // return Err(de::Error::custom(
-                        //     "Item components are currently unsupported",
-                        // ));
+                        return Err(de::Error::custom(
+                            "Slot components are currently unsupported",
+                        ));
                     }
 
                     let item_id: u16 = item_id
