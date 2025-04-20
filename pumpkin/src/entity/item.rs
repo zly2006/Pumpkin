@@ -73,9 +73,9 @@ impl EntityBase for ItemEntity {
     }
     async fn damage(
         &self,
-        amount: f32,
-        damage_type: DamageType,
-        source: Option<&dyn EntityBase>,
+        _amount: f32,
+        _damage_type: DamageType,
+        _source: Option<&dyn EntityBase>,
     ) -> bool {
         false
     }

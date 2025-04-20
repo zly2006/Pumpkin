@@ -1,12 +1,13 @@
 use crate::entity::living::LivingEntity;
 use crate::entity::mob::MobEntity;
+use crate::entity::player::Player;
 use crate::entity::{Entity, EntityBase};
 use crate::server::Server;
 use async_trait::async_trait;
 use core::f32;
-use std::ops::Deref;
 use pumpkin_data::damage::DamageType;
-use crate::entity::player::Player;
+use pumpkin_util::text::TextComponent;
+use std::any::Any;
 
 pub struct NpcEntity {
     pub mob_entity: MobEntity,
@@ -17,7 +18,7 @@ impl NpcEntity {
     pub async fn new(mob: MobEntity) -> Self {
         Self {
             mob_entity: mob,
-            name: String::new(),
+            name: String::from(format!("NPC {}", rand::random::<u8>())),
         }
     }
 }
@@ -60,8 +61,13 @@ impl EntityBase for NpcEntity {
         source: Option<&dyn EntityBase>,
     ) -> bool {
         if let Some(entity) = source {
-            if let Some(living_entity) = entity.get_living_entity() {
-                todo!()
+            if let Some(player) = (entity as &dyn Any).downcast_ref::<Player>() {
+                player
+                    .send_system_message(&TextComponent::text(format!(
+                        "You hit the NPC! {}",
+                        self.name
+                    )))
+                    .await;
             }
         }
         self.mob_entity.damage(amount, damage_type, source).await

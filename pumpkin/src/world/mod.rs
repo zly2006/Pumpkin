@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::{
     collections::HashMap,
     sync::{Arc, atomic::Ordering},
@@ -79,6 +80,7 @@ pub mod custom_bossbar;
 pub mod scoreboard;
 pub mod weather;
 
+use crate::entity::npc::NpcEntity;
 use weather::Weather;
 
 bitflags! {
@@ -1240,13 +1242,13 @@ impl World {
     pub async fn spawn_entity(&self, entity: Arc<dyn EntityBase>) {
         let base_entity = entity.get_entity();
 
-        if base_entity.entity_type == EntityType::NPC {
+        if let Some(npc) = (entity.as_ref() as &dyn Any).downcast_ref::<NpcEntity>() {
             self.broadcast_packet_all(&CPlayerInfoUpdate::new(
                 PlayerInfoFlags::ADD_PLAYER.bits(),
                 &[pumpkin_protocol::client::play::Player {
                     uuid: entity.get_entity().entity_uuid,
                     actions: &[AddPlayer {
-                        name: "NPC",
+                        name: &npc.name,
                         properties: &[],
                     }],
                 }],

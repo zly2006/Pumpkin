@@ -30,6 +30,7 @@ use pumpkin_util::math::{
     wrap_degrees,
 };
 use serde::Serialize;
+use std::any::Any;
 use std::{
     f32::consts::PI,
     sync::{
@@ -56,7 +57,7 @@ pub mod npc;
 pub type EntityId = i32;
 
 #[async_trait]
-pub trait EntityBase: Send + Sync {
+pub trait EntityBase: Send + Sync + Any {
     /// Gets Called every tick
     async fn tick(&self, server: &Server) {
         if let Some(living) = self.get_living_entity() {
@@ -524,9 +525,9 @@ impl EntityBase for Entity {
 
     async fn damage(
         &self,
-        amount: f32,
-        damage_type: DamageType,
-        source: Option<&dyn EntityBase>,
+        _amount: f32,
+        _damage_type: DamageType,
+        _source: Option<&dyn EntityBase>,
     ) -> bool {
         false
     }

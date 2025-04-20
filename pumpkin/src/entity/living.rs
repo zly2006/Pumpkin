@@ -282,7 +282,13 @@ impl EntityBase for LivingEntity {
         let config = &advanced_config().pvp;
 
         if !self
-            .damage_with_context(amount, damage_type, None, None, None)
+            .damage_with_context(
+                amount,
+                damage_type,
+                None,
+                source.map(|e| e.get_entity()),
+                source.map(|e| e.get_entity()),
+            )
             .await
         {
             return false;

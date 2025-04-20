@@ -9,7 +9,7 @@ use std::{
     },
     time::{Duration, Instant},
 };
-
+use std::any::Any;
 use super::living::LivingEntity;
 use super::{
     Entity, EntityBase, EntityId, NBTStorage,
@@ -93,6 +93,7 @@ use pumpkin_util::{
 use pumpkin_world::{cylindrical_chunk_iterator::Cylindrical, item::ItemStack, level::SyncChunk};
 use tokio::{sync::Mutex, task::JoinHandle};
 use uuid::Uuid;
+use crate::entity::npc::NpcEntity;
 
 const MAX_CACHED_SIGNATURES: u8 = 128; // Vanilla: 128
 const MAX_PREVIOUS_MESSAGES: u8 = 20; // Vanilla: 20
@@ -803,14 +804,14 @@ impl Player {
         ) {
         }
         for entity in entities.values() {
-            if entity.get_entity().entity_type == EntityType::NPC {
+            if let Some(npc) = (entity as &dyn Any).downcast_ref::<NpcEntity>() {
                 self.client
                     .enqueue_packet(&CPlayerInfoUpdate::new(
                         PlayerInfoFlags::ADD_PLAYER.bits(),
                         &[pumpkin_protocol::client::play::Player {
                             uuid: entity.get_entity().entity_uuid,
                             actions: &[AddPlayer {
-                                name: "NPC",
+                                name: &npc.name,
                                 properties: &[],
                             }],
                         }],
