@@ -55,11 +55,11 @@ impl ChunkData {
             .map(|section| SubChunk {
                 block_states: section
                     .block_states
-                    .map(|block_states| BlockPalette::from_disk_nbt(block_states))
+                    .map(BlockPalette::from_disk_nbt)
                     .unwrap_or_default(),
                 biomes: section
                     .biomes
-                    .map(|biomes| BiomePalette::from_disk_nbt(biomes))
+                    .map(BiomePalette::from_disk_nbt)
                     .unwrap_or_default(),
                 block_light: section.block_light,
                 sky_light: section.sky_light,
