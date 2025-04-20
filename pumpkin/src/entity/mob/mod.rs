@@ -6,13 +6,13 @@ use pumpkin_util::math::vector3::Vector3;
 use tokio::sync::Mutex;
 use zombie::Zombie;
 
-use crate::{server::Server, world::World};
-use crate::entity::npc::NpcEntity;
 use super::{
     Entity, EntityBase,
     ai::{goal::Goal, path::Navigator},
     living::LivingEntity,
 };
+use crate::entity::npc::NpcEntity;
+use crate::{server::Server, world::World};
 
 pub mod zombie;
 
@@ -63,8 +63,11 @@ pub async fn from_type(
         navigator: Mutex::new(Navigator::default()),
     };
     match entity_type {
-        EntityType::ZOMBIE => { Zombie::make(&mob).await; Arc::new(mob)  },
-        EntityType::NPC => { Arc::new(NpcEntity::new(mob).await)  },
+        EntityType::ZOMBIE => {
+            Zombie::make(&mob).await;
+            Arc::new(mob)
+        }
+        EntityType::NPC => Arc::new(NpcEntity::new(mob).await),
         // TODO
         _ => Arc::new(mob),
     }

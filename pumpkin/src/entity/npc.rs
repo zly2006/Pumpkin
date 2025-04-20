@@ -17,7 +17,7 @@ impl NpcEntity {
     pub async fn new(mob: MobEntity) -> Self {
         Self {
             mob_entity: mob,
-            name: String::from(format!("NPC {}", rand::random::<u8>())),
+            name: format!("NPC {}", rand::random::<u8>()),
         }
     }
 }

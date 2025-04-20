@@ -1,14 +1,3 @@
-use core::f32;
-use std::{
-    collections::VecDeque,
-    num::NonZeroU8,
-    ops::AddAssign,
-    sync::{
-        Arc,
-        atomic::{AtomicBool, AtomicI32, AtomicI64, AtomicU8, AtomicU32, Ordering},
-    },
-    time::{Duration, Instant},
-};
 use super::living::LivingEntity;
 use super::{
     Entity, EntityBase, EntityId, NBTStorage,
@@ -17,6 +6,7 @@ use super::{
     hunger::HungerManager,
     item::ItemEntity,
 };
+use crate::entity::npc::NpcEntity;
 use crate::{
     block,
     command::{client_suggestions, dispatcher::CommandDispatcher},
@@ -31,6 +21,7 @@ use crate::{
 };
 use crate::{error::PumpkinError, net::GameProfile};
 use async_trait::async_trait;
+use core::f32;
 use crossbeam::atomic::AtomicCell;
 use pumpkin_config::{BASIC_CONFIG, advanced_config};
 use pumpkin_data::{
@@ -90,9 +81,18 @@ use pumpkin_util::{
     text::TextComponent,
 };
 use pumpkin_world::{cylindrical_chunk_iterator::Cylindrical, item::ItemStack, level::SyncChunk};
+use std::{
+    collections::VecDeque,
+    num::NonZeroU8,
+    ops::AddAssign,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, AtomicI32, AtomicI64, AtomicU8, AtomicU32, Ordering},
+    },
+    time::{Duration, Instant},
+};
 use tokio::{sync::Mutex, task::JoinHandle};
 use uuid::Uuid;
-use crate::entity::npc::NpcEntity;
 
 const MAX_CACHED_SIGNATURES: u8 = 128; // Vanilla: 128
 const MAX_PREVIOUS_MESSAGES: u8 = 20; // Vanilla: 20
@@ -798,10 +798,7 @@ impl Player {
     pub async fn send_mobs(&self, world: &World) {
         let entities = world.entities.read().await.clone();
         let _chunk = world.get_chunk(&self.get_entity().block_pos.load()).await;
-        if let Some(_block)  = _chunk.read().await.get_relative_block(
-            0, 0, 0
-        ) {
-        }
+        if let Some(_block) = _chunk.read().await.get_relative_block(0, 0, 0) {}
         for entity in entities.values() {
             if let Some(npc) = entity.downcast::<NpcEntity>() {
                 self.client
@@ -1562,8 +1559,12 @@ impl NBTStorage for PlayerInventory {
 
 #[async_trait]
 impl EntityBase for Player {
-    async fn damage(&self, amount: f32, damage_type: DamageType, source: Option<&dyn EntityBase>) -> 
-                                                                                             bool {
+    async fn damage(
+        &self,
+        amount: f32,
+        damage_type: DamageType,
+        source: Option<&dyn EntityBase>,
+    ) -> bool {
         self.world()
             .await
             .play_sound(
