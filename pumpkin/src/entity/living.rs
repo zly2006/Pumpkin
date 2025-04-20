@@ -286,8 +286,8 @@ impl EntityBase for LivingEntity {
                 amount,
                 damage_type,
                 None,
-                source.map(|e| e.get_entity()),
-                source.map(|e| e.get_entity()),
+                source.map(EntityBase::get_entity),
+                source.map(EntityBase::get_entity),
             )
             .await
         {

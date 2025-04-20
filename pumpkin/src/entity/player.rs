@@ -797,8 +797,8 @@ impl Player {
     // TODO: This should be optimized for larger servers based on the player's current chunk.
     pub async fn send_mobs(&self, world: &World) {
         let entities = world.entities.read().await.clone();
-        let _chunk = world.get_chunk(&self.get_entity().block_pos.load()).await;
-        if let Some(_block) = _chunk.read().await.get_relative_block(0, 0, 0) {}
+        let chunk = world.get_chunk(&self.get_entity().block_pos.load()).await;
+        if let Some(_block) = chunk.read().await.get_relative_block(0, 0, 0) {}
         for entity in entities.values() {
             if let Some(npc) = entity.downcast::<NpcEntity>() {
                 self.client
@@ -1619,7 +1619,6 @@ impl Player {
                             .await;
                         }
                     }
-                    println!("Failed to handle packet id {}", packet.id);
                     e.log();
                 }
             }

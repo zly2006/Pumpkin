@@ -14,7 +14,7 @@ pub struct NpcEntity {
 }
 
 impl NpcEntity {
-    pub async fn new(mob: MobEntity) -> Self {
+    pub fn new(mob: MobEntity) -> Self {
         Self {
             mob_entity: mob,
             name: format!("NPC {}", rand::random::<u8>()),
