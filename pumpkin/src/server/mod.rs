@@ -84,12 +84,14 @@ pub struct Server {
     /// Manages player data storage
     pub player_data_storage: ServerPlayerData,
     tasks: TaskTracker,
+    /// nanoseconds per tick
+    pub nanos: Arc<RwLock<Vec<u64>>>,
 }
 
 impl Server {
     #[allow(clippy::new_without_default)]
     #[must_use]
-    pub fn new() -> Self {
+    pub fn new(nanos: Arc<RwLock<Vec<u64>>>) -> Self {
         let auth_client = BASIC_CONFIG.online_mode.then(|| {
             reqwest::Client::builder()
                 .connect_timeout(Duration::from_millis(u64::from(
@@ -145,6 +147,7 @@ impl Server {
             ),
             tasks: TaskTracker::new(),
             mojang_public_keys: Mutex::new(Vec::new()),
+            nanos,
         }
     }
 

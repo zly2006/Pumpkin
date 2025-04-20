@@ -183,7 +183,8 @@ pub struct PumpkinServer {
 
 impl PumpkinServer {
     pub async fn new() -> Self {
-        let server = Arc::new(Server::new());
+        let mut ticker = Ticker::new(BASIC_CONFIG.tps);
+        let server = Arc::new(Server::new(ticker.nanos.clone()));
 
         for world in &*server.worlds.read().await {
             world.level.read_spawn_chunks(&Server::spawn_chunks()).await;
@@ -199,8 +200,6 @@ impl PumpkinServer {
             .expect("Unable to get the address of the server!");
 
         let rcon = advanced_config().networking.rcon.clone();
-
-        let mut ticker = Ticker::new(BASIC_CONFIG.tps);
 
         if let Some((wrapper, _)) = &*LOGGER_IMPL {
             if let Some(rl) = wrapper.take_readline() {

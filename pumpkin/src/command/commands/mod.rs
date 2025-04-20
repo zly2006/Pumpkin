@@ -44,6 +44,7 @@ mod worldborder;
 
 #[cfg(feature = "dhat-heap")]
 mod profile;
+mod tps;
 
 #[must_use]
 pub fn default_dispatcher() -> CommandDispatcher {
@@ -56,6 +57,7 @@ pub fn default_dispatcher() -> CommandDispatcher {
     dispatcher.register(transfer::init_command_tree(), PermissionLvl::Zero);
     dispatcher.register(me::init_command_tree(), PermissionLvl::Zero);
     dispatcher.register(msg::init_command_tree(), PermissionLvl::Zero);
+    dispatcher.register(tps::init_command_tree(), PermissionLvl::Zero);
     // Two
     dispatcher.register(kill::init_command_tree(), PermissionLvl::Two);
     dispatcher.register(worldborder::init_command_tree(), PermissionLvl::Two);
