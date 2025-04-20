@@ -1,5 +1,6 @@
 use crate::server::Server;
 use async_trait::async_trait;
+use core::f32;
 use pumpkin_data::{block::Block, damage::DamageType};
 use pumpkin_protocol::{
     client::play::{MetaDataType, Metadata},
@@ -62,7 +63,12 @@ impl EntityBase for TNTEntity {
                 .await;
         }
     }
-    async fn damage(&self, _amount: f32, _damage_type: DamageType) -> bool {
+    async fn damage(
+        &self,
+        amount: f32,
+        damage_type: DamageType,
+        source: Option<&dyn EntityBase>,
+    ) -> bool {
         false
     }
 

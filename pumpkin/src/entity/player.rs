@@ -1,3 +1,4 @@
+use core::f32;
 use std::{
     collections::VecDeque,
     num::NonZeroU8,
@@ -446,7 +447,7 @@ impl Player {
         }
 
         if !victim
-            .damage(damage as f32, DamageType::PLAYER_ATTACK)
+            .damage(damage as f32, DamageType::PLAYER_ATTACK, Some(self))
             .await
         {
             world
@@ -796,11 +797,16 @@ impl Player {
     // TODO: This should be optimized for larger servers based on the player's current chunk.
     pub async fn send_mobs(&self, world: &World) {
         let entities = world.entities.read().await.clone();
+        let _chunk = world.get_chunk(&self.get_entity().block_pos.load()).await;
+        if let Some(_block)  = _chunk.read().await.get_relative_block(
+            0, 0, 0
+        ) {
+        }
         for entity in entities.values() {
             if entity.get_entity().entity_type == EntityType::NPC {
                 self.client
                     .enqueue_packet(&CPlayerInfoUpdate::new(
-                        1,
+                        PlayerInfoFlags::ADD_PLAYER.bits(),
                         &[pumpkin_protocol::client::play::Player {
                             uuid: entity.get_entity().entity_uuid,
                             actions: &[AddPlayer {
@@ -1556,7 +1562,8 @@ impl NBTStorage for PlayerInventory {
 
 #[async_trait]
 impl EntityBase for Player {
-    async fn damage(&self, amount: f32, damage_type: DamageType) -> bool {
+    async fn damage(&self, amount: f32, damage_type: DamageType, source: Option<&dyn EntityBase>) -> 
+                                                                                             bool {
         self.world()
             .await
             .play_sound(
@@ -1565,7 +1572,7 @@ impl EntityBase for Player {
                 &self.living_entity.entity.pos.load(),
             )
             .await;
-        let result = self.living_entity.damage(amount, damage_type).await;
+        let result = self.living_entity.damage(amount, damage_type, source).await;
         if result {
             let health = self.living_entity.health.load();
             if health <= 0.0 {

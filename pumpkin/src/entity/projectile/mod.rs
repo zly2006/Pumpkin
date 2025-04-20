@@ -1,4 +1,4 @@
-use std::f32::{self};
+use core::f32;
 
 use async_trait::async_trait;
 use pumpkin_data::damage::DamageType;
@@ -77,12 +77,17 @@ impl ThrownItemEntity {
 
 #[async_trait]
 impl EntityBase for ThrownItemEntity {
-    fn get_entity(&self) -> &Entity {
-        &self.entity
+    async fn damage(
+        &self,
+        amount: f32,
+        damage_type: DamageType,
+        source: Option<&dyn EntityBase>,
+    ) -> bool {
+        false
     }
 
-    async fn damage(&self, _amount: f32, _damage_type: DamageType) -> bool {
-        false
+    fn get_entity(&self) -> &Entity {
+        &self.entity
     }
 
     fn get_living_entity(&self) -> Option<&LivingEntity> {

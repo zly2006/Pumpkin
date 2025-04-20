@@ -1,3 +1,4 @@
+use core::f32;
 use std::sync::{Arc, atomic::AtomicU32};
 
 use async_trait::async_trait;
@@ -90,7 +91,12 @@ impl EntityBase for ExperienceOrbEntity {
         }
     }
 
-    async fn damage(&self, _amount: f32, _damage_type: DamageType) -> bool {
+    async fn damage(
+        &self,
+        amount: f32,
+        damage_type: DamageType,
+        source: Option<&dyn EntityBase>,
+    ) -> bool {
         false
     }
 

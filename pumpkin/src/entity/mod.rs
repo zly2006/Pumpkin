@@ -67,11 +67,16 @@ pub trait EntityBase: Send + Sync {
     }
 
     /// Returns if damage was successful or not
-    async fn damage(&self, amount: f32, damage_type: DamageType) -> bool {
+    async fn damage(
+        &self,
+        amount: f32,
+        damage_type: DamageType,
+        source: Option<&dyn EntityBase>,
+    ) -> bool {
         if let Some(living) = self.get_living_entity() {
-            living.damage(amount, damage_type).await
+            living.damage(amount, damage_type, source).await
         } else {
-            self.get_entity().damage(amount, damage_type).await
+            self.get_entity().damage(amount, damage_type, source).await
         }
     }
 
@@ -307,13 +312,11 @@ impl Entity {
         CSpawnEntity::new(
             VarInt(self.entity_id),
             self.entity_uuid,
-            VarInt(i32::from(
-                if self.entity_type == EntityType::NPC {
-                    EntityType::PLAYER.id
-                } else {
-                    self.entity_type.id
-                }
-            )),
+            VarInt(i32::from(if self.entity_type == EntityType::NPC {
+                EntityType::PLAYER.id
+            } else {
+                self.entity_type.id
+            })),
             entity_loc,
             self.pitch.load(),
             self.yaw.load(),
@@ -515,12 +518,17 @@ impl Entity {
 
 #[async_trait]
 impl EntityBase for Entity {
-    async fn damage(&self, _amount: f32, _damage_type: DamageType) -> bool {
-        false
-    }
-
     async fn tick(&self, _: &Server) {
         self.tick_move();
+    }
+
+    async fn damage(
+        &self,
+        amount: f32,
+        damage_type: DamageType,
+        source: Option<&dyn EntityBase>,
+    ) -> bool {
+        false
     }
 
     fn get_entity(&self) -> &Entity {

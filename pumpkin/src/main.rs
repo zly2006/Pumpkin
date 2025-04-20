@@ -32,6 +32,7 @@
 #![expect(clippy::struct_excessive_bools)]
 // Don't warn on event sending macros
 #![expect(unused_labels)]
+extern crate core;
 
 #[cfg(target_os = "wasi")]
 compile_error!("Compiling for WASI targets is not supported!");

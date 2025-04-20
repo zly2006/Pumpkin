@@ -1,3 +1,4 @@
+use core::f32;
 use std::sync::atomic::AtomicU8;
 use std::{collections::HashMap, sync::atomic::AtomicI32};
 
@@ -199,7 +200,7 @@ impl LivingEntity {
             damage = (damage).ceil();
 
             // TODO: Play block fall sound
-            let check_damage = self.damage(damage, DamageType::FALL).await; // Fall
+            let check_damage = self.damage(damage, DamageType::FALL, None).await; // Fall
             if check_damage {
                 self.entity
                     .play_sound(Self::get_fall_sound(fall_distance as i32))
@@ -268,7 +269,12 @@ impl EntityBase for LivingEntity {
             }
         }
     }
-    async fn damage(&self, amount: f32, damage_type: DamageType) -> bool {
+    async fn damage(
+        &self,
+        amount: f32,
+        damage_type: DamageType,
+        source: Option<&dyn EntityBase>,
+    ) -> bool {
         let world = self.entity.world.read().await;
         if !self.check_damage(amount) {
             return false;

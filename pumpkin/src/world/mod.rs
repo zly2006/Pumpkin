@@ -1242,7 +1242,7 @@ impl World {
 
         if base_entity.entity_type == EntityType::NPC {
             self.broadcast_packet_all(&CPlayerInfoUpdate::new(
-                1,
+                PlayerInfoFlags::ADD_PLAYER.bits(),
                 &[pumpkin_protocol::client::play::Player {
                     uuid: entity.get_entity().entity_uuid,
                     actions: &[AddPlayer {
