@@ -62,15 +62,18 @@ pub(crate) fn build() -> TokenStream {
     let mut json: HashMap<String, EntityType> =
         serde_json::from_str(include_str!("../../assets/entities.json"))
             .expect("Failed to parse entities.json");
-    json.insert("npc".to_string(), EntityType {
-        id: 1001,
-        max_health: Some(20.0),
-        attackable: Some(true),
-        summonable: true,
-        fire_immune: false,
-        dimension: [1.0, 1.0],
-        eye_height: 1.0,
-    });
+    json.insert(
+        "npc".to_string(),
+        EntityType {
+            id: 1001,
+            max_health: Some(20.0),
+            attackable: Some(true),
+            summonable: true,
+            fire_immune: false,
+            dimension: [1.0, 1.0],
+            eye_height: 1.0,
+        },
+    );
 
     let mut consts = TokenStream::new();
     let mut type_from_raw_id_arms = TokenStream::new();
