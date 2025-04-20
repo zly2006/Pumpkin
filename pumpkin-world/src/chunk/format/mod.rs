@@ -51,9 +51,16 @@ impl ChunkData {
         let sub_chunks = chunk_data
             .sections
             .into_iter()
+            .filter(|section| section.y >= chunk_data.min_y_section as i8)
             .map(|section| SubChunk {
-                block_states: BlockPalette::from_disk_nbt(section.block_states),
-                biomes: BiomePalette::from_disk_nbt(section.biomes),
+                block_states: section
+                    .block_states
+                    .map(|block_states| BlockPalette::from_disk_nbt(block_states))
+                    .unwrap_or_default(),
+                biomes: section
+                    .biomes
+                    .map(|biomes| BiomePalette::from_disk_nbt(biomes))
+                    .unwrap_or_default(),
                 block_light: section.block_light,
                 sky_light: section.sky_light,
             })
@@ -111,8 +118,10 @@ impl ChunkData {
 
 #[derive(Serialize, Deserialize, Debug)]
 struct ChunkSectionNBT {
-    block_states: ChunkSectionBlockStates,
-    biomes: ChunkSectionBiomes,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    block_states: Option<ChunkSectionBlockStates>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    biomes: Option<ChunkSectionBiomes>,
     #[serde(rename = "BlockLight", skip_serializing_if = "Option::is_none")]
     block_light: Option<Box<[u8]>>,
     #[serde(rename = "SkyLight", skip_serializing_if = "Option::is_none")]
