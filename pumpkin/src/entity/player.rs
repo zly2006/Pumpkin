@@ -48,6 +48,7 @@ use pumpkin_inventory::player::{
 use pumpkin_macros::send_cancellable;
 use pumpkin_nbt::compound::NbtCompound;
 use pumpkin_nbt::tag::NbtTag;
+use pumpkin_protocol::client::play::PlayerAction::AddPlayer;
 use pumpkin_protocol::client::play::{CSetHeldItem, PlayerInfoFlags, PreviousMessage};
 use pumpkin_protocol::{
     IdOr, RawPacket, ServerPacket,
@@ -796,6 +797,20 @@ impl Player {
     pub async fn send_mobs(&self, world: &World) {
         let entities = world.entities.read().await.clone();
         for entity in entities.values() {
+            if entity.get_entity().entity_type == EntityType::NPC {
+                self.client
+                    .enqueue_packet(&CPlayerInfoUpdate::new(
+                        1,
+                        &[pumpkin_protocol::client::play::Player {
+                            uuid: entity.get_entity().entity_uuid,
+                            actions: &[AddPlayer {
+                                name: "NPC",
+                                properties: &[],
+                            }],
+                        }],
+                    ))
+                    .await;
+            }
             self.client
                 .enqueue_packet(&entity.get_entity().create_spawn_packet())
                 .await;
@@ -1596,6 +1611,7 @@ impl Player {
                             .await;
                         }
                     }
+                    println!("Failed to handle packet id {}", packet.id);
                     e.log();
                 }
             }

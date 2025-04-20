@@ -35,6 +35,7 @@ use pumpkin_data::{
 };
 use pumpkin_macros::send_cancellable;
 use pumpkin_nbt::to_bytes_unnamed;
+use pumpkin_protocol::client::play::PlayerAction::AddPlayer;
 use pumpkin_protocol::{
     ClientPacket, IdOr, SoundEvent,
     client::play::{
@@ -1238,6 +1239,20 @@ impl World {
     /// Adds an entity to the world.
     pub async fn spawn_entity(&self, entity: Arc<dyn EntityBase>) {
         let base_entity = entity.get_entity();
+
+        if base_entity.entity_type == EntityType::NPC {
+            self.broadcast_packet_all(&CPlayerInfoUpdate::new(
+                1,
+                &[pumpkin_protocol::client::play::Player {
+                    uuid: entity.get_entity().entity_uuid,
+                    actions: &[AddPlayer {
+                        name: "NPC",
+                        properties: &[],
+                    }],
+                }],
+            ))
+            .await;
+        }
         self.broadcast_packet_all(&base_entity.create_spawn_packet())
             .await;
         let mut current_living_entities = self.entities.write().await;

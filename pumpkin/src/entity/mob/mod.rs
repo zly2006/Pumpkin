@@ -7,7 +7,7 @@ use tokio::sync::Mutex;
 use zombie::Zombie;
 
 use crate::{server::Server, world::World};
-
+use crate::entity::npc::NpcEntity;
 use super::{
     Entity, EntityBase,
     ai::{goal::Goal, path::Navigator},
@@ -63,11 +63,11 @@ pub async fn from_type(
         navigator: Mutex::new(Navigator::default()),
     };
     match entity_type {
-        EntityType::ZOMBIE => Zombie::make(&mob).await,
+        EntityType::ZOMBIE => { Zombie::make(&mob).await; Arc::new(mob)  },
+        EntityType::NPC => { Arc::new(NpcEntity::new(mob).await)  },
         // TODO
-        _ => (),
+        _ => Arc::new(mob),
     }
-    Arc::new(mob)
 }
 
 impl MobEntity {

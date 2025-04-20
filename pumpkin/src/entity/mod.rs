@@ -1,4 +1,5 @@
 use crate::server::Server;
+use crate::world::World;
 use async_trait::async_trait;
 use bytes::BufMut;
 use core::f32;
@@ -32,13 +33,11 @@ use serde::Serialize;
 use std::{
     f32::consts::PI,
     sync::{
-        Arc,
         atomic::{AtomicBool, AtomicI32, Ordering},
+        Arc,
     },
 };
 use tokio::sync::RwLock;
-
-use crate::world::World;
 
 pub mod ai;
 pub mod effect;
@@ -52,6 +51,7 @@ pub mod projectile;
 pub mod tnt;
 
 mod combat;
+pub mod npc;
 
 pub type EntityId = i32;
 
@@ -307,7 +307,13 @@ impl Entity {
         CSpawnEntity::new(
             VarInt(self.entity_id),
             self.entity_uuid,
-            VarInt(i32::from(self.entity_type.id)),
+            VarInt(i32::from(
+                if self.entity_type == EntityType::NPC {
+                    EntityType::PLAYER.id
+                } else {
+                    self.entity_type.id
+                }
+            )),
             entity_loc,
             self.pitch.load(),
             self.yaw.load(),
