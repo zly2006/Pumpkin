@@ -1,4 +1,3 @@
-use std::any::Any;
 use std::{
     collections::HashMap,
     sync::{Arc, atomic::Ordering},
@@ -1242,7 +1241,7 @@ impl World {
     pub async fn spawn_entity(&self, entity: Arc<dyn EntityBase>) {
         let base_entity = entity.get_entity();
 
-        if let Some(npc) = (entity.as_ref() as &dyn Any).downcast_ref::<NpcEntity>() {
+        if let Some(npc) = entity.downcast::<NpcEntity>() {
             self.broadcast_packet_all(&CPlayerInfoUpdate::new(
                 PlayerInfoFlags::ADD_PLAYER.bits(),
                 &[pumpkin_protocol::client::play::Player {

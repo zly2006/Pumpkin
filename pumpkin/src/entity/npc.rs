@@ -7,7 +7,6 @@ use async_trait::async_trait;
 use core::f32;
 use pumpkin_data::damage::DamageType;
 use pumpkin_util::text::TextComponent;
-use std::any::Any;
 
 pub struct NpcEntity {
     pub mob_entity: MobEntity,
@@ -61,7 +60,7 @@ impl EntityBase for NpcEntity {
         source: Option<&dyn EntityBase>,
     ) -> bool {
         if let Some(entity) = source {
-            if let Some(player) = (entity as &dyn Any).downcast_ref::<Player>() {
+            if let Some(player) = entity.downcast::<Player>() {
                 player
                     .send_system_message(&TextComponent::text(format!(
                         "You hit the NPC! {}",

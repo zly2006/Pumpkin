@@ -34,8 +34,8 @@ use std::any::Any;
 use std::{
     f32::consts::PI,
     sync::{
-        atomic::{AtomicBool, AtomicI32, Ordering},
         Arc,
+        atomic::{AtomicBool, AtomicI32, Ordering},
     },
 };
 use tokio::sync::RwLock;
@@ -85,6 +85,22 @@ pub trait EntityBase: Send + Sync + Any {
     async fn on_player_collision(&self, _player: Arc<Player>) {}
     fn get_entity(&self) -> &Entity;
     fn get_living_entity(&self) -> Option<&LivingEntity>;
+}
+
+impl dyn EntityBase {
+    /// Returns the entity's position in the world.
+    pub fn position(&self) -> Vector3<f64> {
+        self.get_entity().pos.load()
+    }
+
+    /// Returns the entity's block position in the world.
+    pub fn block_position(&self) -> BlockPos {
+        self.get_entity().block_pos.load()
+    }
+
+    pub fn downcast<T: EntityBase>(&self) -> Option<&T> {
+        (self as &dyn Any).downcast_ref::<T>()
+    }
 }
 
 static CURRENT_ID: AtomicI32 = AtomicI32::new(0);

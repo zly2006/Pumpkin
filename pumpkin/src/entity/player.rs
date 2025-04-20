@@ -9,7 +9,6 @@ use std::{
     },
     time::{Duration, Instant},
 };
-use std::any::Any;
 use super::living::LivingEntity;
 use super::{
     Entity, EntityBase, EntityId, NBTStorage,
@@ -804,7 +803,7 @@ impl Player {
         ) {
         }
         for entity in entities.values() {
-            if let Some(npc) = (entity as &dyn Any).downcast_ref::<NpcEntity>() {
+            if let Some(npc) = entity.downcast::<NpcEntity>() {
                 self.client
                     .enqueue_packet(&CPlayerInfoUpdate::new(
                         PlayerInfoFlags::ADD_PLAYER.bits(),
