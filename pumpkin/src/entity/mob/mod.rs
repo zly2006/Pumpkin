@@ -67,7 +67,7 @@ pub async fn from_type(
             Zombie::make(&mob).await;
             Arc::new(mob)
         }
-        EntityType::NPC => Arc::new(NpcEntity::new(mob).await),
+        EntityType::NPC => Arc::new(NpcEntity::new(mob)),
         // TODO
         _ => Arc::new(mob),
     }
