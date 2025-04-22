@@ -218,21 +218,16 @@ impl Server {
         send_cancellable! {{
             PlayerLoginEvent::new(player.clone(), TextComponent::text("You have been kicked from the server"));
             'after: {
-                if world
+                world
                     .add_player(player.gameprofile.id, player.clone())
-                    .await.is_ok() {
-                    // TODO: Config if we want increase online
-                    if let Some(config) = player.client.config.lock().await.as_ref() {
+                    .await.is_ok().then(||  { if let Some(config) = player.client.config.lock().await.as_ref() {
                         // TODO: Config so we can also just ignore this hehe
                         if config.server_listing {
                             self.listing.lock().await.add_player();
                         }
                     }
 
-                    Some((player, world.clone()))
-                } else {
-                    None
-                }
+                    Some(; (player, world.clone()) )})
             }
 
             'cancelled: {

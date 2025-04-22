@@ -238,7 +238,6 @@ impl World {
             .await
             .values()
             .cloned()
-            .into_iter()
             .collect::<Vec<_>>();
         for recipient in current_players {
             let messages_received: i32 = recipient.chat_session.lock().await.messages_received;
@@ -319,7 +318,7 @@ impl World {
         particle: Particle,
     ) {
         let players = self.current_players().await;
-        for player in players.iter() {
+        for player in players {
             player
                 .spawn_particle(position, offset, max_speed, particle_count, particle)
                 .await;
@@ -1171,7 +1170,7 @@ impl World {
         } else {
             log::warn!("[add_player] Failed to get write lock on players, waiting...");
             self.players.write().await.insert(uuid, player.clone());
-        };
+        }
 
         let current_players = self.players.clone();
         player.clone().spawn_task(async move {
