@@ -41,6 +41,46 @@ impl ChunkData {
         let chunk_data = from_bytes::<ChunkNbt>(chunk_data)
             .map_err(|e| ChunkParsingError::ErrorDeserializingChunk(e.to_string()))?;
 
+        if chunk_data.light_correct {
+            log::debug!(
+                "reading light_correct chunk data for chunk {},{}, min_y={}, first_y={}",
+                position.x,
+                position.z,
+                chunk_data.min_y_section,
+                chunk_data.sections.first().map(|s| s.y).unwrap_or(-99)
+            );
+            for section in chunk_data.sections.clone() {
+                let mut block = false;
+                let mut sky = false;
+                let mut block_sum = 0;
+                let mut sky_sum = 0;
+                if let Some(block_light) = &section.block_light {
+                    block = !block_light.is_empty();
+                    block_sum = block_light
+                        .iter()
+                        .map(|b| ((*b >> 4) + (*b & 0x0F)) as usize)
+                        .sum();
+                }
+                if let Some(sky_light) = &section.sky_light {
+                    sky = !sky_light.is_empty();
+                    sky_sum = sky_light
+                        .iter()
+                        .map(|b| ((*b >> 4) + (*b & 0x0F)) as usize)
+                        .sum();
+                }
+                if block || sky {
+                    log::debug!(
+                        "section {}: block_light={}/{}, sky_light={}/{}",
+                        section.y,
+                        block,
+                        block_sum,
+                        sky,
+                        sky_sum,
+                    )
+                }
+            }
+        }
+
         if chunk_data.x_pos != position.x || chunk_data.z_pos != position.z {
             return Err(ChunkParsingError::ErrorDeserializingChunk(format!(
                 "Expected data for chunk {},{} but got it for {},{}!",
@@ -51,9 +91,16 @@ impl ChunkData {
         let sub_chunks = chunk_data
             .sections
             .into_iter()
+            .filter(|section| section.y >= chunk_data.min_y_section as i8)
             .map(|section| SubChunk {
-                block_states: BlockPalette::from_disk_nbt(section.block_states),
-                biomes: BiomePalette::from_disk_nbt(section.biomes),
+                block_states: section
+                    .block_states
+                    .map(BlockPalette::from_disk_nbt)
+                    .unwrap_or_default(),
+                biomes: section
+                    .biomes
+                    .map(BiomePalette::from_disk_nbt)
+                    .unwrap_or_default(),
                 block_light: section.block_light,
                 sky_light: section.sky_light,
             })
@@ -109,10 +156,12 @@ impl ChunkData {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct ChunkSectionNBT {
-    block_states: ChunkSectionBlockStates,
-    biomes: ChunkSectionBiomes,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    block_states: Option<ChunkSectionBlockStates>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    biomes: Option<ChunkSectionBiomes>,
     #[serde(rename = "BlockLight", skip_serializing_if = "Option::is_none")]
     block_light: Option<Box<[u8]>>,
     #[serde(rename = "SkyLight", skip_serializing_if = "Option::is_none")]
@@ -195,4 +244,6 @@ struct ChunkNbt {
     fluid_ticks: Vec<SerializedScheduledTick>,
     #[serde(rename = "block_entities")]
     block_entities: Vec<NbtCompound>,
+    #[serde(rename = "isLightOn")]
+    light_correct: bool,
 }

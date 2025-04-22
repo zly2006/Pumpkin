@@ -46,13 +46,15 @@ impl ClientPacket for CChunkData<'_> {
         let mut blocks_and_biomes_buf = Vec::new();
 
         let mut sky_light_buf = Vec::new();
-        let mut sky_light_empty_mask = 0;
-        let mut sky_light_mask = 0;
         let mut block_light_buf = Vec::new();
-        let mut block_light_empty_mask = 0;
+        // mark extra chunk data as empty, finish it when we have a light engine.
+        let mut sky_light_empty_mask = 1 + (1 << (self.0.section.sections.len() + 2));
+        let mut block_light_empty_mask = 1 + (1 << (self.0.section.sections.len() + 2));
+        let mut sky_light_mask = 0;
         let mut block_light_mask = 0;
 
         for (i, section) in self.0.section.sections.iter().enumerate() {
+            let light_index = i + 1;
             // Write sky light
             if let Some(sky_light) = &section.sky_light {
                 let mut buf = Vec::new();
@@ -61,9 +63,9 @@ impl ClientPacket for CChunkData<'_> {
                 })?)?;
                 buf.write_slice(sky_light)?;
                 sky_light_buf.push(buf);
-                sky_light_mask |= 1 << i;
+                sky_light_mask |= 1 << light_index;
             } else {
-                sky_light_empty_mask |= 1 << i;
+                sky_light_empty_mask |= 1 << light_index;
             }
 
             // Write block light
@@ -74,9 +76,9 @@ impl ClientPacket for CChunkData<'_> {
                 })?)?;
                 buf.write_slice(block_light)?;
                 block_light_buf.push(buf);
-                block_light_mask |= 1 << i;
+                block_light_mask |= 1 << light_index;
             } else {
-                block_light_empty_mask |= 1 << i;
+                block_light_empty_mask |= 1 << light_index;
             }
 
             // Block count
