@@ -86,11 +86,9 @@ impl Context {
             dispatcher_lock.register(tree, permission);
         };
 
-        for world in self.server.worlds.read().await.iter() {
-            for player in world.players.read().await.values() {
-                let command_dispatcher = self.server.command_dispatcher.read().await;
-                client_suggestions::send_c_commands_packet(player, &command_dispatcher).await;
-            }
+        for player in self.server.get_all_players().await {
+            let command_dispatcher = self.server.command_dispatcher.read().await;
+            client_suggestions::send_c_commands_packet(&player, &command_dispatcher).await;
         }
     }
 
@@ -104,11 +102,9 @@ impl Context {
             dispatcher_lock.unregister(name);
         };
 
-        for world in self.server.worlds.read().await.iter() {
-            for player in world.players.read().await.values() {
-                let command_dispatcher = self.server.command_dispatcher.read().await;
-                client_suggestions::send_c_commands_packet(player, &command_dispatcher).await;
-            }
+        for player in self.server.get_all_players().await {
+            let command_dispatcher = self.server.command_dispatcher.read().await;
+            client_suggestions::send_c_commands_packet(&player, &command_dispatcher).await;
         }
     }
 

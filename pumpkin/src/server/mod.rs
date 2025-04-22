@@ -218,9 +218,9 @@ impl Server {
         send_cancellable! {{
             PlayerLoginEvent::new(player.clone(), TextComponent::text("You have been kicked from the server"));
             'after: {
-                world
+                if world
                     .add_player(player.gameprofile.id, player.clone())
-                    .await;
+                    .await.is_ok() {
                 // TODO: Config if we want increase online
                 if let Some(config) = player.client.config.lock().await.as_ref() {
                     // TODO: Config so we can also just ignore this hehe
@@ -230,6 +230,9 @@ impl Server {
                 }
 
                 Some((player, world.clone()))
+                } else {
+                    None
+                }
             }
 
             'cancelled: {
@@ -332,11 +335,8 @@ impl Server {
         }
         let packet_data: Bytes = packet_buf.into();
 
-        for world in self.worlds.read().await.iter() {
-            let current_players = world.players.read().await;
-            for player in current_players.values() {
-                player.client.enqueue_packet_data(packet_data.clone()).await;
-            }
+        for player in self.get_all_players().await {
+            player.client.enqueue_packet_data(packet_data.clone()).await;
         }
     }
 
@@ -384,11 +384,9 @@ impl Server {
     pub async fn get_players_by_ip(&self, ip: IpAddr) -> Vec<Arc<Player>> {
         let mut players = Vec::<Arc<Player>>::new();
 
-        for world in self.worlds.read().await.iter() {
-            for player in world.players.read().await.values() {
-                if player.client.address.lock().await.ip() == ip {
-                    players.push(player.clone());
-                }
+        for player in self.get_all_players().await {
+            if player.client.address.lock().await.ip() == ip {
+                players.push(player.clone());
             }
         }
 
