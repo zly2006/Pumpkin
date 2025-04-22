@@ -234,8 +234,14 @@ impl World {
             cache.last_seen.clone()
         };
 
-        let current_players = self.players.read().await;
-        for (_, recipient) in current_players.iter() {
+        let current_players = self
+            .players
+            .read()
+            .await
+            .values()
+            .cloned()
+            .collect::<Vec<_>>();
+        for recipient in current_players {
             let messages_received: i32 = recipient.chat_session.lock().await.messages_received;
             let packet = &CPlayerChatMessage::new(
                 VarInt(messages_received),
@@ -245,7 +251,7 @@ impl World {
                 chat_message.message.clone(),
                 chat_message.timestamp,
                 chat_message.salt,
-                sender_last_seen.indexed_for(recipient).await,
+                sender_last_seen.indexed_for(&recipient).await,
                 Some(decorated_message.clone()),
                 FilterType::PassThrough,
                 (RAW + 1).into(), // Custom registry chat_type with no sender name
@@ -271,6 +277,10 @@ impl World {
         sender.chat_session.lock().await.messages_sent += 1;
     }
 
+    pub async fn current_players(&self) -> Vec<Arc<Player>> {
+        self.players.read().await.values().cloned().collect()
+    }
+
     /// Broadcasts a packet to all connected players within the world, excluding the specified players.
     ///
     /// Sends the specified packet to every player currently logged in to the world, excluding the players listed in the `except` parameter.
@@ -287,8 +297,16 @@ impl World {
         }
         let packet_data: Bytes = packet_buf.into();
 
-        let current_players = self.players.read().await;
-        for (_, player) in current_players.iter().filter(|c| !except.contains(c.0)) {
+        let current_players = self
+            .players
+            .read()
+            .await
+            .clone()
+            .into_iter()
+            .filter(|c| !except.contains(&c.0))
+            .map(|c| c.1)
+            .collect::<Vec<_>>();
+        for player in current_players {
             player.client.enqueue_packet_data(packet_data.clone()).await;
         }
     }
@@ -301,8 +319,8 @@ impl World {
         particle_count: i32,
         particle: Particle,
     ) {
-        let players = self.players.read().await;
-        for (_, player) in players.iter() {
+        let players = self.current_players().await;
+        for player in players {
             player
                 .spawn_particle(position, offset, max_speed, particle_count, particle)
                 .await;
@@ -381,7 +399,7 @@ impl World {
         self.tick_scheduled_block_ticks().await;
 
         // player ticks
-        for player in self.players.read().await.values() {
+        for player in self.current_players().await {
             player.tick(server).await;
         }
 
@@ -392,7 +410,7 @@ impl World {
             entity.tick(server).await;
             // This boolean thing prevents deadlocks. Since we lock players, we can't broadcast packets.
             let mut collied_player = None;
-            for player in self.players.read().await.values() {
+            for player in self.current_players().await {
                 if player
                     .living_entity
                     .entity
@@ -662,7 +680,14 @@ impl World {
 
         // Spawn players for our client.
         let id = player.gameprofile.id;
-        for (_, existing_player) in self.players.read().await.iter().filter(|c| c.0 != &id) {
+        for (_, existing_player) in self
+            .players
+            .read()
+            .await
+            .iter()
+            .filter(|c| c.0 != &id)
+            .collect::<Vec<_>>()
+        {
             let entity = &existing_player.living_entity.entity;
             let pos = entity.pos.load();
             let gameprofile = &existing_player.gameprofile;
@@ -685,7 +710,7 @@ impl World {
         }
 
         // Set skin parts and tablist
-        for player in self.players.read().await.values() {
+        for player in self.current_players().await {
             //Set / Update skin part for every player
             player.send_client_information().await;
 
@@ -811,7 +836,7 @@ impl World {
             Particle::ExplosionEmitter
         };
         let sound = IdOr::<SoundEvent>::Id(Sound::EntityGenericExplode as u16);
-        for (_, player) in self.players.read().await.iter() {
+        for player in self.current_players().await {
             if player.position().squared_distance_to_vec(position) > 4096.0 {
                 continue;
             }
@@ -1014,7 +1039,7 @@ impl World {
 
     /// Gets a `Player` by an entity id
     pub async fn get_player_by_id(&self, id: EntityId) -> Option<Arc<Player>> {
-        for player in self.players.read().await.values() {
+        for player in self.current_players().await {
             if player.entity_id() == id {
                 return Some(player.clone());
             }
@@ -1034,7 +1059,7 @@ impl World {
 
     /// Gets a `Player` by a username
     pub async fn get_player_by_name(&self, name: &str) -> Option<Arc<Player>> {
-        for player in self.players.read().await.values() {
+        for player in self.current_players().await {
             if player.gameprofile.name.to_lowercase() == name.to_lowercase() {
                 return Some(player.clone());
             }
@@ -1055,7 +1080,7 @@ impl World {
     ///
     /// An `Option<Arc<Player>>` containing the player if found, or `None` if not.
     pub async fn get_player_by_uuid(&self, id: uuid::Uuid) -> Option<Arc<Player>> {
-        return self.players.read().await.get(&id).cloned();
+        self.players.read().await.get(&id).cloned()
     }
 
     /// Gets a list of players whose location equals the given position in the world.
@@ -1141,11 +1166,13 @@ impl World {
     ///
     /// * `uuid`: The unique UUID of the player to add.
     /// * `player`: An `Arc<Player>` reference to the player object.
-    pub async fn add_player(&self, uuid: uuid::Uuid, player: Arc<Player>) {
-        {
-            let mut current_players = self.players.write().await;
-            current_players.insert(uuid, player.clone())
-        };
+    pub async fn add_player(&self, uuid: uuid::Uuid, player: Arc<Player>) -> Result<(), String> {
+        if let Ok(mut players) = self.players.try_write() {
+            players.insert(uuid, player.clone());
+        } else {
+            log::warn!("[add_player] Failed to get write lock on players, waiting...");
+            self.players.write().await.insert(uuid, player.clone());
+        }
 
         let current_players = self.players.clone();
         player.clone().spawn_task(async move {
@@ -1171,6 +1198,7 @@ impl World {
                 log::info!("{}", event.join_message.clone().to_pretty_console());
             }
         });
+        Ok(())
     }
 
     /// Removes a player from the world and broadcasts a disconnect message if enabled.

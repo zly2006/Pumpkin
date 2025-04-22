@@ -173,6 +173,7 @@ impl Server {
         self.tasks.spawn(task)
     }
 
+    #[allow(clippy::if_then_some_else_none)]
     /// Adds a new player to the server.
     ///
     /// This function takes an `Arc<Client>` representing the connected client and performs the following actions:
@@ -221,18 +222,21 @@ impl Server {
         send_cancellable! {{
             PlayerLoginEvent::new(player.clone(), TextComponent::text("You have been kicked from the server"));
             'after: {
-                world
+                if world
                     .add_player(player.gameprofile.id, player.clone())
-                    .await;
-                // TODO: Config if we want increase online
-                if let Some(config) = player.client.config.lock().await.as_ref() {
-                    // TODO: Config so we can also just ignore this hehe
-                    if config.server_listing {
-                        self.listing.lock().await.add_player();
+                    .await.is_ok() {
+                    // TODO: Config if we want increase online
+                    if let Some(config) = player.client.config.lock().await.as_ref() {
+                        // TODO: Config so we can also just ignore this hehe
+                        if config.server_listing {
+                            self.listing.lock().await.add_player(player.clone()).await;
+                        }
                     }
-                }
 
-                Some((player, world.clone()))
+                    Some((player, world.clone()))
+                } else {
+                    None
+                }
             }
 
             'cancelled: {
@@ -242,9 +246,9 @@ impl Server {
         }}
     }
 
-    pub async fn remove_player(&self) {
+    pub async fn remove_player(&self, player: Arc<Player>) {
         // TODO: Config if we want decrease online
-        self.listing.lock().await.remove_player();
+        self.listing.lock().await.remove_player(player).await;
     }
 
     pub async fn shutdown(&self) {
@@ -335,11 +339,8 @@ impl Server {
         }
         let packet_data: Bytes = packet_buf.into();
 
-        for world in self.worlds.read().await.iter() {
-            let current_players = world.players.read().await;
-            for player in current_players.values() {
-                player.client.enqueue_packet_data(packet_data.clone()).await;
-            }
+        for player in self.get_all_players().await {
+            player.client.enqueue_packet_data(packet_data.clone()).await;
         }
     }
 
@@ -387,11 +388,9 @@ impl Server {
     pub async fn get_players_by_ip(&self, ip: IpAddr) -> Vec<Arc<Player>> {
         let mut players = Vec::<Arc<Player>>::new();
 
-        for world in self.worlds.read().await.iter() {
-            for player in world.players.read().await.values() {
-                if player.client.address.lock().await.ip() == ip {
-                    players.push(player.clone());
-                }
+        for player in self.get_all_players().await {
+            if player.client.address.lock().await.ip() == ip {
+                players.push(player.clone());
             }
         }
 

@@ -883,6 +883,8 @@ pub fn chunk_to_bytes(chunk_data: &ChunkData) -> Result<Vec<u8>, ChunkSerializin
                 nbt
             })
             .collect(),
+        // we have not implemented light engine
+        light_correct: false,
     };
 
     let mut result = Vec::new();
