@@ -12,7 +12,7 @@ use pumpkin_protocol::client::play::{CHurtAnimation, CTakeItemEntity};
 use pumpkin_protocol::codec::var_int::VarInt;
 use pumpkin_protocol::{
     client::play::{CDamageEvent, CSetEquipment, EquipmentSlot, MetaDataType, Metadata},
-    codec::item_stack_seralizer::ItemStackSerializer,
+    codec::item_stack_serializer::ItemStackSerializer,
 };
 use pumpkin_util::math::vector3::Vector3;
 use pumpkin_world::item::ItemStack;
