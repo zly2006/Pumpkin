@@ -221,15 +221,15 @@ impl Server {
                 if world
                     .add_player(player.gameprofile.id, player.clone())
                     .await.is_ok() {
-                // TODO: Config if we want increase online
-                if let Some(config) = player.client.config.lock().await.as_ref() {
-                    // TODO: Config so we can also just ignore this hehe
-                    if config.server_listing {
-                        self.listing.lock().await.add_player();
+                    // TODO: Config if we want increase online
+                    if let Some(config) = player.client.config.lock().await.as_ref() {
+                        // TODO: Config so we can also just ignore this hehe
+                        if config.server_listing {
+                            self.listing.lock().await.add_player();
+                        }
                     }
-                }
 
-                Some((player, world.clone()))
+                    Some((player, world.clone()))
                 } else {
                     None
                 }
