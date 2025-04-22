@@ -49,7 +49,7 @@ impl ChunkData {
                 chunk_data.min_y_section,
                 chunk_data.sections.first().map(|s| s.y).unwrap_or(-99)
             );
-            for section in chunk_data.sections.clone() {
+            for section in &chunk_data.sections {
                 let mut block = false;
                 let mut sky = false;
                 let mut block_sum = 0;
@@ -156,7 +156,7 @@ impl ChunkData {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 struct ChunkSectionNBT {
     #[serde(skip_serializing_if = "Option::is_none")]
     block_states: Option<ChunkSectionBlockStates>,
