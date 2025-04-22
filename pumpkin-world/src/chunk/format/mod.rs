@@ -55,14 +55,14 @@ impl ChunkData {
                 let mut block_sum = 0;
                 let mut sky_sum = 0;
                 if let Some(block_light) = &section.block_light {
-                    block = block_light.len() > 0;
+                    block = !block_light.is_empty();
                     block_sum = block_light
                         .iter()
                         .map(|b| ((*b >> 4) + (*b & 0x0F)) as usize)
                         .sum();
                 }
                 if let Some(sky_light) = &section.sky_light {
-                    sky = sky_light.len() > 0;
+                    sky = !sky_light.is_empty();
                     sky_sum = sky_light
                         .iter()
                         .map(|b| ((*b >> 4) + (*b & 0x0F)) as usize)

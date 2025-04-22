@@ -48,8 +48,8 @@ impl ClientPacket for CChunkData<'_> {
         let mut sky_light_buf = Vec::new();
         let mut block_light_buf = Vec::new();
         // mark extra chunk data as empty, finish it when we have a light engine.
-        let mut sky_light_empty_mask = 1 + (1 << self.0.section.sections.len() + 2);
-        let mut block_light_empty_mask = 1 + (1 << self.0.section.sections.len() + 2);
+        let mut sky_light_empty_mask = 1 + (1 << (self.0.section.sections.len() + 2));
+        let mut block_light_empty_mask = 1 + (1 << (self.0.section.sections.len() + 2));
         let mut sky_light_mask = 0;
         let mut block_light_mask = 0;
 
