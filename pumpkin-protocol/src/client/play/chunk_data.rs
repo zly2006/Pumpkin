@@ -60,7 +60,7 @@ impl ClientPacket for CChunkData<'_> {
             let light_data_size: VarInt = LightContainer::<16>::array_size().try_into().unwrap();
 
             if let LightContainer::Full(data) =
-                &*self.0.light_engine.sky_light[light_index].lock().await
+                &*self.0.light_engine.sky_light[light_index].read().await
             {
                 let mut buf = Vec::new();
                 buf.write_var_int(&light_data_size)?;
@@ -73,7 +73,7 @@ impl ClientPacket for CChunkData<'_> {
 
             // Write block light
             if let LightContainer::Full(data) =
-                &*self.0.light_engine.block_light[light_index].lock().await
+                &*self.0.light_engine.block_light[light_index].read().await
             {
                 let mut buf = Vec::new();
                 buf.write_var_int(&light_data_size)?;
