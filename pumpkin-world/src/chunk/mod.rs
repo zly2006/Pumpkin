@@ -171,7 +171,7 @@ pub struct ChunkLightEngine {
     pub sky_light: Box<[RwLock<LightContainer<16>>]>,
     pub block_light: Box<[RwLock<LightContainer<16>>]>,
     /// The number of light sections in the chunk,
-    /// always be sections + 2
+    /// always be chunk sections + 2
     pub sections: usize,
 }
 
