@@ -334,7 +334,7 @@ mod tests {
     }
 
     /// Helper function to build a packet with optional compression and encryption
-    async fn build_packet_with_encoder<T: ClientPacket>(
+    async fn build_packet_with_encoder<T: ClientPacket + Sync>(
         packet: &T,
         compression_info: Option<(CompressionThreshold, CompressionLevel)>,
         key: Option<&[u8; 16]>,
@@ -350,7 +350,7 @@ mod tests {
         }
 
         let mut packet_buf = Vec::new();
-        packet.write(&mut packet_buf).unwrap();
+        packet.write(&mut packet_buf).await.unwrap();
         encoder.write_packet(packet_buf.into()).await.unwrap();
 
         buf.into_boxed_slice()
@@ -383,7 +383,10 @@ mod tests {
         // Remaining buffer is the payload
         // We need to obtain the expected payload
         let mut expected_payload = Vec::new();
-        packet.write_packet_data(&mut expected_payload).unwrap();
+        packet
+            .write_packet_data(&mut expected_payload)
+            .await
+            .unwrap();
 
         assert_eq!(buffer, expected_payload);
     }
@@ -411,7 +414,10 @@ mod tests {
         // Read data length VarInt (uncompressed data length)
         let data_length = decode_varint(&mut buffer).expect("Failed to decode data length");
         let mut expected_payload = Vec::new();
-        packet.write_packet_data(&mut expected_payload).unwrap();
+        packet
+            .write_packet_data(&mut expected_payload)
+            .await
+            .unwrap();
         let uncompressed_data_length =
             VarInt(CStatusResponse::PACKET_ID).written_size() + expected_payload.len();
         assert_eq!(data_length as usize, uncompressed_data_length);
@@ -467,7 +473,10 @@ mod tests {
 
         // Remaining buffer is the payload
         let mut expected_payload = Vec::new();
-        packet.write_packet_data(&mut expected_payload).unwrap();
+        packet
+            .write_packet_data(&mut expected_payload)
+            .await
+            .unwrap();
         assert_eq!(buffer, expected_payload);
     }
 
@@ -501,7 +510,10 @@ mod tests {
         // Read data length VarInt (uncompressed data length)
         let data_length = decode_varint(&mut buffer).expect("Failed to decode data length");
         let mut expected_payload = Vec::new();
-        packet.write_packet_data(&mut expected_payload).unwrap();
+        packet
+            .write_packet_data(&mut expected_payload)
+            .await
+            .unwrap();
         let uncompressed_data_length =
             VarInt(CStatusResponse::PACKET_ID).written_size() + expected_payload.len();
         assert_eq!(data_length as usize, uncompressed_data_length);
@@ -551,7 +563,10 @@ mod tests {
 
         // Remaining buffer is the payload (empty)
         let mut expected_payload = Vec::new();
-        packet.write_packet_data(&mut expected_payload).unwrap();
+        packet
+            .write_packet_data(&mut expected_payload)
+            .await
+            .unwrap();
 
         assert_eq!(
             buffer.len(),
@@ -596,7 +611,10 @@ mod tests {
 
         // Remaining buffer is the payload
         let mut expected_payload = Vec::new();
-        packet.write_packet_data(&mut expected_payload).unwrap();
+        packet
+            .write_packet_data(&mut expected_payload)
+            .await
+            .unwrap();
 
         assert_eq!(buffer, expected_payload);
     }
@@ -648,7 +666,10 @@ mod tests {
 
         // Remaining buffer is the payload
         let mut expected_payload = Vec::new();
-        packet.write_packet_data(&mut expected_payload).unwrap();
+        packet
+            .write_packet_data(&mut expected_payload)
+            .await
+            .unwrap();
 
         assert_eq!(buffer, expected_payload);
     }

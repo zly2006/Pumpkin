@@ -1,5 +1,4 @@
-use std::io::Write;
-
+use async_trait::async_trait;
 use pumpkin_data::{
     block::get_block,
     fluid::Fluid,
@@ -7,6 +6,7 @@ use pumpkin_data::{
     tag::{RegistryKey, get_registry_key_tags},
 };
 use pumpkin_macros::packet;
+use std::io::Write;
 
 use crate::{
     ClientPacket,
@@ -25,8 +25,9 @@ impl<'a> CUpdateTags<'a> {
     }
 }
 
+#[async_trait]
 impl ClientPacket for CUpdateTags<'_> {
-    fn write_packet_data(&self, write: impl Write) -> Result<(), WritingError> {
+    async fn write_packet_data(&self, write: impl Write + Send) -> Result<(), WritingError> {
         let mut write = write;
         write.write_list(self.tags, |p, registry_key| {
             p.write_identifier(&Identifier::vanilla(registry_key.identifier_string()))?;

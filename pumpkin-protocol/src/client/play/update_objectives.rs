@@ -1,8 +1,8 @@
-use std::io::Write;
-
+use async_trait::async_trait;
 use pumpkin_data::packet::clientbound::PLAY_SET_OBJECTIVE;
 use pumpkin_macros::packet;
 use pumpkin_util::text::TextComponent;
+use std::io::Write;
 
 use crate::{
     ClientPacket, NumberFormat, VarInt,
@@ -36,8 +36,9 @@ impl CUpdateObjectives {
     }
 }
 
+#[async_trait]
 impl ClientPacket for CUpdateObjectives {
-    fn write_packet_data(&self, write: impl Write) -> Result<(), WritingError> {
+    async fn write_packet_data(&self, write: impl Write + Send) -> Result<(), WritingError> {
         let mut write = write;
 
         write.write_string(&self.objective_name)?;

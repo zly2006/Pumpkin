@@ -4,6 +4,7 @@ use std::{
 };
 
 use aes::cipher::{BlockDecryptMut, BlockEncryptMut, BlockSizeUser, generic_array::GenericArray};
+use async_trait::async_trait;
 use bytes::Bytes;
 use codec::{identifier::Identifier, var_int::VarInt};
 use pumpkin_util::text::{TextComponent, style::Style};
@@ -329,13 +330,14 @@ pub struct RawPacket {
     pub payload: Bytes,
 }
 
+#[async_trait]
 pub trait ClientPacket: Packet {
-    fn write_packet_data(&self, write: impl Write) -> Result<(), WritingError>;
+    async fn write_packet_data(&self, write: impl Write + Send) -> Result<(), WritingError>;
 
-    fn write(&self, write: impl Write) -> Result<(), WritingError> {
+    async fn write(&self, write: impl Write + Send) -> Result<(), WritingError> {
         let mut write = write;
         write.write_var_int(&VarInt(Self::PACKET_ID))?;
-        self.write_packet_data(write)
+        self.write_packet_data(write).await
     }
 }
 

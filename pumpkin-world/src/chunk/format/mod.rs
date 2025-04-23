@@ -3,14 +3,13 @@ use std::collections::HashMap;
 use pumpkin_data::{block::Block, chunk::ChunkStatus};
 use pumpkin_nbt::{compound::NbtCompound, from_bytes, nbt_long_array};
 
+use crate::{block::entities::block_entity_from_nbt, generation::section_coords};
 use pumpkin_util::math::{position::BlockPos, vector2::Vector2};
 use serde::{Deserialize, Serialize};
 
-use crate::{block::entities::block_entity_from_nbt, generation::section_coords};
-
 use super::{
-    ChunkData, ChunkHeightmaps, ChunkParsingError, ChunkSections, ScheduledTick, SubChunk,
-    TickPriority,
+    ChunkData, ChunkHeightmaps, ChunkLightEngine, ChunkParsingError, ChunkSections, ScheduledTick,
+    SubChunk, TickPriority,
     palette::{BiomePalette, BlockPalette},
 };
 
@@ -42,14 +41,7 @@ impl ChunkData {
             .map_err(|e| ChunkParsingError::ErrorDeserializingChunk(e.to_string()))?;
 
         if chunk_data.light_correct {
-            log::debug!(
-                "reading light_correct chunk data for chunk {},{}, min_y={}, first_y={}",
-                position.x,
-                position.z,
-                chunk_data.min_y_section,
-                chunk_data.sections.first().map(|s| s.y).unwrap_or(-99)
-            );
-            for section in chunk_data.sections.clone() {
+            for section in &chunk_data.sections {
                 let mut block = false;
                 let mut sky = false;
                 let mut block_sum = 0;
@@ -68,10 +60,12 @@ impl ChunkData {
                         .map(|b| ((*b >> 4) + (*b & 0x0F)) as usize)
                         .sum();
                 }
-                if block || sky {
+                if (block || sky) && section.y == -5 {
                     log::debug!(
-                        "section {}: block_light={}/{}, sky_light={}/{}",
+                        "section {},{},{}: block_light={}/{}, sky_light={}/{}",
+                        chunk_data.x_pos,
                         section.y,
+                        chunk_data.z_pos,
                         block,
                         block_sum,
                         sky,
@@ -88,6 +82,37 @@ impl ChunkData {
             )));
         }
 
+        let light_engine = ChunkLightEngine {
+            sections: chunk_data.sections.len() + 2,
+            block_light: (0..chunk_data.sections.len() + 2)
+                .map(|index| {
+                    chunk_data
+                        .sections
+                        .iter()
+                        .find(|section| {
+                            section.y as i32 == index as i32 + chunk_data.min_y_section - 1
+                        })
+                        .and_then(|section| section.block_light.clone())
+                        .map(LightContainer::new)
+                        .unwrap_or_default()
+                        .into()
+                })
+                .collect(),
+            sky_light: (0..chunk_data.sections.len() + 2)
+                .map(|index| {
+                    chunk_data
+                        .sections
+                        .iter()
+                        .find(|section| {
+                            section.y as i32 == index as i32 + chunk_data.min_y_section - 1
+                        })
+                        .and_then(|section| section.sky_light.clone())
+                        .map(LightContainer::new)
+                        .unwrap_or_default()
+                        .into()
+                })
+                .collect(),
+        };
         let sub_chunks = chunk_data
             .sections
             .into_iter()
@@ -101,8 +126,6 @@ impl ChunkData {
                     .biomes
                     .map(BiomePalette::from_disk_nbt)
                     .unwrap_or_default(),
-                block_light: section.block_light,
-                sky_light: section.sky_light,
             })
             .collect();
         let min_y = section_coords::section_to_block(chunk_data.min_y_section);
@@ -152,11 +175,12 @@ impl ChunkData {
                 }
                 block_entities
             },
+            light_engine,
         })
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 struct ChunkSectionNBT {
     #[serde(skip_serializing_if = "Option::is_none")]
     block_states: Option<ChunkSectionBlockStates>,
@@ -196,6 +220,82 @@ pub struct ChunkSectionBlockStates {
     )]
     pub(crate) data: Option<Box<[i64]>>,
     pub(crate) palette: Vec<PaletteBlockEntry>,
+}
+
+#[derive(Debug, Clone)]
+pub enum LightContainer<const DIM: usize> {
+    Empty(u8),
+    Full(Box<[u8]>),
+}
+
+impl LightContainer<16> {
+    pub const fn array_size() -> usize {
+        // custom DIM not allowed in stable rust
+        4096 / 2
+    }
+
+    pub fn new_empty(default: u8) -> Self {
+        if default > 15 {
+            panic!("Default value must be between 0 and 15");
+        }
+        Self::Empty(default)
+    }
+
+    pub fn new(data: Box<[u8]>) -> Self {
+        if data.len() != Self::array_size() {
+            panic!("Data length must be {}", Self::array_size());
+        }
+        Self::Full(data)
+    }
+
+    pub fn new_filled(default: u8) -> Self {
+        if default > 15 {
+            panic!("Default value must be between 0 and 15");
+        }
+        let value = default << 4 | default;
+        Self::Full([value; Self::array_size()].into())
+    }
+
+    pub fn is_empty(&self) -> bool {
+        matches!(self, Self::Empty(_))
+    }
+
+    fn index(x: usize, y: usize, z: usize) -> usize {
+        y * 16 * 16 + z * 16 + x
+    }
+
+    pub fn get(&self, x: usize, y: usize, z: usize) -> u8 {
+        match self {
+            Self::Full(data) => {
+                let index = Self::index(x, y, z);
+                data[index >> 1] >> (4 * (index & 1)) & 0x0F
+            }
+            Self::Empty(default) => *default,
+        }
+    }
+
+    pub fn set(&mut self, x: usize, y: usize, z: usize, value: u8) {
+        match self {
+            Self::Full(data) => {
+                let index = Self::index(x, y, z);
+                let mask = 0x0F << (4 * (index & 1));
+                data[index >> 1] &= !mask;
+                data[index >> 1] |= value << (4 * (index & 1));
+            }
+            Self::Empty(default) => {
+                if value != *default {
+                    *self = Self::new_filled(*default);
+                    self.set(x, y, z, value);
+                }
+            }
+        }
+    }
+}
+
+impl Default for LightContainer<16> {
+    fn default() -> Self {
+        Self::new_empty(15)
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
