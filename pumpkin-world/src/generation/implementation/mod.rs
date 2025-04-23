@@ -87,7 +87,7 @@ impl WorldGenerator for VanillaGenerator {
                     .map(|_| RwLock::new(LightContainer::new_filled(15)))
                     .collect(),
                 block_light: (0..sections.sections.len() + 2)
-                    .map(|_| RwLock::new(LightContainer::new_filled(15)))
+                    .map(|_| RwLock::new(LightContainer::new_empty(15)))
                     .collect(),
                 sections: &sections.sections.len() + 2,
             },
