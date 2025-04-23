@@ -26,7 +26,7 @@ use crate::{
     generation::section_coords,
 };
 
-use super::{ChunkNbt, ChunkSectionNBT, SerializedScheduledTick};
+use super::{ChunkNbt, ChunkSectionNBT, LightContainer, SerializedScheduledTick};
 
 /// The side size of a region in chunks (one region is 32x32 chunks)
 pub const REGION_SIZE: usize = 32;
@@ -316,11 +316,12 @@ impl AnvilChunkData {
         Ok(chunk)
     }
 
-    fn from_chunk(
+    async fn from_chunk(
         chunk: &ChunkData,
         compression: Option<Compression>,
     ) -> Result<Self, ChunkWritingError> {
         let raw_bytes = chunk_to_bytes(chunk)
+            .await
             .map_err(|err| ChunkWritingError::ChunkSerializingError(err.to_string()))?;
 
         let compression = compression
@@ -622,7 +623,7 @@ impl ChunkSerializer for AnvilChunkFile {
         let compression_type = self.chunks_data[index]
             .as_ref()
             .and_then(|chunk_data| chunk_data.serialized_data.compression);
-        let new_chunk_data = AnvilChunkData::from_chunk(chunk, compression_type)?;
+        let new_chunk_data = AnvilChunkData::from_chunk(chunk, compression_type).await?;
 
         let mut write_action = self.write_action.lock().await;
         if !advanced_config().chunk.write_in_place {
@@ -816,20 +817,33 @@ impl ChunkSerializer for AnvilChunkFile {
     }
 }
 
-pub fn chunk_to_bytes(chunk_data: &ChunkData) -> Result<Vec<u8>, ChunkSerializingError> {
+pub async fn chunk_to_bytes(chunk_data: &ChunkData) -> Result<Vec<u8>, ChunkSerializingError> {
     let mut sections = Vec::new();
 
-    for (i, section) in chunk_data.section.sections.iter().enumerate() {
-        let block_states = section.block_states.to_disk_nbt();
-        let biomes = section.biomes.to_disk_nbt();
+    for i in 0..chunk_data.light_engine.sections {
+        let has_blocks = i >= 1 && i - 1 < chunk_data.section.sections.len();
+        let section = has_blocks.then(|| &chunk_data.section.sections[i - 1]);
 
-        sections.push(ChunkSectionNBT {
-            y: i as i8 + section_coords::block_to_section(chunk_data.section.min_y) as i8,
-            block_states: Some(block_states),
-            biomes: Some(biomes),
-            block_light: section.block_light.clone(), // :c
-            sky_light: section.sky_light.clone(),     // :c
-        });
+        let chunk_section_nbt = ChunkSectionNBT {
+            y: ((i as i8) - 1i8 + section_coords::block_to_section(chunk_data.section.min_y) as i8),
+            block_states: section.map(|section| section.block_states.to_disk_nbt()),
+            biomes: section.map(|section| section.biomes.to_disk_nbt()),
+            block_light: match chunk_data.light_engine.block_light[i].lock().await.clone() {
+                LightContainer::Empty(_) => None,
+                LightContainer::Full(data) => Some(data),
+            },
+            sky_light: match chunk_data.light_engine.sky_light[i].lock().await.clone() {
+                LightContainer::Empty(_) => None,
+                LightContainer::Full(data) => Some(data),
+            },
+        };
+        if chunk_section_nbt.block_states.is_some()
+            || chunk_section_nbt.biomes.is_some()
+            || chunk_section_nbt.block_light.is_some()
+            || chunk_section_nbt.sky_light.is_some()
+        {
+            sections.push(chunk_section_nbt);
+        }
     }
 
     let nbt = ChunkNbt {

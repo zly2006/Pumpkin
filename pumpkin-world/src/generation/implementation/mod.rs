@@ -3,7 +3,7 @@ use pumpkin_util::math::{vector2::Vector2, vector3::Vector3};
 
 use crate::{
     chunk::{
-        ChunkData, ChunkSections, SubChunk,
+        ChunkData, ChunkSections,
         palette::{BiomePalette, BlockPalette},
     },
     generation::{
@@ -43,7 +43,7 @@ impl WorldGenerator for VanillaGenerator {
             .unwrap();
 
         let sub_chunks = generation_settings.shape.height as usize / BlockPalette::SIZE;
-        let sections = (0..sub_chunks).map(|_| SubChunk::max_sky_light()).collect();
+        let sections = (0..sub_chunks).map(|_| Default::default()).collect();
         let mut sections = ChunkSections::new(sections, generation_settings.shape.min_y as i32);
 
         let mut proto_chunk = ProtoChunk::new(
@@ -87,6 +87,7 @@ impl WorldGenerator for VanillaGenerator {
             block_ticks: Default::default(),
             fluid_ticks: Default::default(),
             block_entities: Default::default(),
+            light_engine: Default::default(),
         }
     }
 }

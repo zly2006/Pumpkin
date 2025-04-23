@@ -1,8 +1,8 @@
-use std::io::Write;
-
+use async_trait::async_trait;
 use pumpkin_data::packet::clientbound::PLAY_PLAYER_CHAT;
 use pumpkin_macros::packet;
 use pumpkin_util::text::TextComponent;
+use std::io::Write;
 
 use crate::{
     ClientPacket,
@@ -65,9 +65,10 @@ impl CPlayerChatMessage {
     }
 }
 
+#[async_trait]
 //TODO: Check if we need this custom impl
 impl ClientPacket for CPlayerChatMessage {
-    fn write_packet_data(&self, write: impl Write) -> Result<(), WritingError> {
+    async fn write_packet_data(&self, write: impl Write + Send) -> Result<(), WritingError> {
         let mut write = write;
 
         write.write_var_int(&self.global_index)?;
