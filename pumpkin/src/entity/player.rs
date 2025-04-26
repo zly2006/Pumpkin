@@ -90,7 +90,11 @@ use pumpkin_util::{
     permission::PermissionLvl,
     text::TextComponent,
 };
+use pumpkin_world::entity::entity_data_flags::{
+    DATA_PLAYER_MAIN_HAND, DATA_PLAYER_MODE_CUSTOMISATION,
+};
 use pumpkin_world::{cylindrical_chunk_iterator::Cylindrical, item::ItemStack, level::SyncChunk};
+use tokio::sync::RwLock;
 use tokio::{sync::Mutex, task::JoinHandle};
 use uuid::Uuid;
 
@@ -182,7 +186,7 @@ pub struct Player {
     /// The player's inventory.
     pub inventory: Mutex<PlayerInventory>,
     /// The player's configuration settings. Changes when the player changes their settings.
-    pub config: Mutex<PlayerConfig>,
+    pub config: RwLock<PlayerConfig>,
     /// The player's current gamemode (e.g., Survival, Creative, Adventure).
     pub gamemode: AtomicCell<GameMode>,
     /// The player's previous gamemode
@@ -271,7 +275,7 @@ impl Player {
                 EntityType::PLAYER,
                 matches!(gamemode, GameMode::Creative | GameMode::Spectator),
             )),
-            config: Mutex::new(config),
+            config: RwLock::new(config),
             gameprofile,
             client,
             awaiting_teleport: Mutex::new(None),
@@ -1150,12 +1154,20 @@ impl Player {
 
     /// Send the player's skin layers and used hand to all players.
     pub async fn send_client_information(&self) {
-        let config = self.config.lock().await;
+        let config = self.config.read().await;
         self.living_entity
             .entity
             .send_meta_data(&[
-                Metadata::new(17, MetaDataType::Byte, config.skin_parts),
-                Metadata::new(18, MetaDataType::Byte, config.main_hand as u8),
+                Metadata::new(
+                    DATA_PLAYER_MODE_CUSTOMISATION,
+                    MetaDataType::Byte,
+                    config.skin_parts,
+                ),
+                Metadata::new(
+                    DATA_PLAYER_MAIN_HAND,
+                    MetaDataType::Byte,
+                    config.main_hand as u8,
+                ),
             ])
             .await;
     }
