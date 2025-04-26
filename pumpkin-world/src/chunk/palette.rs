@@ -4,10 +4,7 @@ use std::{
     hash::Hash,
 };
 
-use pumpkin_data::{
-    block::{Block, get_state_by_state_id},
-    chunk::Biome,
-};
+use pumpkin_data::{Block, block_properties::get_state_by_state_id, chunk::Biome};
 use pumpkin_util::encompassing_bits;
 
 use crate::block::RawBlockState;
@@ -379,7 +376,7 @@ impl BlockPalette {
     pub fn non_air_block_count(&self) -> u16 {
         match self {
             Self::Homogeneous(registry_id) => {
-                if !get_state_by_state_id(*registry_id).unwrap().air {
+                if !get_state_by_state_id(*registry_id).unwrap().is_air() {
                     Self::VOLUME as u16
                 } else {
                     0
@@ -389,7 +386,7 @@ impl BlockPalette {
                 .counts
                 .iter()
                 .map(|(registry_id, count)| {
-                    if !get_state_by_state_id(*registry_id).unwrap().air {
+                    if !get_state_by_state_id(*registry_id).unwrap().is_air() {
                         *count
                     } else {
                         0
