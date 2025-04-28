@@ -95,7 +95,6 @@ pub fn default_registry() -> Arc<BlockRegistry> {
     // Fluids
     manager.register_fluid(FlowingWater);
     manager.register_fluid(FlowingLava);
-
     Arc::new(manager)
 }
 
