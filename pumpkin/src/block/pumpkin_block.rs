@@ -12,6 +12,8 @@ use pumpkin_world::BlockStateId;
 use pumpkin_world::block::BlockDirection;
 use std::sync::Arc;
 
+use super::BlockIsReplacing;
+
 pub trait BlockMetadata {
     fn namespace(&self) -> &'static str;
     fn ids(&self) -> &'static [&'static str];
@@ -34,10 +36,13 @@ pub trait PumpkinBlock: Send + Sync {
         _world: &Arc<World>,
     ) {
     }
+
     fn should_drop_items_on_explosion(&self) -> bool {
         true
     }
+
     async fn explode(&self, _block: &Block, _world: &Arc<World>, _location: BlockPos) {}
+
     async fn use_with_item(
         &self,
         _block: &Block,
@@ -61,7 +66,7 @@ pub trait PumpkinBlock: Send + Sync {
         _pos: &BlockPos,
         _use_item_on: &SUseItemOn,
         _player: &Player,
-        _other: bool,
+        _replacing: BlockIsReplacing,
     ) -> BlockStateId {
         block.default_state_id
     }
@@ -70,6 +75,18 @@ pub trait PumpkinBlock: Send + Sync {
 
     async fn can_place_at(&self, _world: &World, _pos: &BlockPos) -> bool {
         true
+    }
+
+    async fn can_update_at(
+        &self,
+        _world: &World,
+        _block: &Block,
+        _state_id: BlockStateId,
+        _block_pos: &BlockPos,
+        _face: BlockDirection,
+        _use_item_on: &SUseItemOn,
+    ) -> bool {
+        false
     }
 
     /// onBlockAdded in source code

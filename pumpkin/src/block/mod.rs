@@ -19,6 +19,7 @@ use blocks::redstone::redstone_wire::RedstoneWireBlock;
 use blocks::redstone::repeater::RepeaterBlock;
 use blocks::redstone::target_block::TargetBlock;
 use blocks::signs::SignBlock;
+use blocks::slabs::SlabBlock;
 use blocks::stairs::StairBlock;
 use blocks::sugar_cane::SugarCaneBlock;
 use blocks::torches::TorchBlock;
@@ -27,8 +28,10 @@ use blocks::{
 };
 use fluids::lava::FlowingLava;
 use fluids::water::FlowingWater;
+use pumpkin_data::block_properties::Integer0To15;
 use pumpkin_data::entity::EntityType;
 use pumpkin_data::item::Item;
+use pumpkin_data::tag::Tagable;
 use pumpkin_data::{Block, BlockState};
 use pumpkin_util::loot_table::{
     AlternativeEntry, ItemEntry, LootCondition, LootPool, LootPoolEntryTypes, LootTable,
@@ -69,6 +72,7 @@ pub fn default_registry() -> Arc<BlockRegistry> {
     manager.register(JukeboxBlock);
     manager.register(LogBlock);
     manager.register(SignBlock);
+    manager.register(SlabBlock);
     manager.register(StairBlock);
     manager.register(SugarCaneBlock);
     manager.register(TNTBlock);
@@ -114,8 +118,18 @@ pub async fn drop_loot(
                 .map(|(key, value)| (key.as_str(), value.as_str()))
                 .collect::<Vec<_>>(),
         );
-        for stack in loot {
-            drop_stack(world, pos, stack).await;
+
+        if block.is_tagged_with("#minecraft:slabs").unwrap()
+            && SlabBlock::drop_double_loot(block, state_id)
+        {
+            for mut stack in loot {
+                stack.item_count *= 2;
+                drop_stack(world, pos, stack).await;
+            }
+        } else {
+            for stack in loot {
+                drop_stack(world, pos, stack).await;
+            }
         }
     }
 
@@ -266,6 +280,25 @@ impl LootConditionExt for LootCondition {
             Self::BlockStateProperty { properties } => properties
                 .iter()
                 .all(|(key, value)| block_props.iter().any(|(k, v)| k == key && v == value)),
+            _ => false,
+        }
+    }
+}
+
+#[derive(PartialEq)]
+pub enum BlockIsReplacing {
+    Itself(BlockStateId),
+    Water(Integer0To15),
+    Other,
+}
+
+impl BlockIsReplacing {
+    #[must_use]
+    /// Returns true if the block was a water source block.
+    pub fn water_source(&self) -> bool {
+        match self {
+            // Level 0 means the water is a source block
+            Self::Water(level) => *level == Integer0To15::L0,
             _ => false,
         }
     }

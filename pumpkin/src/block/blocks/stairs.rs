@@ -14,6 +14,7 @@ use pumpkin_world::block::BlockDirection;
 use pumpkin_world::block::HorizontalFacingExt;
 use std::sync::Arc;
 
+use crate::block::BlockIsReplacing;
 use crate::block::pumpkin_block::{BlockMetadata, PumpkinBlock};
 use crate::world::BlockFlags;
 use crate::world::World;
@@ -44,7 +45,7 @@ impl PumpkinBlock for StairBlock {
         block_pos: &BlockPos,
         use_item_on: &SUseItemOn,
         player: &Player,
-        _other: bool,
+        _replacing: BlockIsReplacing,
     ) -> BlockStateId {
         let mut stair_props = StairsProperties::default(block);
 

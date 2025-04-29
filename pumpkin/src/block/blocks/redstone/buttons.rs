@@ -16,6 +16,7 @@ use pumpkin_world::chunk::TickPriority;
 
 type ButtonLikeProperties = pumpkin_data::block_properties::LeverLikeProperties;
 
+use crate::block::BlockIsReplacing;
 use crate::block::blocks::redstone::lever::LeverLikePropertiesExt;
 use crate::block::pumpkin_block::{BlockMetadata, PumpkinBlock};
 use crate::block::registry::BlockActionResult;
@@ -68,7 +69,7 @@ impl PumpkinBlock for ButtonBlock {
         _block_pos: &BlockPos,
         _use_item_on: &SUseItemOn,
         player: &Player,
-        _other: bool,
+        _replacing: BlockIsReplacing,
     ) -> BlockStateId {
         let mut props = ButtonLikeProperties::default(block);
 

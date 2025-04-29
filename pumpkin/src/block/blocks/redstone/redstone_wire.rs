@@ -14,6 +14,7 @@ use pumpkin_util::math::position::BlockPos;
 use pumpkin_world::BlockStateId;
 use pumpkin_world::block::{BlockDirection, HorizontalFacingExt};
 
+use crate::block::BlockIsReplacing;
 use crate::block::registry::BlockActionResult;
 use crate::entity::player::Player;
 use crate::world::BlockFlags;
@@ -46,7 +47,7 @@ impl PumpkinBlock for RedstoneWireBlock {
         block_pos: &BlockPos,
         _use_item_on: &SUseItemOn,
         _player: &Player,
-        _other: bool,
+        _replacing: BlockIsReplacing,
     ) -> BlockStateId {
         let mut wire = RedstoneWireProperties::default(block);
         wire.power = Integer0To15::from_index(calculate_power(world, block_pos).await.into());
