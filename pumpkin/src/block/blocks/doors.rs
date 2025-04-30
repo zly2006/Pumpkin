@@ -168,7 +168,7 @@ impl PumpkinBlock for DoorBlock {
         _server: &Server,
         world: &World,
         block: &Block,
-        _face: &BlockDirection,
+        _face: BlockDirection,
         block_pos: &BlockPos,
         use_item_on: &SUseItemOn,
         player: &Player,
@@ -190,8 +190,13 @@ impl PumpkinBlock for DoorBlock {
         door_props.to_state_id(block)
     }
 
-    async fn can_place_at(&self, world: &World, block_pos: &BlockPos) -> bool {
-        if world
+    async fn can_place_at(
+        &self,
+        world: &World,
+        block_pos: &BlockPos,
+        _face: BlockDirection,
+    ) -> bool {
+        world
             .get_block_state(&block_pos.offset(BlockDirection::Up.to_offset()))
             .await
             .is_ok_and(|state| state.replaceable())
@@ -199,10 +204,6 @@ impl PumpkinBlock for DoorBlock {
                 .get_block_state(&block_pos.offset(BlockDirection::Down.to_offset()))
                 .await
                 .is_ok_and(|state| state.is_solid() && state.is_full_cube())
-        {
-            return true;
-        }
-        false
     }
 
     async fn placed(
@@ -317,17 +318,17 @@ impl PumpkinBlock for DoorBlock {
         block: &Block,
         state: u16,
         block_pos: &BlockPos,
-        direction: &BlockDirection,
+        direction: BlockDirection,
         _neighbor_pos: &BlockPos,
         neighbor_state: u16,
     ) -> u16 {
         let lv = DoorProperties::from_state_id(state, block).half;
         if direction.to_axis() != Axis::Y
-            || (lv == DoubleBlockHalf::Lower) != (direction == &BlockDirection::Up)
+            || (lv == DoubleBlockHalf::Lower) != (direction == BlockDirection::Up)
         {
             if lv == DoubleBlockHalf::Lower
-                && direction == &BlockDirection::Down
-                && !self.can_place_at(world, block_pos).await
+                && direction == BlockDirection::Down
+                && !self.can_place_at(world, block_pos, direction).await
             {
                 return 0;
             }

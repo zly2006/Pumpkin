@@ -62,7 +62,7 @@ pub trait PumpkinBlock: Send + Sync {
         _server: &Server,
         _world: &World,
         block: &Block,
-        _face: &BlockDirection,
+        _face: BlockDirection,
         _pos: &BlockPos,
         _use_item_on: &SUseItemOn,
         _player: &Player,
@@ -73,7 +73,12 @@ pub trait PumpkinBlock: Send + Sync {
 
     async fn random_tick(&self, _block: &Block, _world: &Arc<World>, _pos: &BlockPos) {}
 
-    async fn can_place_at(&self, _world: &World, _pos: &BlockPos) -> bool {
+    async fn can_place_at(
+        &self,
+        _world: &World,
+        _block_pos: &BlockPos,
+        _face: BlockDirection,
+    ) -> bool {
         true
     }
 
@@ -107,7 +112,7 @@ pub trait PumpkinBlock: Send + Sync {
         _block: &Block,
         _state_id: u16,
         _pos: &BlockPos,
-        _face: &BlockDirection,
+        _face: BlockDirection,
         _player: &Player,
     ) {
     }
@@ -161,7 +166,7 @@ pub trait PumpkinBlock: Send + Sync {
         _block: &Block,
         state: BlockStateId,
         _pos: &BlockPos,
-        _direction: &BlockDirection,
+        _direction: BlockDirection,
         _neighbor_pos: &BlockPos,
         _neighbor_state: BlockStateId,
     ) -> BlockStateId {
@@ -185,7 +190,7 @@ pub trait PumpkinBlock: Send + Sync {
         &self,
         _block: &Block,
         _state: &BlockState,
-        _direction: &BlockDirection,
+        _direction: BlockDirection,
     ) -> bool {
         false
     }
@@ -197,7 +202,7 @@ pub trait PumpkinBlock: Send + Sync {
         _world: &World,
         _pos: &BlockPos,
         _state: &BlockState,
-        _direction: &BlockDirection,
+        _direction: BlockDirection,
     ) -> u8 {
         0
     }
@@ -209,7 +214,7 @@ pub trait PumpkinBlock: Send + Sync {
         _world: &World,
         _pos: &BlockPos,
         _state: &BlockState,
-        _direction: &BlockDirection,
+        _direction: BlockDirection,
     ) -> u8 {
         0
     }
