@@ -85,6 +85,8 @@ pub async fn update_position(player: &Arc<Player>) {
 
         if !chunks_to_clean.is_empty() {
             level.clean_chunks(&chunks_to_clean).await;
+            level.clean_entity_chunks(&chunks_to_clean).await;
+            // TODO: we want to despawn entities ig
             for chunk in unloading_chunks {
                 player
                     .client

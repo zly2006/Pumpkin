@@ -956,16 +956,6 @@ impl World {
                     }
                 };
 
-                let entity_recv_result = tokio::select! {
-                    () = player.client.await_close_interrupt() => {
-                        log::debug!("Canceling player packet processing");
-                        None
-                    },
-                    recv_result = entity_receiver.recv() => {
-                        recv_result
-                    }
-                };
-
                 // TODO: If no chunk is received we break here, but it would be possible that a entity chunk is received
                 let Some((chunk, first_load)) = chunk_recv_result else {
                     break;
@@ -1042,6 +1032,16 @@ impl World {
                         }
                     }};
                 }
+
+                let entity_recv_result = tokio::select! {
+                    () = player.client.await_close_interrupt() => {
+                        log::debug!("Canceling player packet processing");
+                        None
+                    },
+                    recv_result = entity_receiver.recv() => {
+                        recv_result
+                    }
+                };
 
                 // TODO: We require to have an entity and a normal chunk here, we could also do it in parralel, no need for waiting
                 let Some((entity_chunk, entity_first_load)) = entity_recv_result else {

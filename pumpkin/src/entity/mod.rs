@@ -185,7 +185,8 @@ impl Entity {
                 // ID was not found
                 None => continue,
             };
-            let entity_type = match EntityType::from_raw(id.parse().unwrap()) {
+            dbg!(id);
+            let entity_type = match EntityType::from_name(&id.replace("minecraft:", "")) {
                 Some(id) => id,
                 // ID was found but no entity has this id, could be because it was saved using an older/newer version
                 None => continue,

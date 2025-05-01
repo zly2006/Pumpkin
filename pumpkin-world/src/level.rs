@@ -97,7 +97,7 @@ impl Level {
         if !region_folder.exists() {
             std::fs::create_dir_all(&region_folder).expect("Failed to create Region folder");
         }
-        let entities_folder = root_folder.join("entities_folder");
+        let entities_folder = root_folder.join("entities");
         if !entities_folder.exists() {
             std::fs::create_dir_all(&entities_folder).expect("Failed to create Entities folder");
         }
@@ -281,6 +281,9 @@ impl Level {
         self.chunk_saver
             .watch_chunks(&self.level_folder, chunks)
             .await;
+        self.entity_chunk_saver
+            .watch_chunks(&self.level_folder, chunks)
+            .await;
     }
 
     #[inline]
@@ -315,6 +318,9 @@ impl Level {
         }
 
         self.chunk_saver
+            .unwatch_chunks(&self.level_folder, chunks)
+            .await;
+        self.entity_chunk_saver
             .unwatch_chunks(&self.level_folder, chunks)
             .await;
         chunks_to_clean

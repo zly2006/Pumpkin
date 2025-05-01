@@ -114,15 +114,6 @@ impl ChunkEntityData {
         chunk_data: &[u8],
         position: Vector2<i32>,
     ) -> Result<Self, ChunkParsingError> {
-        // TODO: Implement chunk stages?
-        if from_bytes::<ChunkStatusWrapper>(chunk_data)
-            .map_err(ChunkParsingError::FailedReadStatus)?
-            .status
-            != ChunkStatus::Full
-        {
-            return Err(ChunkParsingError::ChunkNotGenerated);
-        }
-
         let chunk_entity_data = from_bytes::<EntityNbt>(chunk_data)
             .map_err(|e| ChunkParsingError::ErrorDeserializingChunk(e.to_string()))?;
 
