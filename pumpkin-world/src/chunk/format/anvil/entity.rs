@@ -3,8 +3,7 @@ use bytes::*;
 use flate2::read::{GzDecoder, GzEncoder, ZlibDecoder, ZlibEncoder};
 use itertools::Itertools;
 use pumpkin_config::advanced_config;
-use pumpkin_data::{Block, chunk::ChunkStatus};
-use pumpkin_nbt::{compound::NbtCompound, serializer::to_bytes};
+use pumpkin_nbt::serializer::to_bytes;
 use pumpkin_util::math::vector2::Vector2;
 use std::{
     collections::HashSet,
@@ -17,36 +16,14 @@ use tokio::{
     sync::Mutex,
 };
 
-use crate::{
-    chunk::{
-        ChunkData, ChunkParsingError, ChunkReadingError, ChunkSerializingError, ChunkWritingError,
-        CompressionError,
-        io::{ChunkSerializer, LoadedData},
-    },
-    generation::section_coords,
+use crate::chunk::{
+    ChunkEntityData, ChunkParsingError, ChunkReadingError, ChunkSerializingError,
+    ChunkWritingError, CompressionError,
+    format::EntityNbt,
+    io::{ChunkSerializer, LoadedData},
 };
 
-use super::{ChunkNbt, ChunkSectionNBT, SerializedScheduledTick};
-
-/// The side size of a region in chunks (one region is 32x32 chunks)
-pub const REGION_SIZE: usize = 32;
-
-/// The number of bits that identify two chunks in the same region
-pub const SUBREGION_BITS: u8 = pumpkin_util::math::ceil_log2(REGION_SIZE as u32);
-
-pub const SUBREGION_AND: i32 = i32::pow(2, SUBREGION_BITS as u32) - 1;
-
-/// The number of chunks in a region
-pub const CHUNK_COUNT: usize = REGION_SIZE * REGION_SIZE;
-
-/// The number of bytes in a sector (4 KiB)
-const SECTOR_BYTES: usize = 4096;
-
-// 1.21.5
-const WORLD_DATA_VERSION: i32 = 4325;
-
-#[derive(Clone, Default)]
-pub struct AnvilChunkFormat;
+use super::{CHUNK_COUNT, SECTOR_BYTES, SUBREGION_AND, SUBREGION_BITS, WORLD_DATA_VERSION};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -116,7 +93,7 @@ struct AnvilChunkMetadata {
     file_sector_offset: u32,
 }
 
-pub struct AnvilChunkFile {
+pub struct AnvilEntityFile {
     chunks_data: [Option<AnvilChunkMetadata>; CHUNK_COUNT],
     end_sector: u32,
     write_action: Mutex<WriteAction>,
@@ -301,15 +278,15 @@ impl AnvilChunkData {
         Ok(())
     }
 
-    fn to_chunk(&self, pos: Vector2<i32>) -> Result<ChunkData, ChunkReadingError> {
+    fn to_chunk(&self, pos: Vector2<i32>) -> Result<ChunkEntityData, ChunkReadingError> {
         let chunk = if let Some(compression) = self.compression {
             let decompress_bytes = compression
                 .decompress_data(&self.compressed_data)
                 .map_err(ChunkReadingError::Compression)?;
 
-            ChunkData::from_bytes(&decompress_bytes, pos)
+            ChunkEntityData::from_bytes(&decompress_bytes, pos)
         } else {
-            ChunkData::from_bytes(&self.compressed_data, pos)
+            ChunkEntityData::from_bytes(&self.compressed_data, pos)
         }
         .map_err(ChunkReadingError::ParsingError)?;
 
@@ -317,7 +294,7 @@ impl AnvilChunkData {
     }
 
     fn from_chunk(
-        chunk: &ChunkData,
+        chunk: &ChunkEntityData,
         compression: Option<Compression>,
     ) -> Result<Self, ChunkWritingError> {
         let raw_bytes = chunk_to_bytes(chunk)
@@ -338,7 +315,7 @@ impl AnvilChunkData {
     }
 }
 
-impl AnvilChunkFile {
+impl AnvilEntityFile {
     pub const fn get_region_coords(at: &Vector2<i32>) -> (i32, i32) {
         // Divide by 32 for the region coordinates
         (at.x >> SUBREGION_BITS, at.z >> SUBREGION_BITS)
@@ -503,7 +480,7 @@ impl AnvilChunkFile {
     }
 }
 
-impl Default for AnvilChunkFile {
+impl Default for AnvilEntityFile {
     fn default() -> Self {
         Self {
             chunks_data: [const { None }; CHUNK_COUNT],
@@ -515,8 +492,8 @@ impl Default for AnvilChunkFile {
 }
 
 #[async_trait]
-impl ChunkSerializer for AnvilChunkFile {
-    type Data = ChunkData;
+impl ChunkSerializer for AnvilEntityFile {
+    type Data = ChunkEntityData;
     type WriteBackend = PathBuf;
 
     fn should_write(&self, is_watched: bool) -> bool {
@@ -560,7 +537,7 @@ impl ChunkSerializer for AnvilChunkFile {
         let headers = raw_file_bytes.split_to(SECTOR_BYTES * 2);
         let (mut location_bytes, mut timestamp_bytes) = headers.split_at(SECTOR_BYTES);
 
-        let mut chunk_file = AnvilChunkFile::default();
+        let mut chunk_file = AnvilEntityFile::default();
 
         let mut last_offset = 2;
         for i in 0..CHUNK_COUNT {
@@ -611,13 +588,13 @@ impl ChunkSerializer for AnvilChunkFile {
         Ok(chunk_file)
     }
 
-    async fn update_chunk(&mut self, chunk: &ChunkData) -> Result<(), ChunkWritingError> {
+    async fn update_chunk(&mut self, chunk: &ChunkEntityData) -> Result<(), ChunkWritingError> {
         let epoch = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs() as u32;
 
-        let index = AnvilChunkFile::get_chunk_index(&chunk.position);
+        let index = AnvilEntityFile::get_chunk_index(&chunk.chunk_position);
         // Default to the compression type read from the file
         let compression_type = self.chunks_data[index]
             .as_ref()
@@ -789,12 +766,12 @@ impl ChunkSerializer for AnvilChunkFile {
     async fn get_chunks(
         &self,
         chunks: &[Vector2<i32>],
-        stream: tokio::sync::mpsc::Sender<LoadedData<ChunkData, ChunkReadingError>>,
+        stream: tokio::sync::mpsc::Sender<LoadedData<ChunkEntityData, ChunkReadingError>>,
     ) {
         // Don't par iter here so we can prevent backpressure with the await in the async
         // runtime
         for chunk in chunks.iter().cloned() {
-            let index = AnvilChunkFile::get_chunk_index(&chunk);
+            let index = AnvilEntityFile::get_chunk_index(&chunk);
             let is_ok = match &self.chunks_data[index] {
                 None => stream.send(LoadedData::Missing(chunk)).await.is_ok(),
                 Some(chunk_metadata) => {
@@ -816,544 +793,19 @@ impl ChunkSerializer for AnvilChunkFile {
     }
 }
 
-pub fn chunk_to_bytes(chunk_data: &ChunkData) -> Result<Vec<u8>, ChunkSerializingError> {
-    let mut sections = Vec::new();
-
-    for (i, section) in chunk_data.section.sections.iter().enumerate() {
-        let block_states = section.block_states.to_disk_nbt();
-        let biomes = section.biomes.to_disk_nbt();
-
-        sections.push(ChunkSectionNBT {
-            y: i as i8 + section_coords::block_to_section(chunk_data.section.min_y) as i8,
-            block_states,
-            biomes,
-            block_light: section.block_light.clone(), // :c
-            sky_light: section.sky_light.clone(),     // :c
-        });
-    }
-
-    let nbt = ChunkNbt {
+pub fn chunk_to_bytes(
+    chunk_entity_data: &ChunkEntityData,
+) -> Result<Vec<u8>, ChunkSerializingError> {
+    let nbt = EntityNbt {
         data_version: WORLD_DATA_VERSION,
-        x_pos: chunk_data.position.x,
-        z_pos: chunk_data.position.z,
-        min_y_section: section_coords::block_to_section(chunk_data.section.min_y),
-        status: ChunkStatus::Full,
-        heightmaps: chunk_data.heightmap.clone(),
-        sections,
-        block_ticks: {
-            chunk_data
-                .block_ticks
-                .iter()
-                .map(|tick| SerializedScheduledTick {
-                    x: tick.block_pos.0.x,
-                    y: tick.block_pos.0.y,
-                    z: tick.block_pos.0.z,
-                    delay: tick.delay as i32,
-                    priority: tick.priority as i32,
-                    target_block: format!(
-                        "minecraft:{}",
-                        Block::from_id(tick.target_block_id).unwrap().name
-                    ),
-                })
-                .collect()
-        },
-        fluid_ticks: {
-            chunk_data
-                .fluid_ticks
-                .iter()
-                .map(|tick| SerializedScheduledTick {
-                    x: tick.block_pos.0.x,
-                    y: tick.block_pos.0.y,
-                    z: tick.block_pos.0.z,
-                    delay: tick.delay as i32,
-                    priority: tick.priority as i32,
-                    target_block: format!(
-                        "minecraft:{}",
-                        Block::from_id(tick.target_block_id).unwrap().name
-                    ),
-                })
-                .collect()
-        },
-        block_entities: chunk_data
-            .block_entities
-            .values()
-            .map(|block_entity| {
-                let mut nbt = NbtCompound::new();
-                block_entity.write_internal(&mut nbt);
-                nbt
-            })
-            .collect(),
+        position: [
+            chunk_entity_data.chunk_position.x,
+            chunk_entity_data.chunk_position.z,
+        ],
+        entities: chunk_entity_data.data.clone(),
     };
 
     let mut result = Vec::new();
     to_bytes(&nbt, &mut result).map_err(ChunkSerializingError::ErrorSerializingChunk)?;
     Ok(result)
-}
-
-#[cfg(test)]
-mod tests {
-    use pumpkin_config::{AdvancedConfiguration, advanced_config, override_config_for_testing};
-    use pumpkin_util::math::vector2::Vector2;
-    use std::fs;
-    use std::path::PathBuf;
-    use std::sync::Arc;
-    use temp_dir::TempDir;
-    use tokio::sync::RwLock;
-
-    use crate::chunk::format::anvil::AnvilChunkFile;
-    use crate::chunk::io::chunk_file_manager::ChunkFileManager;
-    use crate::chunk::io::{ChunkIO, LoadedData};
-    use crate::generation::{Seed, get_world_gen};
-    use crate::level::{LevelFolder, SyncChunk};
-
-    async fn get_chunks(
-        saver: &ChunkFileManager<AnvilChunkFile>,
-        folder: &LevelFolder,
-        chunks: &[(Vector2<i32>, SyncChunk)],
-    ) -> Box<[SyncChunk]> {
-        let mut read_chunks = Vec::new();
-        let (send, mut recv) = tokio::sync::mpsc::channel(1);
-
-        let chunk_pos = chunks.iter().map(|(at, _)| *at).collect::<Vec<_>>();
-        let spawn = saver.fetch_chunks(folder, &chunk_pos, send);
-        let collect = async {
-            while let Some(data) = recv.recv().await {
-                read_chunks.push(data);
-            }
-        };
-
-        tokio::join!(spawn, collect);
-
-        let read_chunks = read_chunks
-            .into_iter()
-            .map(|chunk| match chunk {
-                LoadedData::Loaded(chunk) => chunk,
-                LoadedData::Missing(_) => panic!("Missing chunk"),
-                LoadedData::Error((position, error)) => {
-                    panic!("Error reading chunk at {:?} | Error: {:?}", position, error)
-                }
-            })
-            .collect::<Vec<_>>();
-
-        read_chunks.into_boxed_slice()
-    }
-
-    #[tokio::test(flavor = "multi_thread")]
-    async fn not_existing() {
-        let region_path = PathBuf::from("not_existing");
-        let chunk_saver = ChunkFileManager::<AnvilChunkFile>::default();
-
-        let mut chunks = Vec::new();
-        let (send, mut recv) = tokio::sync::mpsc::channel(1);
-
-        chunk_saver
-            .fetch_chunks(
-                &LevelFolder {
-                    root_folder: PathBuf::from(""),
-                    region_folder: region_path,
-                },
-                &[Vector2::new(0, 0)],
-                send,
-            )
-            .await;
-
-        while let Some(data) = recv.recv().await {
-            chunks.push(data);
-        }
-
-        assert!(chunks.len() == 1 && matches!(chunks[0], LoadedData::Missing(_)));
-    }
-
-    #[tokio::test(flavor = "multi_thread")]
-    async fn test_write_in_place() {
-        let mut config = AdvancedConfiguration::default();
-        config.chunk.write_in_place = true;
-        override_config_for_testing(config);
-        assert!(advanced_config().chunk.write_in_place);
-
-        let _ = env_logger::try_init();
-
-        let generator = get_world_gen(Seed(0));
-
-        let temp_dir = TempDir::new().unwrap();
-        let level_folder = LevelFolder {
-            root_folder: temp_dir.path().to_path_buf(),
-            region_folder: temp_dir.path().join("region"),
-        };
-        fs::create_dir(&level_folder.region_folder).expect("couldn't create region folder");
-        let chunk_saver = ChunkFileManager::<AnvilChunkFile>::default();
-
-        // Generate chunks
-        let mut chunks = vec![];
-        for x in -5..5 {
-            for y in -5..5 {
-                let position = Vector2::new(x, y);
-                let chunk = generator.generate_chunk(&position);
-                chunks.push((position, Arc::new(RwLock::new(chunk))));
-            }
-        }
-
-        // TEST APPEND TO END
-
-        chunk_saver
-            .save_chunks(&level_folder, chunks.clone())
-            .await
-            .expect("Failed to write chunk");
-
-        // Create a new manager to ensure nothing is cached
-        let chunk_saver = ChunkFileManager::<AnvilChunkFile>::default();
-        let read_chunks = get_chunks(&chunk_saver, &level_folder, &chunks).await;
-
-        for (_, chunk) in &chunks {
-            let chunk = chunk.read().await;
-            for read_chunk in read_chunks.iter() {
-                let read_chunk = read_chunk.read().await;
-                if read_chunk.position == chunk.position {
-                    let original = chunk.section.dump_blocks();
-                    let read = read_chunk.section.dump_blocks();
-
-                    original
-                        .into_iter()
-                        .zip(read)
-                        .enumerate()
-                        .for_each(|(i, (o, r))| {
-                            if o != r {
-                                panic!("Data miss-match expected {}, got {} ({})", o, r, i);
-                            }
-                        });
-
-                    let original = chunk.section.dump_biomes();
-                    let read = read_chunk.section.dump_biomes();
-
-                    original
-                        .into_iter()
-                        .zip(read)
-                        .enumerate()
-                        .for_each(|(i, (o, r))| {
-                            if o != r {
-                                panic!("Data miss-match expected {}, got {} ({})", o, r, i);
-                            }
-                        });
-                    break;
-                }
-            }
-        }
-
-        // TEST WRITE IN PLACE
-
-        // Idk what blocks these are, they just have to be different
-        let mut chunk = chunks.first().unwrap().1.write().await;
-        chunk.section.set_relative_block(0, 0, 0, 1000);
-        // Mark dirty so we actually write it
-        chunk.dirty = true;
-        drop(chunk);
-        let mut chunk = chunks.last().unwrap().1.write().await;
-        chunk.section.set_relative_block(0, 0, 0, 1000);
-        // Mark dirty so we actually write it
-        chunk.dirty = true;
-        drop(chunk);
-
-        chunk_saver
-            .save_chunks(&level_folder, chunks.clone())
-            .await
-            .expect("Failed to write chunk");
-
-        // Create a new manager to ensure nothing is cached
-        let chunk_saver = ChunkFileManager::<AnvilChunkFile>::default();
-        let read_chunks = get_chunks(&chunk_saver, &level_folder, &chunks).await;
-
-        for (_, chunk) in &chunks {
-            let chunk = chunk.read().await;
-            for read_chunk in read_chunks.iter() {
-                let read_chunk = read_chunk.read().await;
-                if read_chunk.position == chunk.position {
-                    let original = chunk.section.dump_blocks();
-                    let read = read_chunk.section.dump_blocks();
-
-                    original
-                        .into_iter()
-                        .zip(read)
-                        .enumerate()
-                        .for_each(|(i, (o, r))| {
-                            if o != r {
-                                panic!("Data miss-match expected {}, got {} ({})", o, r, i);
-                            }
-                        });
-
-                    let original = chunk.section.dump_biomes();
-                    let read = read_chunk.section.dump_biomes();
-
-                    original
-                        .into_iter()
-                        .zip(read)
-                        .enumerate()
-                        .for_each(|(i, (o, r))| {
-                            if o != r {
-                                panic!("Data miss-match expected {}, got {} ({})", o, r, i);
-                            }
-                        });
-
-                    break;
-                }
-            }
-        }
-
-        // TEST SWAP SHIFT
-
-        // Make a big chunk
-        let mut chunk = chunks.first().unwrap().1.write().await;
-        for x in 0..16 {
-            for z in 0..16 {
-                for y in 0..4 {
-                    let block_id = 16 * 16 * y + 16 * z + x;
-                    chunk.section.set_relative_block(x, y, z, block_id as u16);
-                }
-            }
-        }
-        // Mark dirty so we actually write it
-        chunk.dirty = true;
-        drop(chunk);
-        let mut chunk = chunks[2].1.write().await;
-        for x in 0..16 {
-            for z in 0..16 {
-                for y in 0..4 {
-                    let block_id = 16 * 16 * y + 16 * z + x;
-                    chunk.section.set_relative_block(x, y, z, block_id as u16);
-                }
-            }
-        }
-        // Mark dirty so we actually write it
-        chunk.dirty = true;
-        drop(chunk);
-
-        chunk_saver
-            .save_chunks(&level_folder, chunks.clone())
-            .await
-            .expect("Failed to write chunk");
-
-        // Create a new manager to ensure nothing is cached
-        let chunk_saver = ChunkFileManager::<AnvilChunkFile>::default();
-        let read_chunks = get_chunks(&chunk_saver, &level_folder, &chunks).await;
-
-        for (_, chunk) in &chunks {
-            let chunk = chunk.read().await;
-            for read_chunk in read_chunks.iter() {
-                let read_chunk = read_chunk.read().await;
-                if read_chunk.position == chunk.position {
-                    let original = chunk.section.dump_blocks();
-                    let read = read_chunk.section.dump_blocks();
-
-                    original
-                        .into_iter()
-                        .zip(read)
-                        .enumerate()
-                        .for_each(|(i, (o, r))| {
-                            if o != r {
-                                panic!("Data miss-match expected {}, got {} ({})", o, r, i);
-                            }
-                        });
-
-                    let original = chunk.section.dump_biomes();
-                    let read = read_chunk.section.dump_biomes();
-
-                    original
-                        .into_iter()
-                        .zip(read)
-                        .enumerate()
-                        .for_each(|(i, (o, r))| {
-                            if o != r {
-                                panic!("Data miss-match expected {}, got {} ({})", o, r, i);
-                            }
-                        });
-
-                    break;
-                }
-            }
-        }
-
-        // TEST DEFAULT TO WRITE ALL
-
-        // Make an even bigger chunk
-        let mut chunk = chunks.last().unwrap().1.write().await;
-        for x in 0..16 {
-            for z in 0..16 {
-                for y in 0..16 {
-                    let block_id = 16 * 16 * y + 16 * z + x;
-                    chunk.section.set_relative_block(x, y, z, block_id as u16);
-                }
-            }
-        }
-        // Mark dirty so we actually write it
-        chunk.dirty = true;
-        drop(chunk);
-
-        chunk_saver
-            .save_chunks(&level_folder, chunks.clone())
-            .await
-            .expect("Failed to write chunk");
-
-        // Create a new manager to ensure nothing is cached
-        let chunk_saver = ChunkFileManager::<AnvilChunkFile>::default();
-        let read_chunks = get_chunks(&chunk_saver, &level_folder, &chunks).await;
-
-        for (_, chunk) in &chunks {
-            let chunk = chunk.read().await;
-            for read_chunk in read_chunks.iter() {
-                let read_chunk = read_chunk.read().await;
-                if read_chunk.position == chunk.position {
-                    let original = chunk.section.dump_blocks();
-                    let read = read_chunk.section.dump_blocks();
-
-                    original
-                        .into_iter()
-                        .zip(read)
-                        .enumerate()
-                        .for_each(|(i, (o, r))| {
-                            if o != r {
-                                panic!("Data miss-match expected {}, got {} ({})", o, r, i);
-                            }
-                        });
-
-                    let original = chunk.section.dump_biomes();
-                    let read = read_chunk.section.dump_biomes();
-
-                    original
-                        .into_iter()
-                        .zip(read)
-                        .enumerate()
-                        .for_each(|(i, (o, r))| {
-                            if o != r {
-                                panic!("Data miss-match expected {}, got {} ({})", o, r, i);
-                            }
-                        });
-                    break;
-                }
-            }
-        }
-    }
-
-    #[tokio::test(flavor = "multi_thread")]
-    async fn test_write_bulk() {
-        let mut config = AdvancedConfiguration::default();
-        config.chunk.write_in_place = false;
-        override_config_for_testing(config);
-        assert!(!advanced_config().chunk.write_in_place);
-
-        let _ = env_logger::try_init();
-
-        let generator = get_world_gen(Seed(0));
-
-        let temp_dir = TempDir::new().unwrap();
-        let level_folder = LevelFolder {
-            root_folder: temp_dir.path().to_path_buf(),
-            region_folder: temp_dir.path().join("region"),
-        };
-        fs::create_dir(&level_folder.region_folder).expect("couldn't create region folder");
-        let chunk_saver = ChunkFileManager::<AnvilChunkFile>::default();
-
-        // Generate chunks
-        let mut chunks = vec![];
-        for x in -5..5 {
-            for y in -5..5 {
-                let position = Vector2::new(x, y);
-                let chunk = generator.generate_chunk(&position);
-                chunks.push((position, Arc::new(RwLock::new(chunk))));
-            }
-        }
-
-        for _ in 0..5 {
-            // Mark the chunks as dirty so we save them again
-            for (_, chunk) in &chunks {
-                let mut chunk = chunk.write().await;
-                chunk.dirty = true;
-            }
-
-            chunk_saver
-                .save_chunks(&level_folder, chunks.clone())
-                .await
-                .expect("Failed to write chunk");
-
-            // Create a new manager to ensure nothing is cached
-            let chunk_saver = ChunkFileManager::<AnvilChunkFile>::default();
-            let read_chunks = get_chunks(&chunk_saver, &level_folder, &chunks).await;
-
-            for (_, chunk) in &chunks {
-                let chunk = chunk.read().await;
-                for read_chunk in read_chunks.iter() {
-                    let read_chunk = read_chunk.read().await;
-                    if read_chunk.position == chunk.position {
-                        let original = chunk.section.dump_blocks();
-                        let read = read_chunk.section.dump_blocks();
-
-                        original
-                            .into_iter()
-                            .zip(read)
-                            .enumerate()
-                            .for_each(|(i, (o, r))| {
-                                if o != r {
-                                    panic!("Data miss-match expected {}, got {} ({})", o, r, i);
-                                }
-                            });
-
-                        let original = chunk.section.dump_biomes();
-                        let read = read_chunk.section.dump_biomes();
-
-                        original
-                            .into_iter()
-                            .zip(read)
-                            .enumerate()
-                            .for_each(|(i, (o, r))| {
-                                if o != r {
-                                    panic!("Data miss-match expected {}, got {} ({})", o, r, i);
-                                }
-                            });
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    // TODO
-    /*
-    #[test]
-    fn test_load_java_chunk() {
-        let temp_dir = TempDir::new().unwrap();
-        let level_folder = LevelFolder {
-            root_folder: temp_dir.path().to_path_buf(),
-            region_folder: temp_dir.path().join("region"),
-        };
-
-        fs::create_dir(&level_folder.region_folder).unwrap();
-        fs::copy(
-            Path::new(env!("CARGO_MANIFEST_DIR"))
-                .parent()
-                .unwrap()
-                .join(file!())
-                .parent()
-                .unwrap()
-                .join("../../assets/r.0.0.mca"),
-            level_folder.region_folder.join("r.0.0.mca"),
-        )
-        .unwrap();
-
-        let mut actually_tested = false;
-        for x in 0..(1 << 5) {
-            for z in 0..(1 << 5) {
-                let result = AnvilChunkFormat {}.read_chunk(&level_folder, &Vector2 { x, z });
-
-                match result {
-                    Ok(_) => actually_tested = true,
-                    Err(ChunkReadingError::ParsingError(ChunkParsingError::ChunkNotGenerated)) => {}
-                    Err(ChunkReadingError::ChunkNotExist) => {}
-                    Err(e) => panic!("{:?}", e),
-                }
-
-                println!("=========== OK ===========");
-            }
-        }
-
-        assert!(actually_tested);
-    }
-    */
 }

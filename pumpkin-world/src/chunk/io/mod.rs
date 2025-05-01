@@ -7,7 +7,7 @@ use pumpkin_util::math::vector2::Vector2;
 use super::{ChunkReadingError, ChunkWritingError};
 use crate::level::LevelFolder;
 
-pub mod chunk_file_manager;
+pub mod file_manager;
 
 /// The result of loading a chunk data.
 ///
@@ -45,7 +45,7 @@ impl<D: Send, E: error::Error> LoadedData<D, E> {
 /// The `R` type is the type of the data that will be loaded/saved
 /// like ChunkData or EntityData
 #[async_trait]
-pub trait ChunkIO
+pub trait FileIO
 where
     Self: Send + Sync,
 {

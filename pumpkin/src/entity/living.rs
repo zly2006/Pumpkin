@@ -329,7 +329,7 @@ impl NBTStorage for LivingEntity {
         // todo more...
     }
 
-    async fn read_nbt(&mut self, nbt: &mut pumpkin_nbt::compound::NbtCompound) {
+    async fn read_nbt(&mut self, nbt: &pumpkin_nbt::compound::NbtCompound) {
         self.entity.read_nbt(nbt).await;
         self.health.store(nbt.get_float("Health").unwrap_or(0.0));
         // todo more...

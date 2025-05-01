@@ -89,4 +89,9 @@ impl WorldGenerator for VanillaGenerator {
             block_entities: Default::default(),
         }
     }
+
+    fn generate_entites(&self, at: &Vector2<i32>) -> Option<crate::chunk::ChunkEntityData> {
+        // TODO
+        None
+    }
 }

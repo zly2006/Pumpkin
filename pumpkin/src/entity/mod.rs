@@ -37,6 +37,7 @@ use std::sync::{
     },
 };
 use tokio::sync::RwLock;
+use uuid::Uuid;
 
 use crate::world::World;
 
@@ -174,6 +175,49 @@ impl Entity {
             invulnerable: AtomicBool::new(invulnerable),
             damage_immunities: Vec::new(),
         }
+    }
+
+    pub async fn from_data(data: &[NbtCompound], world: Arc<World>) -> Vec<Self> {
+        let mut entites = Vec::with_capacity(data.len());
+        for entity_data in data {
+            let id = match entity_data.get_string("id") {
+                Some(id) => id,
+                // ID was not found
+                None => continue,
+            };
+            let entity_type = match EntityType::from_raw(id.parse().unwrap()) {
+                Some(id) => id,
+                // ID was found but no entity has this id, could be because it was saved using an older/newer version
+                None => continue,
+            };
+            // This entity's Universally Unique IDentifier. The 128-bit UUID is stored as four 32-bit integers ([Int] Ints), ordered from most to least significant.
+            let uuid = match entity_data.get_int_array("UUID") {
+                Some(array) => {
+                    let combined_u128: u128 = (array[0] as u128) << (3 * 32)
+                        | (array[1] as u128) << (2 * 32)
+                        | (array[2] as u128) << (1 * 32)
+                        | (array[3] as u128) << (0 * 32);
+                    Uuid::from_u128(combined_u128)
+                }
+                None => Uuid::new_v4(),
+            };
+
+            let position = entity_data.get_list("Pos").unwrap();
+            let x = position[0].extract_double().unwrap_or(0.0);
+            let y = position[1].extract_double().unwrap_or(0.0);
+            let z = position[2].extract_double().unwrap_or(0.0);
+            let invulnerable = entity_data.get_bool("Invulnerable").unwrap_or(false);
+            let mut entity = Self::new(
+                uuid,
+                world.clone(),
+                Vector3::new(x, y, z),
+                entity_type,
+                invulnerable,
+            );
+            entity.read_nbt(&entity_data).await;
+            entites.push(entity);
+        }
+        entites
     }
 
     pub async fn set_velocity(&self, velocity: Vector3<f64>) {
@@ -529,7 +573,7 @@ impl NBTStorage for Entity {
         // todo more...
     }
 
-    async fn read_nbt(&mut self, nbt: &mut pumpkin_nbt::compound::NbtCompound) {
+    async fn read_nbt(&mut self, nbt: &pumpkin_nbt::compound::NbtCompound) {
         let position = nbt.get_list("Pos").unwrap();
         let x = position[0].extract_double().unwrap_or(0.0);
         let y = position[1].extract_double().unwrap_or(0.0);
@@ -555,7 +599,7 @@ impl NBTStorage for Entity {
 pub trait NBTStorage: Send + Sync {
     async fn write_nbt(&self, nbt: &mut NbtCompound);
 
-    async fn read_nbt(&mut self, nbt: &mut NbtCompound);
+    async fn read_nbt(&mut self, nbt: &NbtCompound);
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

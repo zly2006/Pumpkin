@@ -9,8 +9,8 @@ use serde::{Deserialize, Serialize};
 use crate::{block::entities::block_entity_from_nbt, generation::section_coords};
 
 use super::{
-    ChunkData, ChunkHeightmaps, ChunkParsingError, ChunkSections, ScheduledTick, SubChunk,
-    TickPriority,
+    ChunkData, ChunkEntityData, ChunkHeightmaps, ChunkParsingError, ChunkSections, ScheduledTick,
+    SubChunk, TickPriority,
     palette::{BiomePalette, BlockPalette},
 };
 
@@ -109,6 +109,44 @@ impl ChunkData {
     }
 }
 
+impl ChunkEntityData {
+    pub fn from_bytes(
+        chunk_data: &[u8],
+        position: Vector2<i32>,
+    ) -> Result<Self, ChunkParsingError> {
+        // TODO: Implement chunk stages?
+        if from_bytes::<ChunkStatusWrapper>(chunk_data)
+            .map_err(ChunkParsingError::FailedReadStatus)?
+            .status
+            != ChunkStatus::Full
+        {
+            return Err(ChunkParsingError::ChunkNotGenerated);
+        }
+
+        let chunk_entity_data = from_bytes::<EntityNbt>(chunk_data)
+            .map_err(|e| ChunkParsingError::ErrorDeserializingChunk(e.to_string()))?;
+
+        if chunk_entity_data.position[0] != position.x
+            || chunk_entity_data.position[1] != position.z
+        {
+            return Err(ChunkParsingError::ErrorDeserializingChunk(format!(
+                "Expected data for chunk {},{} but got it for {},{}!",
+                position.x,
+                position.z,
+                chunk_entity_data.position[0],
+                chunk_entity_data.position[1],
+            )));
+        }
+
+        Ok(ChunkEntityData {
+            chunk_position: position,
+            data: chunk_entity_data.entities.clone(),
+            // This chunk is read from disk, so it has not been modified
+            dirty: false,
+        })
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 struct ChunkSectionNBT {
     block_states: ChunkSectionBlockStates,
@@ -195,4 +233,12 @@ struct ChunkNbt {
     fluid_ticks: Vec<SerializedScheduledTick>,
     #[serde(rename = "block_entities")]
     block_entities: Vec<NbtCompound>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "PascalCase")]
+struct EntityNbt {
+    data_version: i32,
+    position: [i32; 2],
+    entities: Vec<NbtCompound>,
 }

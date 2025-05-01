@@ -2,7 +2,6 @@ use std::io::ErrorKind;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::chunk::format::anvil::AnvilChunkFile;
 use crate::chunk::io::{ChunkSerializer, LoadedData};
 use crate::chunk::{ChunkData, ChunkReadingError, ChunkWritingError};
 use async_trait::async_trait;
@@ -12,7 +11,8 @@ use pumpkin_config::advanced_config;
 use pumpkin_util::math::vector2::Vector2;
 use tokio::io::{AsyncWriteExt, BufWriter};
 
-use super::anvil::{CHUNK_COUNT, chunk_to_bytes};
+use super::anvil::CHUNK_COUNT;
+use super::anvil::chunk::{AnvilChunkFile, chunk_to_bytes};
 
 /// The signature of the linear file format
 /// used as a header and footer described in https://gist.github.com/Aaron2550/5701519671253d4c6190bde6706f9f98
@@ -373,8 +373,8 @@ mod tests {
     use tokio::sync::RwLock;
 
     use crate::chunk::format::linear::LinearFile;
-    use crate::chunk::io::chunk_file_manager::ChunkFileManager;
-    use crate::chunk::io::{ChunkIO, LoadedData};
+    use crate::chunk::io::file_manager::ChunkFileManager;
+    use crate::chunk::io::{FileIO, LoadedData};
     use crate::generation::{Seed, get_world_gen};
     use crate::level::LevelFolder;
 
@@ -390,7 +390,8 @@ mod tests {
             .fetch_chunks(
                 &LevelFolder {
                     root_folder: PathBuf::from(""),
-                    region_folder: region_path,
+                    region_folder: region_path.clone(),
+                    entities_folder: region_path,
                 },
                 &[Vector2::new(0, 0)],
                 send,
@@ -414,6 +415,7 @@ mod tests {
         let level_folder = LevelFolder {
             root_folder: temp_dir.path().to_path_buf(),
             region_folder: temp_dir.path().join("region"),
+            entities_folder: temp_dir.path().join("entities"),
         };
         fs::create_dir(&level_folder.region_folder).expect("couldn't create region folder");
         let chunk_saver = ChunkFileManager::<LinearFile>::default();
