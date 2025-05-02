@@ -8,16 +8,15 @@ use pumpkin_data::block_properties::StraightRailShape;
 use pumpkin_data::tag::Tagable;
 use pumpkin_util::math::position::BlockPos;
 use pumpkin_world::BlockStateId;
-use pumpkin_world::block::HorizontalFacingExt;
 
 use crate::world::World;
 
 mod common;
 
-pub(crate) mod activator_rail;
-pub(crate) mod detector_rail;
-pub(crate) mod powered_rail;
-pub(crate) mod rail;
+pub mod activator_rail;
+pub mod detector_rail;
+pub mod powered_rail;
+pub mod rail;
 
 struct Rail {
     block: Block,

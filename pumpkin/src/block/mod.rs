@@ -4,6 +4,8 @@ use blocks::doors::DoorBlock;
 use blocks::farmland::FarmLandBlock;
 use blocks::fence_gates::FenceGateBlock;
 use blocks::fences::FenceBlock;
+use blocks::glass_panes::GlassPaneBlock;
+use blocks::iron_bars::IronBarsBlock;
 use blocks::logs::LogBlock;
 use blocks::redstone::buttons::ButtonBlock;
 use blocks::redstone::observer::ObserverBlock;
@@ -23,6 +25,7 @@ use blocks::slabs::SlabBlock;
 use blocks::stairs::StairBlock;
 use blocks::sugar_cane::SugarCaneBlock;
 use blocks::torches::TorchBlock;
+use blocks::walls::WallBlock;
 use blocks::{
     chest::ChestBlock, furnace::FurnaceBlock, redstone::lever::LeverBlock, tnt::TNTBlock,
 };
@@ -69,6 +72,8 @@ pub fn default_registry() -> Arc<BlockRegistry> {
     manager.register(FenceGateBlock);
     manager.register(FenceBlock);
     manager.register(FurnaceBlock);
+    manager.register(GlassPaneBlock);
+    manager.register(IronBarsBlock);
     manager.register(JukeboxBlock);
     manager.register(LogBlock);
     manager.register(SignBlock);
@@ -77,6 +82,7 @@ pub fn default_registry() -> Arc<BlockRegistry> {
     manager.register(SugarCaneBlock);
     manager.register(TNTBlock);
     manager.register(TorchBlock);
+    manager.register(WallBlock);
 
     // Redstone
     manager.register(ButtonBlock);
