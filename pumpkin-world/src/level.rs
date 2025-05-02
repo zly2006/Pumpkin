@@ -59,12 +59,12 @@ pub struct Level {
 
     // Holds this level's spawn chunks, which are always loaded
     spawn_chunks: Arc<DashMap<Vector2<i32>, SyncChunk>>,
-    spawn_entity_chunks: Arc<DashMap<Vector2<i32>, Option<SyncEntityChunk>>>,
+    spawn_entity_chunks: Arc<DashMap<Vector2<i32>, SyncEntityChunk>>,
 
     // Chunks that are paired with chunk watchers. When a chunk is no longer watched, it is removed
     // from the loaded chunks map and sent to the underlying ChunkIO
     loaded_chunks: Arc<DashMap<Vector2<i32>, SyncChunk>>,
-    loaded_entity_chunks: Arc<DashMap<Vector2<i32>, Option<SyncEntityChunk>>>,
+    loaded_entity_chunks: Arc<DashMap<Vector2<i32>, SyncEntityChunk>>,
 
     chunk_watchers: Arc<DashMap<Vector2<i32>, usize>>,
 
@@ -214,13 +214,7 @@ impl Level {
         let entity_chunks_to_write = self
             .loaded_entity_chunks
             .iter()
-            // Only write non None
-            .filter_map(|entry| {
-                entry
-                    .value()
-                    .as_ref()
-                    .map(|chunk| (*entry.key(), chunk.clone()))
-            })
+            .map(|chunk| (*chunk.key(), chunk.value().clone()))
             .collect::<Vec<_>>();
         self.loaded_entity_chunks.clear();
 
@@ -393,11 +387,9 @@ impl Level {
                     .get(pos)
                     .is_none_or(|count| count.is_zero())
                 {
-                    self.loaded_entity_chunks.get(pos).and_then(|chunk| {
-                        chunk
-                            .as_ref()
-                            .map(|entity_chunk| (*pos, entity_chunk.clone()))
-                    })
+                    self.loaded_entity_chunks
+                        .get(pos)
+                        .map(|chunk| (*pos, chunk.value().clone()))
                 } else {
                     None
                 }
@@ -693,7 +685,7 @@ impl Level {
     pub async fn fetch_entities(
         self: &Arc<Self>,
         chunks: &[Vector2<i32>],
-        channel: mpsc::UnboundedSender<(Option<SyncEntityChunk>, bool)>,
+        channel: mpsc::UnboundedSender<(SyncEntityChunk, bool)>,
     ) {
         if chunks.is_empty() {
             return;
@@ -702,8 +694,8 @@ impl Level {
         // If false, stop loading chunks because the channel has closed.
         let send_chunk =
             move |is_new: bool,
-                  chunk: Option<SyncEntityChunk>,
-                  channel: &mpsc::UnboundedSender<(Option<SyncEntityChunk>, bool)>| {
+                  chunk: SyncEntityChunk,
+                  channel: &mpsc::UnboundedSender<(SyncEntityChunk, bool)>| {
                 channel.send((chunk, is_new)).is_ok()
             };
 
@@ -745,10 +737,9 @@ impl Level {
                 let is_ok = match data {
                     LoadedData::Loaded(chunk) => {
                         let position = chunk.read().await.chunk_position;
-
                         let value = loaded_chunks
                             .entry(position)
-                            .or_insert(Some(chunk))
+                            .or_insert(chunk)
                             .value()
                             .clone();
                         send_chunk(false, value, &load_channel)
@@ -805,10 +796,7 @@ impl Level {
                         .entry(pos)
                         .or_insert_with(|| {
                             // Avoid possible duplicating work by doing this within the dashmap lock
-                            match world_gen.generate_entites(&pos) {
-                                Some(entites) => Some(Arc::new(RwLock::new(entites))),
-                                None => None,
-                            }
+                            Arc::new(RwLock::new(world_gen.generate_entities(&pos)))
                         })
                         .value()
                         .clone();
@@ -840,11 +828,10 @@ impl Level {
         self.loaded_chunks.try_get(&coordinates).try_unwrap()
     }
 
-    pub fn try_get_entites(
+    pub fn try_get_entities(
         &self,
         coordinates: Vector2<i32>,
-    ) -> Option<dashmap::mapref::one::Ref<'_, Vector2<i32>, Option<Arc<RwLock<ChunkEntityData>>>>>
-    {
+    ) -> Option<dashmap::mapref::one::Ref<'_, Vector2<i32>, Arc<RwLock<ChunkEntityData>>>> {
         self.loaded_entity_chunks.try_get(&coordinates).try_unwrap()
     }
 

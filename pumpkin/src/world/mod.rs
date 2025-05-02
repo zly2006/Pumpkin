@@ -39,6 +39,7 @@ use pumpkin_data::{
     world::{RAW, WorldEvent},
 };
 use pumpkin_macros::send_cancellable;
+use pumpkin_nbt::compound::NbtCompound;
 use pumpkin_nbt::to_bytes_unnamed;
 use pumpkin_protocol::client::play::{CSetEntityMetadata, MetaDataType, Metadata};
 use pumpkin_protocol::ser::serializer::Serializer;
@@ -1043,12 +1044,9 @@ impl World {
                     }
                 };
 
-                // TODO: We require to have an entity and a normal chunk here, we could also do it in parralel, no need for waiting
-                let Some((entity_chunk, entity_first_load)) = entity_recv_result else {
+                // TODO: We require to have an entity and a normal chunk here, we could also do it in parallel, no need for waiting
+                let Some((entity_chunk, _entity_first_load)) = entity_recv_result else {
                     break;
-                };
-                let Some(entity_chunk) = entity_chunk else {
-                    continue;
                 };
 
                 let position = entity_chunk.read().await.chunk_position;
@@ -1299,11 +1297,20 @@ impl World {
         Entity::new(uuid, self.clone(), position, entity_type, false)
     }
 
-    /// Adds an entity to the world.
+    /// Adds and Spawns an entity in the world and saves it.
     pub async fn spawn_entity(&self, entity: Arc<dyn EntityBase>) {
         let base_entity = entity.get_entity();
         self.broadcast_packet_all(&base_entity.create_spawn_packet())
             .await;
+        base_entity.init_data_tracker().await;
+        let block_pos = base_entity.block_pos.load();
+        let entity_chunk = self.get_entity_chunk(&block_pos).await;
+        let mut entity_chunk = entity_chunk.write().await;
+        let mut nbt = NbtCompound::new();
+        entity.write_nbt(&mut nbt).await;
+        entity_chunk.data.push(nbt);
+        entity_chunk.dirty = true;
+
         let mut current_living_entities = self.entities.write().await;
         current_living_entities.insert(base_entity.entity_uuid, entity);
     }
@@ -1500,7 +1507,7 @@ impl World {
     pub fn receive_entity_chunks(
         &self,
         chunks: Vec<Vector2<i32>>,
-    ) -> UnboundedReceiver<(Option<SyncEntityChunk>, bool)> {
+    ) -> UnboundedReceiver<(SyncEntityChunk, bool)> {
         let (sender, receiver) = mpsc::unbounded_channel();
         // Put this in another thread so we aren't blocking on it
         let level = self.level.clone();
@@ -1530,7 +1537,7 @@ impl World {
     pub async fn receive_entity_chunk(
         &self,
         chunk_pos: Vector2<i32>,
-    ) -> (Option<Arc<RwLock<ChunkEntityData>>>, bool) {
+    ) -> (Arc<RwLock<ChunkEntityData>>, bool) {
         let mut receiver = self.receive_entity_chunks(vec![chunk_pos]);
 
         receiver
@@ -1607,13 +1614,18 @@ impl World {
         }
     }
 
-    pub async fn get_entity_chunk(
-        &self,
-        position: &BlockPos,
-    ) -> Option<Arc<RwLock<ChunkEntityData>>> {
+    pub async fn get_entity_chunk(&self, position: &BlockPos) -> Arc<RwLock<ChunkEntityData>> {
         let (chunk_coordinate, _) = position.chunk_and_chunk_relative_position();
 
-        match self.level.try_get_entites(chunk_coordinate) {
+        self.get_entity_chunk_from_chunk_coords(chunk_coordinate)
+            .await
+    }
+
+    pub async fn get_entity_chunk_from_chunk_coords(
+        &self,
+        chunk_coordinate: Vector2<i32>,
+    ) -> Arc<RwLock<ChunkEntityData>> {
+        match self.level.try_get_entities(chunk_coordinate) {
             Some(chunk) => chunk.clone(),
             None => self.receive_entity_chunk(chunk_coordinate).await.0,
         }

@@ -9,5 +9,5 @@ pub trait GeneratorInit {
 
 pub trait WorldGenerator: Sync + Send {
     fn generate_chunk(&self, at: &Vector2<i32>) -> ChunkData;
-    fn generate_entites(&self, at: &Vector2<i32>) -> Option<ChunkEntityData>;
+    fn generate_entities(&self, at: &Vector2<i32>) -> ChunkEntityData;
 }

@@ -599,9 +599,9 @@ where
                     // can modify it
                     let chunk = chunk.downgrade();
 
-                    // We only need to update the chunk if it is dirty
-                    if chunk_is_dirty {
-                        serializer.update_chunk(&*chunk).await?;
+                    // We only need to update the chunk if it is dirty and if there is entity data
+                    if chunk_is_dirty && !chunk.data.is_empty() {
+                        serializer.update_chunk(&chunk).await?;
                     }
                 }
                 log::trace!("Updated data for file {:?}", path);

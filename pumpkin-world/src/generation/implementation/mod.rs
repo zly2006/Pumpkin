@@ -90,8 +90,12 @@ impl WorldGenerator for VanillaGenerator {
         }
     }
 
-    fn generate_entites(&self, at: &Vector2<i32>) -> Option<crate::chunk::ChunkEntityData> {
+    fn generate_entities(&self, at: &Vector2<i32>) -> crate::chunk::ChunkEntityData {
         // TODO
-        None
+        crate::chunk::ChunkEntityData {
+            chunk_position: *at,
+            data: vec![],
+            dirty: true,
+        }
     }
 }

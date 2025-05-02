@@ -37,6 +37,7 @@ use std::sync::{
     },
 };
 use tokio::sync::RwLock;
+use r#type::entity_base_from_type;
 use uuid::Uuid;
 
 use crate::world::World;
@@ -51,6 +52,7 @@ pub mod mob;
 pub mod player;
 pub mod projectile;
 pub mod tnt;
+pub mod r#type;
 
 mod combat;
 
@@ -75,6 +77,12 @@ pub trait EntityBase: Send + Sync {
             self.get_entity().damage(amount, damage_type).await
         }
     }
+
+    async fn init_data_tracker(&self) {}
+
+    async fn write_nbt(&self, _nbt: &mut NbtCompound) {}
+
+    async fn read_nbt(&self, _nbt: &NbtCompound) {}
 
     /// Called when a player collides with a entity
     async fn on_player_collision(&self, _player: Arc<Player>) {}
@@ -177,48 +185,44 @@ impl Entity {
         }
     }
 
-    pub async fn from_data(data: &[NbtCompound], world: Arc<World>) -> Vec<Self> {
-        let mut entites = Vec::with_capacity(data.len());
+    pub async fn from_data(data: &[NbtCompound], world: Arc<World>) -> Vec<Arc<dyn EntityBase>> {
+        let mut entities = Vec::with_capacity(data.len());
         for entity_data in data {
-            let id = match entity_data.get_string("id") {
-                Some(id) => id,
-                // ID was not found
-                None => continue,
+            let Some(id) = entity_data.get_string("id") else {
+                continue;
             };
-            dbg!(id);
-            let entity_type = match EntityType::from_name(&id.replace("minecraft:", "")) {
-                Some(id) => id,
-                // ID was found but no entity has this id, could be because it was saved using an older/newer version
-                None => continue,
+            // ID was found but no entity has this id, could be because it was saved using an older/newer version
+            let Some(entity_type) = EntityType::from_name(&id.replace("minecraft:", "")) else {
+                continue;
             };
-            // This entity's Universally Unique IDentifier. The 128-bit UUID is stored as four 32-bit integers ([Int] Ints), ordered from most to least significant.
-            let uuid = match entity_data.get_int_array("UUID") {
-                Some(array) => {
+            // The 128-bit UUID is stored as four 32-bit integers ([Int] Ints), ordered from most to least significant.
+            let uuid = entity_data
+                .get_int_array("UUID")
+                .map_or_else(Uuid::new_v4, |array| {
                     let combined_u128: u128 = (array[0] as u128) << (3 * 32)
                         | (array[1] as u128) << (2 * 32)
-                        | (array[2] as u128) << (1 * 32)
-                        | (array[3] as u128) << (0 * 32);
+                        | (array[2] as u128) << 32
+                        | (array[3] as u128);
                     Uuid::from_u128(combined_u128)
-                }
-                None => Uuid::new_v4(),
-            };
+                });
 
             let position = entity_data.get_list("Pos").unwrap();
             let x = position[0].extract_double().unwrap_or(0.0);
             let y = position[1].extract_double().unwrap_or(0.0);
             let z = position[2].extract_double().unwrap_or(0.0);
             let invulnerable = entity_data.get_bool("Invulnerable").unwrap_or(false);
-            let mut entity = Self::new(
+            let entity = entity_base_from_type(
+                entity_type,
                 uuid,
                 world.clone(),
                 Vector3::new(x, y, z),
-                entity_type,
                 invulnerable,
-            );
-            entity.read_nbt(&entity_data).await;
-            entites.push(entity);
+            )
+            .await;
+            entity.read_nbt(entity_data).await;
+            entities.push(entity);
         }
-        entites
+        entities
     }
 
     pub async fn set_velocity(&self, velocity: Vector3<f64>) {
@@ -491,6 +495,7 @@ impl Entity {
             buf.extend(serializer_buf);
         }
         buf.put_u8(255);
+        // TODO: don't broadcast to all
         self.world
             .read()
             .await
@@ -535,22 +540,12 @@ impl EntityBase for Entity {
         false
     }
 
-    async fn tick(&self, _: &Server) {
-        //Todo! Tick
-    }
-
-    fn get_entity(&self) -> &Entity {
-        self
-    }
-
-    fn get_living_entity(&self) -> Option<&LivingEntity> {
-        None
-    }
-}
-
-#[async_trait]
-impl NBTStorage for Entity {
-    async fn write_nbt(&self, nbt: &mut pumpkin_nbt::compound::NbtCompound) {
+    async fn write_nbt(&self, nbt: &mut NbtCompound) {
+        // This is the most important, keep this on top
+        nbt.put_string(
+            "id",
+            format!("minecraft:{}", self.entity_type.resource_name),
+        );
         let position = self.pos.load();
         nbt.put(
             "Pos",
@@ -569,12 +564,29 @@ impl NBTStorage for Entity {
             "Rotation",
             NbtTag::List(vec![self.yaw.load().into(), self.pitch.load().into()].into_boxed_slice()),
         );
+        let uuid_bytes = self.entity_uuid.as_bytes();
+        let uuid1 =
+            i32::from_be_bytes([uuid_bytes[0], uuid_bytes[1], uuid_bytes[2], uuid_bytes[3]]);
+        let uuid2 =
+            i32::from_be_bytes([uuid_bytes[4], uuid_bytes[5], uuid_bytes[6], uuid_bytes[7]]);
+        let uuid3 =
+            i32::from_be_bytes([uuid_bytes[8], uuid_bytes[9], uuid_bytes[10], uuid_bytes[11]]);
+        let uuid4 = i32::from_be_bytes([
+            uuid_bytes[12],
+            uuid_bytes[13],
+            uuid_bytes[14],
+            uuid_bytes[15],
+        ]);
+        nbt.put(
+            "UUID",
+            NbtTag::IntArray(vec![uuid1, uuid2, uuid3, uuid4].into_boxed_slice()),
+        );
         nbt.put_bool("OnGround", self.on_ground.load(Relaxed));
 
         // todo more...
     }
 
-    async fn read_nbt(&mut self, nbt: &pumpkin_nbt::compound::NbtCompound) {
+    async fn read_nbt(&self, nbt: &NbtCompound) {
         let position = nbt.get_list("Pos").unwrap();
         let x = position[0].extract_double().unwrap_or(0.0);
         let y = position[1].extract_double().unwrap_or(0.0);
@@ -593,6 +605,18 @@ impl NBTStorage for Entity {
         self.on_ground
             .store(nbt.get_bool("OnGround").unwrap_or(false), Relaxed);
         // todo more...
+    }
+
+    async fn tick(&self, _: &Server) {
+        //Todo! Tick
+    }
+
+    fn get_entity(&self) -> &Entity {
+        self
+    }
+
+    fn get_living_entity(&self) -> Option<&LivingEntity> {
+        None
     }
 }
 

@@ -602,13 +602,20 @@ impl Player {
             }
             for entity_chunk in chunk_of_chunks.1 {
                 let data = entity_chunk.read().await;
-
-                let entities = Entity::from_data(&data.data, self.world().await.clone()).await;
+                let world = self.world().await;
+                let entities = Entity::from_data(&data.data, world.clone()).await;
                 // TODO: We want to par iter here ig
+                let mut world_entities = world.entities.write().await;
                 for entity in entities {
+                    let base_entity = entity.get_entity();
                     self.client
-                        .send_packet_now(&entity.create_spawn_packet())
+                        .send_packet_now(&base_entity.create_spawn_packet())
                         .await;
+                    let uuid = base_entity.entity_uuid;
+
+                    // If the entity did not exist in the world, lets add it to the world.
+                    // this will not spawn the entity, but just run logic for the entity
+                    world_entities.entry(uuid).or_insert(entity);
                 }
             }
             self.client
@@ -1293,7 +1300,6 @@ impl Player {
         let item_entity =
             Arc::new(ItemEntity::new_with_velocity(entity, item_id, count, velocity, 40).await);
         self.world().await.spawn_entity(item_entity.clone()).await;
-        item_entity.send_meta_packet().await;
     }
 
     pub async fn drop_held_item(&self, drop_stack: bool) {
