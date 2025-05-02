@@ -1,17 +1,21 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, io::ErrorKind, path::Path};
 
+use anvil::{WORLD_DATA_VERSION, chunk::SingleChunkDataSerializer};
+use bytes::Bytes;
 use pumpkin_data::{Block, chunk::ChunkStatus};
 use pumpkin_nbt::{compound::NbtCompound, from_bytes, nbt_long_array};
 
 use pumpkin_util::math::{position::BlockPos, vector2::Vector2};
 use serde::{Deserialize, Serialize};
+use tokio::io::AsyncReadExt;
 use uuid::Uuid;
 
 use crate::{block::entities::block_entity_from_nbt, generation::section_coords};
 
 use super::{
-    ChunkData, ChunkEntityData, ChunkHeightmaps, ChunkParsingError, ChunkSections, ScheduledTick,
-    SubChunk, TickPriority,
+    ChunkData, ChunkEntityData, ChunkHeightmaps, ChunkParsingError, ChunkReadingError,
+    ChunkSections, ChunkSerializingError, ScheduledTick, SubChunk, TickPriority,
+    io::Dirtiable,
     palette::{BiomePalette, BlockPalette},
 };
 
@@ -25,8 +29,63 @@ pub struct ChunkStatusWrapper {
     status: ChunkStatus,
 }
 
+async fn read_entire_file_to_bytes(path: &Path) -> Result<Bytes, ChunkReadingError> {
+    let mut file = tokio::fs::OpenOptions::new()
+        .read(true)
+        .write(false)
+        .create(false)
+        .truncate(false)
+        .open(path)
+        .await
+        .map_err(|err| match err.kind() {
+            ErrorKind::NotFound => ChunkReadingError::ChunkNotExist,
+            kind => ChunkReadingError::IoError(kind),
+        })?;
+
+    let capacity = match file.metadata().await {
+        Ok(metadata) => metadata.len() as usize,
+        Err(_) => 4096, // A sane default
+    };
+
+    // TODO: Memmap?
+    let mut file_bytes = Vec::with_capacity(capacity);
+    file.read_to_end(&mut file_bytes)
+        .await
+        .map_err(|err| ChunkReadingError::IoError(err.kind()))?;
+    Ok(file_bytes.into())
+}
+
+impl Dirtiable for ChunkData {
+    #[inline]
+    fn mark_dirty(&mut self, flag: bool) {
+        self.dirty = flag;
+    }
+
+    #[inline]
+    fn is_dirty(&self) -> bool {
+        self.dirty
+    }
+}
+
+impl SingleChunkDataSerializer for ChunkData {
+    #[inline]
+    fn from_bytes(bytes: Bytes, pos: Vector2<i32>) -> Result<Self, ChunkReadingError> {
+        Self::internal_from_bytes(&bytes, pos).map_err(ChunkReadingError::ParsingError)
+    }
+
+    #[inline]
+    fn to_bytes(&self) -> Result<Bytes, ChunkSerializingError> {
+        self.interal_to_bytes()
+    }
+
+    #[inline]
+    fn position(&self) -> &Vector2<i32> {
+        &self.position
+    }
+}
+
 impl ChunkData {
-    pub fn from_bytes(
+    fn internal_from_bytes(
         chunk_data: &[u8],
         position: Vector2<i32>,
     ) -> Result<Self, ChunkParsingError> {
@@ -108,10 +167,116 @@ impl ChunkData {
             },
         })
     }
+
+    fn interal_to_bytes(&self) -> Result<Bytes, ChunkSerializingError> {
+        let sections = self
+            .section
+            .sections
+            .iter()
+            .enumerate()
+            .map(|(index, section)| {
+                let block_states = section.block_states.to_disk_nbt();
+                let biomes = section.biomes.to_disk_nbt();
+
+                ChunkSectionNBT {
+                    y: index as i8 + section_coords::block_to_section(self.section.min_y) as i8,
+                    block_states,
+                    biomes,
+                    block_light: section.block_light.clone(), // :c
+                    sky_light: section.sky_light.clone(),     // :c
+                }
+            })
+            .collect();
+
+        let nbt = ChunkNbt {
+            data_version: WORLD_DATA_VERSION,
+            x_pos: self.position.x,
+            z_pos: self.position.z,
+            min_y_section: section_coords::block_to_section(self.section.min_y),
+            status: ChunkStatus::Full,
+            heightmaps: self.heightmap.clone(),
+            sections,
+            block_ticks: {
+                self.block_ticks
+                    .iter()
+                    .map(|tick| SerializedScheduledTick {
+                        x: tick.block_pos.0.x,
+                        y: tick.block_pos.0.y,
+                        z: tick.block_pos.0.z,
+                        delay: tick.delay as i32,
+                        priority: tick.priority as i32,
+                        target_block: format!(
+                            "minecraft:{}",
+                            Block::from_id(tick.target_block_id).unwrap().name
+                        ),
+                    })
+                    .collect()
+            },
+            fluid_ticks: {
+                self.fluid_ticks
+                    .iter()
+                    .map(|tick| SerializedScheduledTick {
+                        x: tick.block_pos.0.x,
+                        y: tick.block_pos.0.y,
+                        z: tick.block_pos.0.z,
+                        delay: tick.delay as i32,
+                        priority: tick.priority as i32,
+                        target_block: format!(
+                            "minecraft:{}",
+                            Block::from_id(tick.target_block_id).unwrap().name
+                        ),
+                    })
+                    .collect()
+            },
+            block_entities: self
+                .block_entities
+                .values()
+                .map(|block_entity| {
+                    let mut nbt = NbtCompound::new();
+                    block_entity.write_internal(&mut nbt);
+                    nbt
+                })
+                .collect(),
+        };
+
+        let mut result = Vec::new();
+        pumpkin_nbt::to_bytes(&nbt, &mut result)
+            .map_err(ChunkSerializingError::ErrorSerializingChunk)?;
+        Ok(result.into())
+    }
+}
+
+impl Dirtiable for ChunkEntityData {
+    #[inline]
+    fn mark_dirty(&mut self, flag: bool) {
+        self.dirty = flag;
+    }
+
+    #[inline]
+    fn is_dirty(&self) -> bool {
+        self.dirty
+    }
+}
+
+impl SingleChunkDataSerializer for ChunkEntityData {
+    #[inline]
+    fn from_bytes(bytes: Bytes, pos: Vector2<i32>) -> Result<Self, ChunkReadingError> {
+        Self::internal_from_bytes(&bytes, pos).map_err(ChunkReadingError::ParsingError)
+    }
+
+    #[inline]
+    fn to_bytes(&self) -> Result<Bytes, ChunkSerializingError> {
+        self.interal_to_bytes()
+    }
+
+    #[inline]
+    fn position(&self) -> &Vector2<i32> {
+        &self.chunk_position
+    }
 }
 
 impl ChunkEntityData {
-    pub fn from_bytes(
+    fn internal_from_bytes(
         chunk_data: &[u8],
         position: Vector2<i32>,
     ) -> Result<Self, ChunkParsingError> {
@@ -155,6 +320,22 @@ impl ChunkEntityData {
             // This chunk is read from disk, so it has not been modified
             dirty: false,
         })
+    }
+
+    fn interal_to_bytes(&self) -> Result<Bytes, ChunkSerializingError> {
+        for a in &self.data {
+            dbg!(a.1.get_string("id").unwrap());
+        }
+        let nbt = EntityNbt {
+            data_version: WORLD_DATA_VERSION,
+            position: [self.chunk_position.x, self.chunk_position.z],
+            entities: self.data.clone().into_values().collect(),
+        };
+
+        let mut result = Vec::new();
+        pumpkin_nbt::to_bytes(&nbt, &mut result)
+            .map_err(ChunkSerializingError::ErrorSerializingChunk)?;
+        Ok(result.into())
     }
 }
 

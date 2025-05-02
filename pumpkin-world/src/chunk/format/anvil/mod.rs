@@ -1,5 +1,4 @@
 pub mod chunk;
-pub mod entity;
 
 /// The side size of a region in chunks (one region is 32x32 chunks)
 pub const REGION_SIZE: usize = 32;
@@ -16,4 +15,4 @@ pub const CHUNK_COUNT: usize = REGION_SIZE * REGION_SIZE;
 const SECTOR_BYTES: usize = 4096;
 
 // 1.21.5
-const WORLD_DATA_VERSION: i32 = 4325;
+pub const WORLD_DATA_VERSION: i32 = 4325;

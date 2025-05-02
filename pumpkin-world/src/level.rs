@@ -22,14 +22,8 @@ use crate::{
     chunk::{
         ChunkData, ChunkEntityData, ChunkParsingError, ChunkReadingError, ScheduledTick,
         TickPriority,
-        format::{
-            anvil::{chunk::AnvilChunkFile, entity::AnvilEntityFile},
-            linear::LinearFile,
-        },
-        io::{
-            FileIO, LoadedData,
-            file_manager::{ChunkFileManager, EntityChunkFileManager},
-        },
+        format::{anvil::chunk::AnvilChunkFile, linear::LinearFile},
+        io::{FileIO, LoadedData, file_manager::ChunkFileManager},
     },
     generation::{Seed, WorldGenerator, get_world_gen},
     lock::{LevelLocker, anvil::AnvilLevelLocker},
@@ -145,18 +139,23 @@ impl Level {
 
         let chunk_saver: Arc<dyn FileIO<Data = SyncChunk>> = match advanced_config().chunk.format {
             //ChunkFormat::Anvil => (Arc::new(AnvilChunkFormat), Arc::new(AnvilChunkFormat)),
-            ChunkFormat::Linear => Arc::new(ChunkFileManager::<LinearFile>::default()),
-            ChunkFormat::Anvil => Arc::new(ChunkFileManager::<AnvilChunkFile>::default()),
+            ChunkFormat::Linear => Arc::new(ChunkFileManager::<LinearFile<ChunkData>>::default()),
+            ChunkFormat::Anvil => {
+                Arc::new(ChunkFileManager::<AnvilChunkFile<ChunkData>>::default())
+            }
         };
 
-        let entity_chunk_saver: Arc<dyn FileIO<Data = SyncEntityChunk>> = match advanced_config()
-            .chunk
-            .format
-        {
-            //ChunkFormat::Anvil => (Arc::new(AnvilChunkFormat), Arc::new(AnvilChunkFormat)),
-            ChunkFormat::Linear => todo!(),
-            ChunkFormat::Anvil => Arc::new(EntityChunkFileManager::<AnvilEntityFile>::default()),
-        };
+        //
+
+        let entity_chunk_saver: Arc<dyn FileIO<Data = SyncEntityChunk>> =
+            match advanced_config().chunk.format {
+                ChunkFormat::Linear => {
+                    Arc::new(ChunkFileManager::<LinearFile<ChunkEntityData>>::default())
+                }
+                ChunkFormat::Anvil => {
+                    Arc::new(ChunkFileManager::<AnvilChunkFile<ChunkEntityData>>::default())
+                }
+            };
 
         Self {
             seed,
