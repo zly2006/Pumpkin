@@ -530,7 +530,18 @@ impl Level {
             }
         };
 
+        let (esend, mut erecv) = mpsc::unbounded_channel();
+        let entity_fetcher = self.fetch_entities(chunks, esend);
+        let ehandler = async {
+            while let Some((chunk, _)) = erecv.recv().await {
+                let pos = chunk.read().await.chunk_position;
+                self.spawn_entity_chunks.insert(pos, chunk);
+            }
+        };
+
         let _ = tokio::join!(fetcher, handler);
+        let _ = tokio::join!(entity_fetcher, ehandler);
+
         log::debug!("Read {} chunks as spawn chunks", chunks.len());
     }
 
