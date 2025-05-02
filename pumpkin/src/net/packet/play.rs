@@ -46,7 +46,7 @@ use pumpkin_protocol::client::play::{
 use pumpkin_protocol::codec::item_stack_seralizer::ItemStackSerializer;
 use pumpkin_protocol::codec::var_int::VarInt;
 use pumpkin_protocol::server::play::{
-    SChunkBatch, SCookieResponse as SPCookieResponse, SPlayerSession, SUpdateSign,
+    FLAG_ON_GROUND, SChunkBatch, SCookieResponse as SPCookieResponse, SPlayerSession, SUpdateSign,
 };
 use pumpkin_protocol::{
     client::play::{
@@ -287,15 +287,15 @@ impl Player {
                 self.living_entity.set_pos(pos);
 
                 let height_difference = pos.y - last_pos.y;
-                if entity.on_ground.load(Ordering::Relaxed) && !packet.ground && height_difference > 0.0 {
+                if entity.on_ground.load(Ordering::Relaxed) && packet.collision & FLAG_ON_GROUND == 0 && height_difference > 0.0 {
                     self.jump().await;
                 }
 
-                entity.on_ground.store(packet.ground, Ordering::Relaxed);
+                entity.on_ground.store(packet.collision & FLAG_ON_GROUND != 0, Ordering::Relaxed);
                 let world = &self.world().await;
 
                 // TODO: Warn when player moves to quickly
-                if !self.sync_position(world, pos, last_pos, entity.yaw.load(), entity.pitch.load(), packet.ground).await {
+                if !self.sync_position(world, pos, last_pos, entity.yaw.load(), entity.pitch.load(), packet.collision & FLAG_ON_GROUND != 0).await {
                     // Send the new position to all other players.
                     world
                         .broadcast_packet_except(
@@ -307,7 +307,7 @@ impl Player {
                                     pos.y.mul_add(4096.0, -(last_pos.y * 4096.0)) as i16,
                                     pos.z.mul_add(4096.0, -(last_pos.z * 4096.0)) as i16,
                                 ),
-                                packet.ground,
+                                packet.collision & FLAG_ON_GROUND != 0,
                             ),
                         )
                         .await;
@@ -317,7 +317,7 @@ impl Player {
                     self.living_entity
                         .update_fall_distance(
                             height_difference,
-                            packet.ground,
+                            packet.collision & FLAG_ON_GROUND != 0,
                             self.gamemode.load() == GameMode::Creative,
                         )
                         .await;
@@ -350,11 +350,11 @@ impl Player {
         }
         // y = feet Y
         let position = packet.position;
-        if position.x.is_nan()
-            || position.y.is_nan()
-            || position.z.is_nan()
-            || packet.yaw.is_infinite()
-            || packet.pitch.is_infinite()
+        if !position.x.is_finite()
+            || !position.y.is_finite()
+            || !position.z.is_finite()
+            || !packet.yaw.is_finite()
+            || !packet.pitch.is_finite()
         {
             self.kick(TextComponent::translate(
                 "multiplayer.disconnect.invalid_player_movement",
@@ -385,14 +385,14 @@ impl Player {
 
                 let height_difference = pos.y - last_pos.y;
                 if entity.on_ground.load(std::sync::atomic::Ordering::Relaxed)
-                    && !packet.ground
+                    && (packet.collision & FLAG_ON_GROUND) != 0
                     && height_difference > 0.0
                 {
                     self.jump().await;
                 }
                 entity
                     .on_ground
-                    .store(packet.ground, std::sync::atomic::Ordering::Relaxed);
+                    .store((packet.collision & FLAG_ON_GROUND) != 0, std::sync::atomic::Ordering::Relaxed);
 
                 entity.set_rotation(wrap_degrees(packet.yaw) % 360.0, wrap_degrees(packet.pitch));
 
@@ -405,7 +405,7 @@ impl Player {
 
                 // TODO: Warn when player moves to quickly
                 if !self
-                    .sync_position(world, pos, last_pos, yaw, pitch, packet.ground)
+                    .sync_position(world, pos, last_pos, yaw, pitch, (packet.collision & FLAG_ON_GROUND) != 0)
                     .await
                 {
                     // Send the new position to all other players.
@@ -421,7 +421,7 @@ impl Player {
                                 ),
                                 yaw as u8,
                                 pitch as u8,
-                                packet.ground,
+                                (packet.collision & FLAG_ON_GROUND) != 0,
                             ),
                         )
                         .await;
@@ -437,7 +437,7 @@ impl Player {
                     self.living_entity
                         .update_fall_distance(
                             height_difference,
-                            packet.ground,
+                            (packet.collision & FLAG_ON_GROUND) != 0,
                             self.gamemode.load() == GameMode::Creative,
                         )
                         .await;
