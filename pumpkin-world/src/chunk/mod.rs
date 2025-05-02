@@ -5,6 +5,7 @@ use pumpkin_util::math::{position::BlockPos, vector2::Vector2};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
+use uuid::Uuid;
 
 use crate::block::entities::BlockEntity;
 
@@ -123,7 +124,7 @@ pub struct ChunkData {
 
 pub struct ChunkEntityData {
     pub chunk_position: Vector2<i32>,
-    pub data: Vec<NbtCompound>,
+    pub data: HashMap<Uuid, NbtCompound>,
 
     pub dirty: bool,
 }

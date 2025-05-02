@@ -1308,7 +1308,7 @@ impl World {
         let mut entity_chunk = entity_chunk.write().await;
         let mut nbt = NbtCompound::new();
         entity.write_nbt(&mut nbt).await;
-        entity_chunk.data.push(nbt);
+        entity_chunk.data.insert(base_entity.entity_uuid, nbt);
         entity_chunk.dirty = true;
 
         let mut current_living_entities = self.entities.write().await;
@@ -1317,6 +1317,10 @@ impl World {
 
     pub async fn remove_entity(&self, entity: &Entity) {
         self.entities.write().await.remove(&entity.entity_uuid);
+        let entity_chunk = self.get_entity_chunk(&entity.block_pos.load()).await;
+        let mut entity_chunk = entity_chunk.write().await;
+        entity_chunk.data.remove(&entity.entity_uuid);
+        entity_chunk.dirty = true;
         self.broadcast_packet_all(&CRemoveEntities::new(&[entity.entity_id.into()]))
             .await;
     }

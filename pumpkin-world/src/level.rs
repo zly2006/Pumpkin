@@ -242,6 +242,7 @@ impl Level {
 
     pub async fn clean_up_log(&self) {
         self.chunk_saver.clean_up_log().await;
+        self.entity_chunk_saver.clean_up_log().await;
     }
 
     pub fn list_cached(&self) {
@@ -419,7 +420,7 @@ impl Level {
     }
 
     pub async fn clean_entity_chunk(self: &Arc<Self>, chunk: &Vector2<i32>) {
-        self.clean_chunks(&[*chunk]).await;
+        self.clean_entity_chunks(&[*chunk]).await;
     }
 
     pub fn is_chunk_watched(&self, chunk: &Vector2<i32>) -> bool {
@@ -429,6 +430,8 @@ impl Level {
     pub fn clean_memory(&self) {
         self.chunk_watchers.retain(|_, watcher| !watcher.is_zero());
         self.loaded_chunks
+            .retain(|at, _| self.chunk_watchers.get(at).is_some());
+        self.loaded_entity_chunks
             .retain(|at, _| self.chunk_watchers.get(at).is_some());
 
         // if the difference is too big, we can shrink the loaded chunks
@@ -441,6 +444,9 @@ impl Level {
         // (1024 chunks is the equivalent to a 32x32 chunks area)
         if self.loaded_chunks.capacity() - self.loaded_chunks.len() >= 4096 {
             self.loaded_chunks.shrink_to_fit();
+        }
+        if self.loaded_entity_chunks.capacity() - self.loaded_entity_chunks.len() >= 4096 {
+            self.loaded_entity_chunks.shrink_to_fit();
         }
     }
 
@@ -500,7 +506,10 @@ impl Level {
         let chunk_saver = self.entity_chunk_saver.clone();
         let level_folder = self.level_folder.clone();
 
-        trace!("Sending chunks to ChunkIO {:}", chunks_to_write.len());
+        trace!(
+            "Sending entity chunks to ChunkIO {:}",
+            chunks_to_write.len()
+        );
         if let Err(error) = chunk_saver
             .save_chunks(&level_folder, chunks_to_write)
             .await

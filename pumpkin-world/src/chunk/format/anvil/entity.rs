@@ -796,13 +796,21 @@ impl ChunkSerializer for AnvilEntityFile {
 pub fn chunk_to_bytes(
     chunk_entity_data: &ChunkEntityData,
 ) -> Result<Vec<u8>, ChunkSerializingError> {
+    for a in &chunk_entity_data.data {
+        dbg!(a.1.get_string("id").unwrap());
+    }
     let nbt = EntityNbt {
         data_version: WORLD_DATA_VERSION,
         position: [
             chunk_entity_data.chunk_position.x,
             chunk_entity_data.chunk_position.z,
         ],
-        entities: chunk_entity_data.data.clone(),
+        entities: chunk_entity_data
+            .data
+            .clone()
+            .into_iter()
+            .map(|(_uuid, nbt_compound)| nbt_compound)
+            .collect(),
     };
 
     let mut result = Vec::new();

@@ -5,6 +5,7 @@ use pumpkin_nbt::{compound::NbtCompound, from_bytes, nbt_long_array};
 
 use pumpkin_util::math::{position::BlockPos, vector2::Vector2};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::{block::entities::block_entity_from_nbt, generation::section_coords};
 
@@ -129,9 +130,28 @@ impl ChunkEntityData {
             )));
         }
 
+        // The 128-bit UUID is stored as four 32-bit integers ([Int] Ints), ordered from most to least significant.
+        let entities: HashMap<Uuid, NbtCompound> = chunk_entity_data
+            .entities
+            .into_iter()
+            .map(|data| {
+                let uuid = data
+                    .get_int_array("UUID")
+                    .map_or_else(Uuid::new_v4, |array| {
+                        Uuid::from_u128(
+                            (array[0] as u128) << 96
+                                | (array[1] as u128) << 64
+                                | (array[2] as u128) << 32
+                                | (array[3] as u128),
+                        )
+                    });
+                (uuid, data)
+            })
+            .collect();
+
         Ok(ChunkEntityData {
             chunk_position: position,
-            data: chunk_entity_data.entities.clone(),
+            data: entities,
             // This chunk is read from disk, so it has not been modified
             dirty: false,
         })

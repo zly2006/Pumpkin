@@ -394,6 +394,8 @@ impl Player {
         let chunks_to_clean = level.mark_chunks_as_not_watched(&radial_chunks).await;
         // Remove chunks with no watchers from the cache
         level.clean_chunks(&chunks_to_clean).await;
+        level.clean_entity_chunks(&chunks_to_clean).await;
+
         // Remove left over entries from all possiblily loaded chunks
         level.clean_memory();
 

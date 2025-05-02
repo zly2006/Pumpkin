@@ -29,11 +29,14 @@ use pumpkin_util::math::{
     wrap_degrees,
 };
 use serde::Serialize;
-use std::sync::{
-    Arc,
-    atomic::{
-        AtomicBool, AtomicI32,
-        Ordering::{Relaxed, SeqCst},
+use std::{
+    collections::HashMap,
+    sync::{
+        Arc,
+        atomic::{
+            AtomicBool, AtomicI32,
+            Ordering::{Relaxed, SeqCst},
+        },
     },
 };
 use tokio::sync::RwLock;
@@ -185,9 +188,12 @@ impl Entity {
         }
     }
 
-    pub async fn from_data(data: &[NbtCompound], world: Arc<World>) -> Vec<Arc<dyn EntityBase>> {
+    pub async fn from_data(
+        data: &HashMap<Uuid, NbtCompound>,
+        world: Arc<World>,
+    ) -> Vec<Arc<dyn EntityBase>> {
         let mut entities = Vec::with_capacity(data.len());
-        for entity_data in data {
+        for (uuid, entity_data) in data {
             let Some(id) = entity_data.get_string("id") else {
                 continue;
             };
@@ -196,15 +202,6 @@ impl Entity {
                 continue;
             };
             // The 128-bit UUID is stored as four 32-bit integers ([Int] Ints), ordered from most to least significant.
-            let uuid = entity_data
-                .get_int_array("UUID")
-                .map_or_else(Uuid::new_v4, |array| {
-                    let combined_u128: u128 = (array[0] as u128) << (3 * 32)
-                        | (array[1] as u128) << (2 * 32)
-                        | (array[2] as u128) << 32
-                        | (array[3] as u128);
-                    Uuid::from_u128(combined_u128)
-                });
 
             let position = entity_data.get_list("Pos").unwrap();
             let x = position[0].extract_double().unwrap_or(0.0);
@@ -213,7 +210,7 @@ impl Entity {
             let invulnerable = entity_data.get_bool("Invulnerable").unwrap_or(false);
             let entity = entity_base_from_type(
                 entity_type,
-                uuid,
+                *uuid,
                 world.clone(),
                 Vector3::new(x, y, z),
                 invulnerable,
