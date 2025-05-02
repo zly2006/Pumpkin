@@ -27,6 +27,7 @@ use bytes::{BufMut, Bytes};
 use explosion::Explosion;
 use pumpkin_config::BasicConfiguration;
 use pumpkin_data::block_properties::{BlockProperties, Integer0To15, WaterLikeProperties};
+use pumpkin_data::entity::EffectType;
 use pumpkin_data::{
     Block,
     block_properties::{
@@ -40,7 +41,9 @@ use pumpkin_data::{
 };
 use pumpkin_macros::send_cancellable;
 use pumpkin_nbt::to_bytes_unnamed;
-use pumpkin_protocol::client::play::{CSetEntityMetadata, MetaDataType, Metadata};
+use pumpkin_protocol::client::play::{
+    CRemoveMobEffect, CSetEntityMetadata, MetaDataType, Metadata,
+};
 use pumpkin_protocol::ser::serializer::Serializer;
 use pumpkin_protocol::{
     ClientPacket, IdOr, SoundEvent,
@@ -201,6 +204,15 @@ impl World {
         // TODO: only nearby
         self.broadcast_packet_all(&CEntityStatus::new(entity.entity_id, status as i8))
             .await;
+    }
+
+    pub async fn send_remove_mob_effect(&self, entity: &Entity, effect_type: EffectType) {
+        // TODO: only nearby
+        self.broadcast_packet_all(&CRemoveMobEffect::new(
+            entity.entity_id.into(),
+            VarInt(effect_type as i32),
+        ))
+        .await;
     }
 
     /// Broadcasts a packet to all connected players within the world.
