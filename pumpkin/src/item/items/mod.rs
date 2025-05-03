@@ -1,5 +1,6 @@
 mod axe;
 mod egg;
+mod flint_and_steel;
 mod hoe;
 mod honeycomb;
 mod shovel;
@@ -9,6 +10,7 @@ mod trident;
 
 use axe::AxeItem;
 use egg::EggItem;
+use flint_and_steel::FlintAndSteelItem;
 use hoe::HoeItem;
 use honeycomb::HoneyCombItem;
 use shovel::ShovelItem;
@@ -25,6 +27,7 @@ pub fn default_registry() -> Arc<ItemRegistry> {
     manager.register(SnowBallItem);
     manager.register(HoeItem);
     manager.register(EggItem);
+    manager.register(FlintAndSteelItem);
     manager.register(SwordItem);
     manager.register(TridentItem);
     manager.register(ShovelItem);
