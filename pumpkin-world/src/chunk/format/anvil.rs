@@ -64,7 +64,7 @@ pub enum Compression {
 pub enum CompressionRead<R: Read> {
     GZip(GzDecoder<R>),
     ZLib(ZlibDecoder<R>),
-    LZ4(lz4::Decoder<R>),
+    LZ4(lz4_java_wrc::Lz4BlockInput<R>),
 }
 
 impl<R: Read> Read for CompressionRead<R> {
@@ -148,8 +148,7 @@ impl Compression {
                 Ok(chunk_data.into_boxed_slice())
             }
             Compression::LZ4 => {
-                let mut decoder =
-                    lz4::Decoder::new(compressed_data).map_err(CompressionError::LZ4Error)?;
+                let mut decoder = lz4_java_wrc::Lz4BlockInput::new(compressed_data);
                 let mut decompressed_data = Vec::new();
                 decoder
                     .read_to_end(&mut decompressed_data)
@@ -191,16 +190,11 @@ impl Compression {
 
             Compression::LZ4 => {
                 let mut compressed_data = Vec::new();
-                let mut encoder = lz4::EncoderBuilder::new()
-                    .level(compression_level)
-                    .build(&mut compressed_data)
-                    .map_err(CompressionError::LZ4Error)?;
+                let mut encoder = lz4_java_wrc::Lz4BlockOutput::new(&mut compressed_data);
                 if let Err(err) = encoder.write_all(uncompressed_data) {
                     return Err(CompressionError::LZ4Error(err));
                 }
-                if let (_output, Err(err)) = encoder.finish() {
-                    return Err(CompressionError::LZ4Error(err));
-                }
+                drop(encoder);
                 Ok(compressed_data)
             }
             Compression::Custom => todo!(),
