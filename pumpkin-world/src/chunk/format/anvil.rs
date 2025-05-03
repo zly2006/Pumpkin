@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use bytes::*;
 use flate2::read::{GzDecoder, GzEncoder, ZlibDecoder, ZlibEncoder};
 use itertools::Itertools;
+use lz4_java_wrc::Context;
 use pumpkin_config::advanced_config;
 use pumpkin_data::{Block, chunk::ChunkStatus};
 use pumpkin_nbt::{compound::NbtCompound, serializer::to_bytes};
@@ -190,7 +191,17 @@ impl Compression {
 
             Compression::LZ4 => {
                 let mut compressed_data = Vec::new();
-                let mut encoder = lz4_java_wrc::Lz4BlockOutput::new(&mut compressed_data);
+                let block_size = if compression_level == 0 {
+                    0
+                } else {
+                    1 << (10 + compression_level)
+                };
+                let mut encoder = lz4_java_wrc::Lz4BlockOutput::with_context(
+                    &mut compressed_data,
+                    Context::default(),
+                    block_size,
+                )
+                .map_err(CompressionError::LZ4Error)?;
                 if let Err(err) = encoder.write_all(uncompressed_data) {
                     return Err(CompressionError::LZ4Error(err));
                 }
