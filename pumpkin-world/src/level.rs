@@ -145,8 +145,6 @@ impl Level {
             }
         };
 
-        //
-
         let entity_chunk_saver: Arc<dyn FileIO<Data = SyncEntityChunk>> =
             match advanced_config().chunk.format {
                 ChunkFormat::Linear => {

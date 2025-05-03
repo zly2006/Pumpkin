@@ -342,6 +342,8 @@ impl Entity {
     }
 
     /// Removes the `Entity` from their current `World`
+    ///
+    /// NOTE: If you want to remove multiple entities at Once, Use `World::remove_entities` as it is more efficent
     pub async fn remove(&self) {
         self.world.read().await.remove_entity(self).await;
     }

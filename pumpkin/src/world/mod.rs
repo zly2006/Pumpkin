@@ -1323,10 +1323,13 @@ impl World {
         entity_chunk.data.insert(base_entity.entity_uuid, nbt);
         entity_chunk.dirty = true;
 
-        let mut current_living_entities = self.entities.write().await;
-        current_living_entities.insert(base_entity.entity_uuid, entity);
+        let mut current_entities = self.entities.write().await;
+        current_entities.insert(base_entity.entity_uuid, entity);
     }
 
+    /// Removes one single Entity out of the World
+    ///
+    /// NOTE: If you want to remove multiple entities at Once, Use `remove_entities` as it is more efficent
     pub async fn remove_entity(&self, entity: &Entity) {
         self.entities.write().await.remove(&entity.entity_uuid);
         let entity_chunk = self.get_entity_chunk(&entity.block_pos.load()).await;
@@ -1334,6 +1337,20 @@ impl World {
         entity_chunk.data.remove(&entity.entity_uuid);
         entity_chunk.dirty = true;
         self.broadcast_packet_all(&CRemoveEntities::new(&[entity.entity_id.into()]))
+            .await;
+    }
+
+    pub async fn remove_entities(&self, entities: &[&Entity]) {
+        let mut world_entites = self.entities.write().await;
+        for entity in entities {
+            world_entites.remove(&entity.entity_uuid);
+            let entity_chunk = self.get_entity_chunk(&entity.block_pos.load()).await;
+            let mut entity_chunk = entity_chunk.write().await;
+            entity_chunk.data.remove(&entity.entity_uuid);
+            entity_chunk.dirty = true;
+        }
+        let entities_id: Vec<VarInt> = entities.iter().map(|e| VarInt(e.entity_id)).collect();
+        self.broadcast_packet_all(&CRemoveEntities::new(&entities_id))
             .await;
     }
 

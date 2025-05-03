@@ -98,9 +98,8 @@ pub async fn update_position(player: &Arc<Player>) {
                 let entity_chunk = world.get_entity_chunk_from_chunk_coords(*chunk_pos).await;
                 let chunk = entity_chunk.read().await;
                 let entities = Entity::from_data(&chunk.data, world.clone()).await;
-                for entity in entities {
-                    world.remove_entity(entity.get_entity()).await;
-                }
+                let entities: Vec<&Entity> = entities.iter().map(|e| e.get_entity()).collect();
+                world.remove_entities(&entities).await;
             }
             level.clean_entity_chunks(&chunks_to_clean).await;
         }

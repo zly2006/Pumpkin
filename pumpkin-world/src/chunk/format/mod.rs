@@ -87,7 +87,7 @@ impl SingleChunkDataSerializer for ChunkData {
 
     #[inline]
     fn to_bytes(&self) -> Result<Bytes, ChunkSerializingError> {
-        self.interal_to_bytes()
+        self.internal_to_bytes()
     }
 
     #[inline]
@@ -249,7 +249,7 @@ impl ChunkData {
         })
     }
 
-    fn interal_to_bytes(&self) -> Result<Bytes, ChunkSerializingError> {
+    fn internal_to_bytes(&self) -> Result<Bytes, ChunkSerializingError> {
         let sections: Vec<_> = (0..self.section.sections.len() + 2)
             .map(|i| {
                 let has_blocks = i >= 1 && i - 1 < self.section.sections.len();
@@ -364,7 +364,7 @@ impl SingleChunkDataSerializer for ChunkEntityData {
 
     #[inline]
     fn to_bytes(&self) -> Result<Bytes, ChunkSerializingError> {
-        self.interal_to_bytes()
+        self.internal_to_bytes()
     }
 
     #[inline]
@@ -385,7 +385,7 @@ impl ChunkEntityData {
             || chunk_entity_data.position[1] != position.z
         {
             return Err(ChunkParsingError::ErrorDeserializingChunk(format!(
-                "Expected data for chunk {},{} but got it for {},{}!",
+                "Expected data for entity chunk {},{} but got it for {},{}!",
                 position.x,
                 position.z,
                 chunk_entity_data.position[0],
@@ -420,10 +420,7 @@ impl ChunkEntityData {
         })
     }
 
-    fn interal_to_bytes(&self) -> Result<Bytes, ChunkSerializingError> {
-        for a in &self.data {
-            dbg!(a.1.get_string("id").unwrap());
-        }
+    fn internal_to_bytes(&self) -> Result<Bytes, ChunkSerializingError> {
         let nbt = EntityNbt {
             data_version: WORLD_DATA_VERSION,
             position: [self.chunk_position.x, self.chunk_position.z],
