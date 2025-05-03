@@ -1,11 +1,17 @@
-use std::{collections::HashMap, io::ErrorKind, path::Path};
+use std::{
+    collections::HashMap,
+    io::ErrorKind,
+    path::{Path, PathBuf},
+};
 
 use anvil::{WORLD_DATA_VERSION, chunk::SingleChunkDataSerializer};
 use bytes::Bytes;
 use pumpkin_data::{Block, chunk::ChunkStatus};
 use pumpkin_nbt::{compound::NbtCompound, from_bytes, nbt_long_array};
 
-use crate::{block::entities::block_entity_from_nbt, generation::section_coords};
+use crate::{
+    block::entities::block_entity_from_nbt, generation::section_coords, level::LevelFolder,
+};
 use pumpkin_util::math::{position::BlockPos, vector2::Vector2};
 use serde::{Deserialize, Serialize};
 use tokio::io::AsyncReadExt;
@@ -14,7 +20,7 @@ use uuid::Uuid;
 use super::{
     ChunkData, ChunkEntityData, ChunkHeightmaps, ChunkLightEngine, ChunkParsingError,
     ChunkReadingError, ChunkSections, ChunkSerializingError, ScheduledTick, SubChunk, TickPriority,
-    io::Dirtiable,
+    io::{Dirtiable, file_manager::PathFromLevelFolder},
     palette::{BiomePalette, BlockPalette},
 };
 
@@ -52,6 +58,13 @@ async fn read_entire_file_to_bytes(path: &Path) -> Result<Bytes, ChunkReadingErr
         .await
         .map_err(|err| ChunkReadingError::IoError(err.kind()))?;
     Ok(file_bytes.into())
+}
+
+impl PathFromLevelFolder for ChunkData {
+    #[inline]
+    fn file_path(folder: &LevelFolder, file_name: &str) -> PathBuf {
+        folder.region_folder.join(file_name)
+    }
 }
 
 impl Dirtiable for ChunkData {
@@ -321,6 +334,13 @@ impl ChunkData {
         pumpkin_nbt::to_bytes(&nbt, &mut result)
             .map_err(ChunkSerializingError::ErrorSerializingChunk)?;
         Ok(result.into())
+    }
+}
+
+impl PathFromLevelFolder for ChunkEntityData {
+    #[inline]
+    fn file_path(folder: &LevelFolder, file_name: &str) -> PathBuf {
+        folder.entities_folder.join(file_name)
     }
 }
 

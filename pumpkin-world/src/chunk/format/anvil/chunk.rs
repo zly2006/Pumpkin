@@ -814,7 +814,7 @@ mod tests {
     use tokio::sync::RwLock;
 
     use crate::chunk::ChunkData;
-    use crate::chunk::io::file_manager::ChunkFileManager;
+    use crate::chunk::io::file_manager::{ChunkFileManager, PathFromLevelFolder};
     use crate::chunk::io::{FileIO, LoadedData};
     use crate::generation::{Seed, get_world_gen};
     use crate::level::{LevelFolder, SyncChunk};
@@ -828,7 +828,7 @@ mod tests {
         chunks: &[(Vector2<i32>, SyncChunk)],
     ) -> Box<[Arc<RwLock<S>>]>
     where
-        S: SingleChunkDataSerializer,
+        S: SingleChunkDataSerializer + PathFromLevelFolder + 'static,
     {
         let mut read_chunks = Vec::new();
         let (send, mut recv) = tokio::sync::mpsc::channel(1);
