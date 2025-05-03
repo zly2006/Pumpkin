@@ -160,6 +160,7 @@ impl Compression {
         }
     }
 
+    const COMPRESSION_LEVEL_BASE: u32 = 10;
     fn compress_data(
         &self,
         uncompressed_data: &[u8],
@@ -188,13 +189,12 @@ impl Compression {
                     .map_err(CompressionError::ZlibError)?;
                 Ok(chunk_data)
             }
-
             Compression::LZ4 => {
                 let mut compressed_data = Vec::new();
                 let block_size = if compression_level == 0 {
                     0
                 } else {
-                    1 << (10 + compression_level)
+                    1 << (Self::COMPRESSION_LEVEL_BASE + compression_level)
                 };
                 let mut encoder = lz4_java_wrc::Lz4BlockOutput::with_context(
                     &mut compressed_data,
