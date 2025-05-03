@@ -13,6 +13,7 @@ pub mod doors;
 pub mod farmland;
 pub mod fence_gates;
 pub mod fences;
+pub mod fire;
 pub mod furnace;
 pub mod glass_panes;
 pub mod iron_bars;

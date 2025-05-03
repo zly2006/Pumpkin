@@ -45,6 +45,7 @@ use pumpkin_nbt::to_bytes_unnamed;
 use pumpkin_protocol::client::play::{
     CRemoveMobEffect, CSetEntityMetadata, MetaDataType, Metadata,
 };
+use pumpkin_protocol::codec::identifier::Identifier;
 use pumpkin_protocol::ser::serializer::Serializer;
 use pumpkin_protocol::{
     ClientPacket, IdOr, SoundEvent,
@@ -55,7 +56,6 @@ use pumpkin_protocol::{
     },
     server::play::SChatMessage,
 };
-use pumpkin_protocol::{client::play::CLevelEvent, codec::identifier::Identifier};
 use pumpkin_protocol::{
     client::play::{
         CBlockUpdate, CDisguisedChatMessage, CExplosion, CRespawn, CSetBlockDestroyStage,
@@ -362,26 +362,6 @@ impl World {
             f64::from(position.0.z) + 0.5,
         );
         self.play_sound(sound, category, &new_vec).await;
-    }
-
-    pub async fn play_record(&self, record_id: i32, position: BlockPos) {
-        self.broadcast_packet_all(&CLevelEvent::new(
-            WorldEvent::JukeboxStartsPlaying as i32,
-            position,
-            record_id,
-            false,
-        ))
-        .await;
-    }
-
-    pub async fn stop_record(&self, position: BlockPos) {
-        self.broadcast_packet_all(&CLevelEvent::new(
-            WorldEvent::JukeboxStopsPlaying as i32,
-            position,
-            0,
-            false,
-        ))
-        .await;
     }
 
     pub async fn tick(self: &Arc<Self>, server: &Server) {
@@ -1636,6 +1616,11 @@ impl World {
                 None => self.broadcast_packet_all(&particles_packet).await,
             }
         }
+    }
+
+    pub async fn sync_world_event(&self, world_event: WorldEvent, position: BlockPos, data: i32) {
+        self.broadcast_packet_all(&CWorldEvent::new(world_event as i32, position, data, false))
+            .await;
     }
 
     pub async fn get_chunk(&self, position: &BlockPos) -> Arc<RwLock<ChunkData>> {

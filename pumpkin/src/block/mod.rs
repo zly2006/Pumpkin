@@ -4,6 +4,8 @@ use blocks::doors::DoorBlock;
 use blocks::farmland::FarmLandBlock;
 use blocks::fence_gates::FenceGateBlock;
 use blocks::fences::FenceBlock;
+use blocks::fire::fire::FireBlock;
+use blocks::fire::soul_fire::SoulFireBlock;
 use blocks::glass_panes::GlassPaneBlock;
 use blocks::iron_bars::IronBarsBlock;
 use blocks::logs::LogBlock;
@@ -52,7 +54,7 @@ use crate::{block::blocks::crafting_table::CraftingTableBlock, entity::player::P
 use crate::{block::blocks::jukebox::JukeboxBlock, entity::experience_orb::ExperienceOrbEntity};
 use std::sync::Arc;
 
-mod blocks;
+pub(crate) mod blocks;
 mod fluids;
 pub mod pumpkin_block;
 pub mod pumpkin_fluid;
@@ -83,6 +85,10 @@ pub fn default_registry() -> Arc<BlockRegistry> {
     manager.register(TNTBlock);
     manager.register(TorchBlock);
     manager.register(WallBlock);
+
+    // Fire
+    manager.register(SoulFireBlock);
+    manager.register(FireBlock);
 
     // Redstone
     manager.register(ButtonBlock);
