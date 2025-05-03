@@ -160,7 +160,7 @@ impl Compression {
         }
     }
 
-    const COMPRESSION_LEVEL_BASE: u32 = 10;
+    const LZ4_COMPRESSION_LEVEL_BASE: u32 = 10;
     fn compress_data(
         &self,
         uncompressed_data: &[u8],
@@ -194,7 +194,7 @@ impl Compression {
                 let block_size = if compression_level == 0 {
                     0
                 } else {
-                    1 << (Self::COMPRESSION_LEVEL_BASE + compression_level)
+                    1 << (Self::LZ4_COMPRESSION_LEVEL_BASE + compression_level)
                 };
                 let mut encoder = lz4_java_wrc::Lz4BlockOutput::with_context(
                     &mut compressed_data,
