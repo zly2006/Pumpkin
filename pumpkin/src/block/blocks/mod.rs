@@ -19,6 +19,7 @@ pub mod glass_panes;
 pub mod iron_bars;
 pub mod jukebox;
 pub mod logs;
+pub mod nether_portal;
 pub mod redstone;
 pub mod signs;
 pub mod slabs;

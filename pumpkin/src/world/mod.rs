@@ -6,6 +6,7 @@ use std::{
 
 pub mod chunker;
 pub mod explosion;
+pub mod portal;
 pub mod time;
 
 use crate::{

@@ -4,9 +4,12 @@ use crate::block::pumpkin_block::PumpkinBlock;
 use crate::entity::player::Player;
 use crate::server::Server;
 use crate::world::World;
+use crate::world::portal::NetherPortal;
 use async_trait::async_trait;
+use pumpkin_data::block_properties::HorizontalAxis;
 use pumpkin_data::world::WorldEvent;
 use pumpkin_data::{Block, BlockState};
+use pumpkin_registry::DimensionType;
 use pumpkin_util::math::position::BlockPos;
 use pumpkin_world::BlockStateId;
 use pumpkin_world::block::BlockDirection;
@@ -33,15 +36,23 @@ impl FireBlockBase {
 impl PumpkinBlock for FireBlockBase {
     async fn placed(
         &self,
-        _world: &Arc<World>,
+        world: &Arc<World>,
         _block: &Block,
         state_id: BlockStateId,
-        _pos: &BlockPos,
+        pos: &BlockPos,
         old_state_id: BlockStateId,
         _notify: bool,
     ) {
         if old_state_id == state_id {
             return;
+        }
+        let dimension = world.dimension_type;
+        // First lets check if we are in OverWorld or Nether, its not possible to place an Nether portal in other dimensions in Vanilla
+        if dimension == DimensionType::Overworld || dimension == DimensionType::TheNether {
+            if let Some(portal) = NetherPortal::get_new_portal(world, pos, HorizontalAxis::X).await
+            {
+                portal.create(world).await;
+            }
         }
     }
 

@@ -9,6 +9,7 @@ use blocks::fire::soul_fire::SoulFireBlock;
 use blocks::glass_panes::GlassPaneBlock;
 use blocks::iron_bars::IronBarsBlock;
 use blocks::logs::LogBlock;
+use blocks::nether_portal::NetherPortalBlock;
 use blocks::redstone::buttons::ButtonBlock;
 use blocks::redstone::observer::ObserverBlock;
 use blocks::redstone::piston::PistonBlock;
@@ -85,6 +86,7 @@ pub fn default_registry() -> Arc<BlockRegistry> {
     manager.register(TNTBlock);
     manager.register(TorchBlock);
     manager.register(WallBlock);
+    manager.register(NetherPortalBlock);
 
     // Fire
     manager.register(SoulFireBlock);
