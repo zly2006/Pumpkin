@@ -132,7 +132,7 @@ impl NetherPortal {
         if width < 0 {
             return None;
         }
-        Some(pos.offset_dir(neg_dir.to_offset(), width as i32))
+        Some(pos.offset_dir(neg_dir.to_offset(), width))
     }
 
     async fn get_width(
