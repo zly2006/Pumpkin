@@ -191,20 +191,16 @@ impl Compression {
             }
             Compression::LZ4 => {
                 let mut compressed_data = Vec::new();
-                let block_size = if compression_level == 0 {
-                    0
-                } else {
-                    1 << (Self::LZ4_COMPRESSION_LEVEL_BASE + compression_level)
-                };
+                let block_size = 1 << (Self::LZ4_COMPRESSION_LEVEL_BASE + compression_level);
                 let mut encoder = lz4_java_wrc::Lz4BlockOutput::with_context(
                     &mut compressed_data,
                     Context::default(),
                     block_size,
                 )
                 .map_err(CompressionError::LZ4Error)?;
-                if let Err(err) = encoder.write_all(uncompressed_data) {
-                    return Err(CompressionError::LZ4Error(err));
-                }
+                encoder
+                    .write_all(uncompressed_data)
+                    .map_err(CompressionError::LZ4Error)?;
                 drop(encoder);
                 Ok(compressed_data)
             }
