@@ -1766,7 +1766,15 @@ impl Player {
 
         if !server
             .block_registry
-            .can_place_at(world, &block, &final_block_pos, face)
+            .can_place_at(
+                server,
+                world,
+                self,
+                &block,
+                &final_block_pos,
+                final_face,
+                &use_item_on,
+            )
             .await
         {
             return Ok(false);
@@ -1777,12 +1785,12 @@ impl Player {
             .on_place(
                 server,
                 world,
-                &block,
-                final_face,
-                &final_block_pos,
-                &use_item_on,
                 self,
+                &block,
+                &final_block_pos,
+                final_face,
                 replacing,
+                &use_item_on,
             )
             .await;
 
