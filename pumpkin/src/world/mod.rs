@@ -41,6 +41,7 @@ use pumpkin_data::{
     world::{RAW, WorldEvent},
 };
 use pumpkin_macros::send_cancellable;
+use pumpkin_nbt::compound::NbtCompound;
 use pumpkin_nbt::to_bytes_unnamed;
 use pumpkin_protocol::client::play::{
     CRemoveMobEffect, CSetEntityMetadata, MetaDataType, Metadata,
@@ -67,9 +68,11 @@ use pumpkin_registry::DimensionType;
 use pumpkin_util::math::{position::BlockPos, vector3::Vector3};
 use pumpkin_util::math::{position::chunk_section_from_pos, vector2::Vector2};
 use pumpkin_util::text::{TextComponent, color::NamedColor};
+use pumpkin_world::chunk::ChunkEntityData;
 use pumpkin_world::entity::entity_data_flags::{
     DATA_PLAYER_MAIN_HAND, DATA_PLAYER_MODE_CUSTOMISATION,
 };
+use pumpkin_world::level::SyncEntityChunk;
 use pumpkin_world::{
     BlockStateId, GENERATION_SETTINGS, GeneratorSetting, biome, block::entities::BlockEntity,
     level::SyncChunk,
@@ -930,22 +933,25 @@ impl World {
             rel_x * rel_x + rel_z * rel_z
         });
 
-        let mut receiver = self.receive_chunks(chunks);
+        let mut chunk_receiver = self.receive_chunks(chunks.clone());
+        let mut entity_receiver = self.receive_entity_chunks(chunks);
+
         let level = self.level.clone();
 
         player.clone().spawn_task(async move {
             'main: loop {
-                let recv_result = tokio::select! {
+                let chunk_recv_result = tokio::select! {
                     () = player.client.await_close_interrupt() => {
                         log::debug!("Canceling player packet processing");
                         None
                     },
-                    recv_result = receiver.recv() => {
+                    recv_result = chunk_receiver.recv() => {
                         recv_result
                     }
                 };
 
-                let Some((chunk, first_load)) = recv_result else {
+                // TODO: If no chunk is received we break here, but it would be possible that a entity chunk is received
+                let Some((chunk, first_load)) = chunk_recv_result else {
                     break;
                 };
 
@@ -1019,6 +1025,39 @@ impl World {
                             chunk_manager.push_chunk(position, chunk);
                         }
                     }};
+                }
+
+                let entity_recv_result = tokio::select! {
+                    () = player.client.await_close_interrupt() => {
+                        log::debug!("Canceling player packet processing");
+                        None
+                    },
+                    recv_result = entity_receiver.recv() => {
+                        recv_result
+                    }
+                };
+
+                // TODO: We require to have an entity and a normal chunk here, we could also do it in parallel, no need for waiting
+                let Some((entity_chunk, _entity_first_load)) = entity_recv_result else {
+                    break;
+                };
+
+                let position = entity_chunk.read().await.chunk_position;
+
+                let entity_chunk = if level.is_chunk_watched(&position) {
+                    entity_chunk
+                } else {
+                    log::trace!(
+                        "Received entity chunk {:?}, but it is no longer watched... cleaning",
+                        &position
+                    );
+                    level.clean_entity_chunk(&position).await;
+                    continue 'main;
+                };
+
+                if !player.client.closed.load(Ordering::Relaxed) {
+                    let mut chunk_manager = player.chunk_manager.lock().await;
+                    chunk_manager.push_entity_chunk(position, entity_chunk);
                 }
             }
 
@@ -1251,18 +1290,48 @@ impl World {
         Entity::new(uuid, self.clone(), position, entity_type, false)
     }
 
-    /// Adds an entity to the world.
+    /// Adds and Spawns an entity in the world and saves it.
     pub async fn spawn_entity(&self, entity: Arc<dyn EntityBase>) {
         let base_entity = entity.get_entity();
         self.broadcast_packet_all(&base_entity.create_spawn_packet())
             .await;
-        let mut current_living_entities = self.entities.write().await;
-        current_living_entities.insert(base_entity.entity_uuid, entity);
+        base_entity.init_data_tracker().await;
+        let block_pos = base_entity.block_pos.load();
+        let entity_chunk = self.get_entity_chunk(&block_pos).await;
+        let mut entity_chunk = entity_chunk.write().await;
+        let mut nbt = NbtCompound::new();
+        entity.write_nbt(&mut nbt).await;
+        entity_chunk.data.insert(base_entity.entity_uuid, nbt);
+        entity_chunk.dirty = true;
+
+        let mut current_entities = self.entities.write().await;
+        current_entities.insert(base_entity.entity_uuid, entity);
     }
 
+    /// Removes one single Entity out of the World
+    ///
+    /// NOTE: If you want to remove multiple entities at Once, Use `remove_entities` as it is more efficient
     pub async fn remove_entity(&self, entity: &Entity) {
         self.entities.write().await.remove(&entity.entity_uuid);
+        let entity_chunk = self.get_entity_chunk(&entity.block_pos.load()).await;
+        let mut entity_chunk = entity_chunk.write().await;
+        entity_chunk.data.remove(&entity.entity_uuid);
+        entity_chunk.dirty = true;
         self.broadcast_packet_all(&CRemoveEntities::new(&[entity.entity_id.into()]))
+            .await;
+    }
+
+    pub async fn remove_entities(&self, entities: &[&Entity]) {
+        let mut world_entities = self.entities.write().await;
+        for entity in entities {
+            world_entities.remove(&entity.entity_uuid);
+            let entity_chunk = self.get_entity_chunk(&entity.block_pos.load()).await;
+            let mut entity_chunk = entity_chunk.write().await;
+            entity_chunk.data.remove(&entity.entity_uuid);
+            entity_chunk.dirty = true;
+        }
+        let entities_id: Vec<VarInt> = entities.iter().map(|e| VarInt(e.entity_id)).collect();
+        self.broadcast_packet_all(&CRemoveEntities::new(&entities_id))
             .await;
     }
 
@@ -1449,8 +1518,41 @@ impl World {
         receiver
     }
 
+    pub fn receive_entity_chunks(
+        &self,
+        chunks: Vec<Vector2<i32>>,
+    ) -> UnboundedReceiver<(SyncEntityChunk, bool)> {
+        let (sender, receiver) = mpsc::unbounded_channel();
+        // Put this in another thread so we aren't blocking on it
+        let level = self.level.clone();
+        self.level.spawn_task(async move {
+            let cancel_notifier = level.shutdown_notifier.notified();
+            let fetch_task = level.fetch_entities(&chunks, sender);
+
+            // Don't continue to handle chunks if we are shutting down
+            select! {
+                () = cancel_notifier => {},
+                () = fetch_task => {}
+            };
+        });
+
+        receiver
+    }
+
     pub async fn receive_chunk(&self, chunk_pos: Vector2<i32>) -> (Arc<RwLock<ChunkData>>, bool) {
         let mut receiver = self.receive_chunks(vec![chunk_pos]);
+
+        receiver
+            .recv()
+            .await
+            .expect("Channel closed for unknown reason")
+    }
+
+    pub async fn receive_entity_chunk(
+        &self,
+        chunk_pos: Vector2<i32>,
+    ) -> (Arc<RwLock<ChunkEntityData>>, bool) {
+        let mut receiver = self.receive_entity_chunks(vec![chunk_pos]);
 
         receiver
             .recv()
@@ -1528,6 +1630,23 @@ impl World {
         match self.level.try_get_chunk(chunk_coordinate) {
             Some(chunk) => chunk.clone(),
             None => self.receive_chunk(chunk_coordinate).await.0,
+        }
+    }
+
+    pub async fn get_entity_chunk(&self, position: &BlockPos) -> Arc<RwLock<ChunkEntityData>> {
+        let (chunk_coordinate, _) = position.chunk_and_chunk_relative_position();
+
+        self.get_entity_chunk_from_chunk_coords(chunk_coordinate)
+            .await
+    }
+
+    pub async fn get_entity_chunk_from_chunk_coords(
+        &self,
+        chunk_coordinate: Vector2<i32>,
+    ) -> Arc<RwLock<ChunkEntityData>> {
+        match self.level.try_get_entities(chunk_coordinate) {
+            Some(chunk) => chunk.clone(),
+            None => self.receive_entity_chunk(chunk_coordinate).await.0,
         }
     }
 

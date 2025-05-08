@@ -4,7 +4,7 @@ use pumpkin_config::BASIC_CONFIG;
 use pumpkin_protocol::client::play::{CCenterChunk, CUnloadChunk};
 use pumpkin_world::cylindrical_chunk_iterator::Cylindrical;
 
-use crate::entity::player::Player;
+use crate::entity::{Entity, player::Player};
 
 pub async fn get_view_distance(player: &Player) -> NonZeroU8 {
     player
@@ -84,6 +84,7 @@ pub async fn update_position(player: &Arc<Player>) {
         player.watched_section.store(new_cylindrical);
 
         if !chunks_to_clean.is_empty() {
+            // First lets clean the chunks
             level.clean_chunks(&chunks_to_clean).await;
             for chunk in unloading_chunks {
                 player
@@ -91,6 +92,16 @@ pub async fn update_position(player: &Arc<Player>) {
                     .enqueue_packet(&CUnloadChunk::new(chunk.x, chunk.z))
                     .await;
             }
+            // Now lets clean the entity chunks and also remove all the entities out of the world
+            let world = player.world().await;
+            for chunk_pos in &chunks_to_clean {
+                let entity_chunk = world.get_entity_chunk_from_chunk_coords(*chunk_pos).await;
+                let chunk = entity_chunk.read().await;
+                let entities = Entity::from_data(&chunk.data, world.clone()).await;
+                let entities: Vec<&Entity> = entities.iter().map(|e| e.get_entity()).collect();
+                world.remove_entities(&entities).await;
+            }
+            level.clean_entity_chunks(&chunks_to_clean).await;
         }
 
         if !loading_chunks.is_empty() {

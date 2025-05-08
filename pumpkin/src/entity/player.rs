@@ -94,10 +94,11 @@ use pumpkin_util::{
     permission::PermissionLvl,
     text::TextComponent,
 };
-use pumpkin_world::entity::entity_data_flags::{
-    DATA_PLAYER_MAIN_HAND, DATA_PLAYER_MODE_CUSTOMISATION,
-};
 use pumpkin_world::{cylindrical_chunk_iterator::Cylindrical, item::ItemStack, level::SyncChunk};
+use pumpkin_world::{
+    entity::entity_data_flags::{DATA_PLAYER_MAIN_HAND, DATA_PLAYER_MODE_CUSTOMISATION},
+    level::SyncEntityChunk,
+};
 use tokio::sync::RwLock;
 use tokio::{sync::Mutex, task::JoinHandle};
 use uuid::Uuid;
@@ -114,6 +115,7 @@ enum BatchState {
 pub struct ChunkManager {
     chunks_per_tick: usize,
     chunk_queue: VecDeque<(Vector2<i32>, SyncChunk)>,
+    entity_queue: VecDeque<(Vector2<i32>, SyncEntityChunk)>,
     batches_sent_since_ack: BatchState,
 }
 
@@ -125,6 +127,7 @@ impl ChunkManager {
         Self {
             chunks_per_tick,
             chunk_queue: VecDeque::new(),
+            entity_queue: VecDeque::new(),
             batches_sent_since_ack: BatchState::Initial,
         }
     }
@@ -136,6 +139,10 @@ impl ChunkManager {
 
     pub fn push_chunk(&mut self, position: Vector2<i32>, chunk: SyncChunk) {
         self.chunk_queue.push_back((position, chunk));
+    }
+
+    pub fn push_entity_chunk(&mut self, position: Vector2<i32>, entity_chunk: SyncEntityChunk) {
+        self.entity_queue.push_back((position, entity_chunk));
     }
 
     #[must_use]
@@ -154,6 +161,18 @@ impl ChunkManager {
         let mut chunks = Vec::with_capacity(chunk_size);
         chunks.extend(
             self.chunk_queue
+                .drain(0..chunk_size)
+                .map(|(_, chunk)| chunk),
+        );
+
+        chunks.into_boxed_slice()
+    }
+
+    pub fn next_entity(&mut self) -> Box<[SyncEntityChunk]> {
+        let chunk_size = self.entity_queue.len().min(self.chunks_per_tick);
+        let mut chunks = Vec::with_capacity(chunk_size);
+        chunks.extend(
+            self.entity_queue
                 .drain(0..chunk_size)
                 .map(|(_, chunk)| chunk),
         );
@@ -375,6 +394,8 @@ impl Player {
         let chunks_to_clean = level.mark_chunks_as_not_watched(&radial_chunks).await;
         // Remove chunks with no watchers from the cache
         level.clean_chunks(&chunks_to_clean).await;
+        level.clean_entity_chunks(&chunks_to_clean).await;
+
         // Remove left over entries from all possiblily loaded chunks
         level.clean_memory();
 
@@ -569,17 +590,35 @@ impl Player {
             let mut chunk_manager = self.chunk_manager.lock().await;
             chunk_manager
                 .can_send_chunk()
-                .then(|| chunk_manager.next_chunk())
+                .then(|| (chunk_manager.next_chunk(), chunk_manager.next_entity()))
         };
 
         if let Some(chunk_of_chunks) = chunk_of_chunks {
-            let chunk_count = chunk_of_chunks.len();
+            let chunk_count = chunk_of_chunks.0.len();
             self.client.send_packet_now(&CChunkBatchStart).await;
-            for chunk in chunk_of_chunks {
-                let chunk = chunk.read().await;
+            for chunk in chunk_of_chunks.0 {
+                let chunk_data = chunk.read().await;
                 // TODO: Can we check if we still need to send the chunk? Like if it's a fast moving
                 // player or something.
-                self.client.send_packet_now(&CChunkData(&chunk)).await;
+                self.client.send_packet_now(&CChunkData(&chunk_data)).await;
+            }
+            for entity_chunk in chunk_of_chunks.1 {
+                let data = entity_chunk.read().await;
+                let world = self.world().await;
+                let entities = Entity::from_data(&data.data, world.clone()).await;
+                // TODO: We want to par iter here ig
+                let mut world_entities = world.entities.write().await;
+                for entity in entities {
+                    let base_entity = entity.get_entity();
+                    self.client
+                        .send_packet_now(&base_entity.create_spawn_packet())
+                        .await;
+                    let uuid = base_entity.entity_uuid;
+
+                    // If the entity did not exist in the world, lets add it to the world.
+                    // this will not spawn the entity, but just run logic for the entity
+                    world_entities.entry(uuid).or_insert(entity);
+                }
             }
             self.client
                 .send_packet_now(&CChunkBatchEnd::new(chunk_count as u16))
@@ -1283,7 +1322,6 @@ impl Player {
         let item_entity =
             Arc::new(ItemEntity::new_with_velocity(entity, item_id, count, velocity, 40).await);
         self.world().await.spawn_entity(item_entity.clone()).await;
-        item_entity.send_meta_packet().await;
     }
 
     pub async fn drop_held_item(&self, drop_stack: bool) {
@@ -1500,7 +1538,7 @@ impl NBTStorage for Player {
         self.hunger_manager.write_nbt(nbt).await;
     }
 
-    async fn read_nbt(&mut self, nbt: &mut NbtCompound) {
+    async fn read_nbt(&mut self, nbt: &NbtCompound) {
         self.living_entity.read_nbt(nbt).await;
         self.inventory.lock().await.read_nbt(nbt).await;
         self.abilities.lock().await.read_nbt(nbt).await;
@@ -1572,7 +1610,7 @@ impl NBTStorage for PlayerInventory {
         nbt.put("Inventory", NbtTag::List(vec.into_boxed_slice()));
     }
 
-    async fn read_nbt(&mut self, nbt: &mut NbtCompound) {
+    async fn read_nbt(&mut self, nbt: &NbtCompound) {
         // Read selected hotbar slot
         self.selected = nbt.get_int("SelectedItemSlot").unwrap_or(0) as usize;
 
@@ -1824,7 +1862,7 @@ impl NBTStorage for Abilities {
         nbt.put_component("abilities", component);
     }
 
-    async fn read_nbt(&mut self, nbt: &mut pumpkin_nbt::compound::NbtCompound) {
+    async fn read_nbt(&mut self, nbt: &pumpkin_nbt::compound::NbtCompound) {
         if let Some(component) = nbt.get_compound("abilities") {
             self.invulnerable = component.get_bool("invulnerable").unwrap_or(false);
             self.flying = component.get_bool("flying").unwrap_or(false);
