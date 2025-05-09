@@ -1,3 +1,4 @@
+use blocks::barrel::BarrelBlock;
 use blocks::bed::BedBlock;
 use blocks::cactus::CactusBlock;
 use blocks::dirt_path::DirtPathBlock;
@@ -103,6 +104,7 @@ pub fn default_registry() -> Arc<BlockRegistry> {
     manager.register(RedstoneWireBlock);
     manager.register(RepeaterBlock);
     manager.register(TargetBlock);
+    manager.register(BarrelBlock);
 
     // Rails
     manager.register(RailBlock);
@@ -152,8 +154,7 @@ async fn drop_stack(world: &Arc<World>, pos: &BlockPos, stack: ItemStack) {
     );
 
     let entity = world.create_entity(pos, EntityType::ITEM);
-    let item_entity =
-        Arc::new(ItemEntity::new(entity, stack.item.id, u32::from(stack.item_count)).await);
+    let item_entity = Arc::new(ItemEntity::new(entity, stack).await);
     world.spawn_entity(item_entity.clone()).await;
     item_entity.send_meta_packet().await;
 }

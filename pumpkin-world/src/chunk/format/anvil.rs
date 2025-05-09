@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use bytes::*;
 use flate2::read::{GzDecoder, GzEncoder, ZlibDecoder, ZlibEncoder};
+use futures::future::join_all;
 use itertools::Itertools;
 use pumpkin_config::advanced_config;
 use pumpkin_data::{Block, chunk::ChunkStatus};
@@ -316,11 +317,12 @@ impl AnvilChunkData {
         Ok(chunk)
     }
 
-    fn from_chunk(
+    async fn from_chunk(
         chunk: &ChunkData,
         compression: Option<Compression>,
     ) -> Result<Self, ChunkWritingError> {
         let raw_bytes = chunk_to_bytes(chunk)
+            .await
             .map_err(|err| ChunkWritingError::ChunkSerializingError(err.to_string()))?;
 
         let compression = compression
@@ -622,7 +624,7 @@ impl ChunkSerializer for AnvilChunkFile {
         let compression_type = self.chunks_data[index]
             .as_ref()
             .and_then(|chunk_data| chunk_data.serialized_data.compression);
-        let new_chunk_data = AnvilChunkData::from_chunk(chunk, compression_type)?;
+        let new_chunk_data = AnvilChunkData::from_chunk(chunk, compression_type).await?;
 
         let mut write_action = self.write_action.lock().await;
         if !advanced_config().chunk.write_in_place {
@@ -816,7 +818,7 @@ impl ChunkSerializer for AnvilChunkFile {
     }
 }
 
-pub fn chunk_to_bytes(chunk_data: &ChunkData) -> Result<Vec<u8>, ChunkSerializingError> {
+pub async fn chunk_to_bytes(chunk_data: &ChunkData) -> Result<Vec<u8>, ChunkSerializingError> {
     let sections: Vec<_> = (0..chunk_data.section.sections.len() + 2)
         .map(|i| {
             let has_blocks = i >= 1 && i - 1 < chunk_data.section.sections.len();
@@ -887,15 +889,14 @@ pub fn chunk_to_bytes(chunk_data: &ChunkData) -> Result<Vec<u8>, ChunkSerializin
                 })
                 .collect()
         },
-        block_entities: chunk_data
-            .block_entities
-            .values()
-            .map(|block_entity| {
+        block_entities: join_all(chunk_data.block_entities.values().map(
+            |block_entity| async move {
                 let mut nbt = NbtCompound::new();
-                block_entity.write_internal(&mut nbt);
+                block_entity.write_internal(&mut nbt).await;
                 nbt
-            })
-            .collect(),
+            },
+        ))
+        .await,
         // we have not implemented light engine
         light_correct: false,
     };
