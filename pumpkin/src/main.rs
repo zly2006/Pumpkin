@@ -38,6 +38,7 @@ compile_error!("Compiling for WASI targets is not supported!");
 
 use plugin::PluginManager;
 use pumpkin_data::packet::CURRENT_MC_PROTOCOL;
+use std::collections::{HashMap, HashSet};
 use std::{
     io::{self},
     sync::LazyLock,
@@ -91,6 +92,26 @@ async fn main() {
     };
 
     let time = Instant::now();
+
+    let patch = pumpkin_world::item::ItemComponentPatch {
+        patch: {
+            let mut map = HashMap::new();
+            map.insert(
+                "minecraft:damage",
+                pumpkin_world::item::ItemComponent::Damage(4),
+            );
+            map
+        },
+        removed: {
+            let mut set = HashSet::new();
+            set.insert("minecraft:max_damage");
+            set
+        },
+    };
+    let string = serde_json::to_string(&patch).unwrap();
+    println!("{}", string);
+    let patch: pumpkin_world::item::ItemComponentPatch = serde_json::from_str(&string).unwrap();
+    println!("{:?}", patch);
 
     init_log!();
 

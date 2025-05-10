@@ -1,7 +1,14 @@
 use pumpkin_data::item::Item;
 use pumpkin_data::tag::{RegistryKey, get_tag_values};
 use pumpkin_nbt::compound::NbtCompound;
+use pumpkin_util::text::TextComponent;
+use serde::ser::SerializeMap;
+use serde::{Deserialize, Deserializer, Serialize};
+use std::any::Any;
+use std::borrow::Cow;
+use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
+use std::option::Option;
 
 mod categories;
 
@@ -25,6 +32,206 @@ impl Hash for ItemStack {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.item_count.hash(state);
         self.item.id.hash(state);
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[allow(dead_code)]
+pub enum ItemComponent {
+    #[serde(rename = "minecraft:custom_data")]
+    CustomData(NbtCompound),
+    #[serde(rename = "minecraft:max_stack_size")]
+    MaxStackSize(u8),
+    #[serde(rename = "minecraft:max_damage")]
+    MaxDamage(u32),
+    #[serde(rename = "minecraft:damage")]
+    Damage(u32),
+    #[serde(rename = "minecraft:unbreakable")]
+    Unbreakable,
+    #[serde(rename = "minecraft:custom_name")]
+    CustomName(TextComponent),
+}
+
+static COMPONENTS: std::sync::LazyLock<HashSet<&str>> = std::sync::LazyLock::new(|| {
+    let mut set = HashSet::new();
+    set.insert("minecraft:custom_data");
+    set.insert("minecraft:max_stack_size");
+    set.insert("minecraft:max_damage");
+    set.insert("minecraft:damage");
+    set.insert("minecraft:unbreakable");
+    set.insert("minecraft:custom_name");
+    set
+});
+
+pub trait ItemComponents {
+    fn get_item_component(&self, key: &str) -> Option<&ItemComponent>;
+}
+
+#[derive(Clone)]
+pub struct MapItemComponents {
+    pub components: HashMap<&'static str, ItemComponent>,
+}
+
+impl ItemComponents for MapItemComponents {
+    fn get_item_component(&self, key: &str) -> Option<&ItemComponent> {
+        self.components.get(key)
+    }
+}
+
+impl MapItemComponents {
+    pub fn new() -> Self {
+        Self {
+            components: HashMap::new(),
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct PatchedItemComponents {
+    pub base: Cow<'static, MapItemComponents>,
+    pub added: MapItemComponents,
+    pub removed: HashSet<&'static str>,
+}
+
+impl ItemComponents for PatchedItemComponents {
+    fn get_item_component(&self, key: &str) -> Option<&ItemComponent> {
+        if self.removed.contains(key) {
+            return None;
+        }
+        if let Some(value) = self.added.get_item_component(key) {
+            return Some(value);
+        }
+        self.base.get_item_component(key)
+    }
+}
+
+impl PatchedItemComponents {
+    fn is_same_base(&self, other: &Self) -> bool {
+        match (&self.base, &other.base) {
+            (Cow::Borrowed(a_ref), Cow::Borrowed(b_ref)) => std::ptr::eq(
+                *a_ref as *const MapItemComponents,
+                *b_ref as *const MapItemComponents,
+            ),
+            (Cow::Owned(a_owned), Cow::Borrowed(b_ref)) => std::ptr::eq(
+                a_owned as *const MapItemComponents,
+                *b_ref as *const MapItemComponents,
+            ),
+            (Cow::Borrowed(a_ref), Cow::Owned(b_owned)) => std::ptr::eq(
+                *a_ref as *const MapItemComponents,
+                b_owned as *const MapItemComponents,
+            ),
+            _ => false,
+        }
+    }
+
+    /// Returns a new instance of `PatchedItemComponents` with the base components.
+    fn merge(&self, other: &Self) -> Result<Self, ()> {
+        if Self::is_same_base(&self, &other) {
+            // If the base components are the same, we can merge the added and removed components
+            let mut merged_added = self.added.clone();
+            for (key, value) in other.added.components.iter() {
+                merged_added.components.insert(key, value.clone());
+            }
+
+            let mut merged_removed = self.removed.clone();
+            for key in other.removed.iter() {
+                if merged_added.components.contains_key(key) {
+                    // If the key is in both added and removed, remove it from added
+                    merged_added.components.remove(key);
+                }
+                merged_removed.insert(*key);
+            }
+
+            return Ok(Self {
+                base: self.base.clone(),
+                added: merged_added,
+                removed: merged_removed,
+            });
+        }
+        Err(())
+    }
+}
+
+#[derive(Debug)]
+pub struct ItemComponentPatch {
+    pub removed: HashSet<&'static str>,
+    pub patch: HashMap<&'static str, ItemComponent>,
+}
+
+impl Serialize for ItemComponentPatch {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut state = serializer.serialize_map(Some(self.removed.len() + self.patch.len()))?;
+        for key in &self.removed {
+            state.serialize_entry(
+                &format!("!{}", key),
+                &serde_json::Value::Object(serde_json::Map::new()),
+            )?;
+        }
+        for (key, value) in &self.patch {
+            let value = serde_json::to_value(value).map_err(|x| {
+                serde::ser::Error::custom(format!("Failed to serialize item component {key}: {x}"))
+            })?;
+            if let serde_json::Value::Object(o) = value {
+                for (k, v) in o {
+                    state.serialize_entry(&k, &v)?;
+                }
+            } else {
+                state.serialize_entry(key, &value)?;
+            }
+        }
+        state.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for ItemComponentPatch {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct ItemComponentPatchInner {
+            patch: HashMap<String, serde_json::Value>,
+            removed: HashSet<String>,
+        }
+
+        let map = serde_json::Map::deserialize(deserializer)?;
+
+        let mut removed = HashSet::new();
+        let mut patch = HashMap::new();
+        for (key, value) in map {
+            let mut map = serde_json::Map::new();
+            if key.starts_with('!') {
+                let key = key.strip_prefix('!').unwrap();
+                if let Some(r) = COMPONENTS.get(key) {
+                    removed.insert(*r);
+                } else {
+                    return Err(serde::de::Error::custom(format!(
+                        "Unknown item component key: {key}"
+                    )));
+                }
+            } else {
+                map.insert(key.clone(), value);
+                let component =
+                    serde_json::from_value::<ItemComponent>(serde_json::Value::Object(map))
+                        .map_err(|x| {
+                            serde::de::Error::custom(format!(
+                                "Failed to deserialize item component {key}: {x}"
+                            ))
+                        })?;
+                if let Some(r) = COMPONENTS.get(key.as_str()) {
+                    patch.insert(*r, component);
+                } else {
+                    return Err(serde::de::Error::custom(format!(
+                        "Unknown item component key: {key}"
+                    )));
+                }
+            }
+        }
+
+        Ok(ItemComponentPatch { removed, patch })
     }
 }
 
