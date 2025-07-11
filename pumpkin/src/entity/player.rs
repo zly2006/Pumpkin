@@ -284,7 +284,7 @@ impl Player {
                 &self,
                 _screen_handler: &ScreenHandlerBehaviour,
                 _slot: u8,
-                _stack: ItemStack,
+                _stack: &ItemStack,
             ) {
                 //println!("Slot updated: {slot:?}, {stack:?}");
             }
@@ -1457,7 +1457,7 @@ impl Player {
                 .await;
 
             if let Some(slot_index) = slot_index {
-                screen_handler.set_received_stack(slot_index, *item_stack);
+                screen_handler.set_received_stack(slot_index, item_stack.clone());
             }
         }
     }

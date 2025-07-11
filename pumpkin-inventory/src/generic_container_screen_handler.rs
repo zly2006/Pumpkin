@@ -108,7 +108,7 @@ impl ScreenHandler for GenericContainerScreenHandler {
 
         if slot.has_stack().await {
             let slot_stack = slot.get_stack().await;
-            stack_left = *slot_stack.lock().await;
+            stack_left = slot_stack.lock().await.clone();
 
             if slot_index < (self.rows * 9) as i32 {
                 if !self

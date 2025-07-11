@@ -146,6 +146,7 @@ pub mod block_state;
 mod blocks;
 mod collision_shape;
 
+use crate::item::ItemComponents;
 pub use block_direction::BlockDirection;
 pub use block_direction::FacingExt;
 pub use block_direction::HorizontalFacingExt;

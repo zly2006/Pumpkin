@@ -390,7 +390,7 @@ pub(crate) fn build() -> TokenStream {
             }
         }
 
-        #[derive(Clone, Copy, Debug)]
+        #[derive(Clone, Copy, Debug, PartialEq)]
         pub struct ItemComponents {
             pub item_name: &'static str,
             pub max_stack_size: u8,
@@ -403,7 +403,7 @@ pub(crate) fn build() -> TokenStream {
             pub equippable: Option<EquippableComponent>,
         }
 
-        #[derive(Clone, Copy, Debug)]
+        #[derive(Clone, Copy, Debug, PartialEq)]
         pub struct Modifier {
             pub r#type: &'static str,
             pub id: &'static str,

@@ -61,9 +61,9 @@ impl PlayerInventory {
         let mut equipment = self.entity_equipment.lock().await;
         let binding = self.held_item();
         let mut main_hand_item = binding.lock().await;
-        let off_hand_item = *main_hand_item;
-        *main_hand_item = equipment.put(slot, off_hand_item).await;
-        (*main_hand_item, off_hand_item)
+        let off_hand_item = main_hand_item.clone();
+        *main_hand_item = equipment.put(slot, off_hand_item.clone()).await;
+        (main_hand_item.clone(), off_hand_item)
     }
 
     pub fn is_valid_hotbar_index(slot: usize) -> bool {
@@ -187,9 +187,9 @@ impl PlayerInventory {
         loop {
             i = stack.item_count;
             if slot == -1 {
-                stack.set_count(self.add_stack(*stack).await as u8);
+                stack.set_count(self.add_stack(stack.clone()).await as u8);
             } else {
-                stack.set_count(self.add_stack_to_slot(slot as usize, *stack).await as u8);
+                stack.set_count(self.add_stack_to_slot(slot as usize, stack.clone()).await as u8);
             }
 
             if stack.is_empty() || stack.item_count >= i {
@@ -250,9 +250,10 @@ impl PlayerInventory {
             if empty_slot != -1 {
                 self.set_stack(
                     empty_slot as usize,
-                    *self.main_inventory[self.get_selected_slot() as usize]
+                    self.main_inventory[self.get_selected_slot() as usize]
                         .lock()
-                        .await,
+                        .await
+                        .clone(),
                 )
                 .await;
             }
@@ -264,12 +265,13 @@ impl PlayerInventory {
 
     pub async fn swap_slot_with_hotbar(&self, slot: usize) {
         self.set_selected_slot(self.get_swappable_hotbar_slot().await as u8);
-        let stack = *self.main_inventory[self.get_selected_slot() as usize]
+        let stack = self.main_inventory[self.get_selected_slot() as usize]
             .lock()
-            .await;
+            .await
+            .clone();
         self.set_stack(
             self.get_selected_slot() as usize,
-            *self.main_inventory[slot].lock().await,
+            self.main_inventory[slot].lock().await.clone(),
         )
         .await;
         self.set_stack(slot, stack).await;
@@ -307,7 +309,7 @@ impl PlayerInventory {
                 player
                     .enqueue_slot_set_packet(&CSetPlayerInventory::new(
                         (room_for_stack as i32).into(),
-                        &stack.into(),
+                        &stack.clone().into(),
                     ))
                     .await;
             }

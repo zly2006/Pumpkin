@@ -3,6 +3,7 @@ use pumpkin_data::recipes::RecipeResultStruct;
 use pumpkin_data::tag::{RegistryKey, get_tag_values};
 use pumpkin_nbt::compound::NbtCompound;
 use pumpkin_util::GameMode;
+use std::borrow::Cow;
 use std::hash::Hash;
 
 mod categories;
@@ -17,11 +18,11 @@ pub enum Rarity {
     Epic,
 }
 
-#[derive(Clone, Debug, Copy)]
+#[derive(Clone, Debug)]
 pub struct ItemStack {
     pub item_count: u8,
     pub item: &'static Item,
-    pub components: ItemComponents,
+    pub components: Cow<'static, ItemComponents>,
 }
 
 impl Hash for ItemStack {
@@ -42,14 +43,14 @@ impl ItemStack {
     pub const EMPTY: ItemStack = ItemStack {
         item_count: 0,
         item: &Item::AIR,
-        components: Item::AIR.components,
+        components: Cow::Borrowed(&Item::AIR.components),
     };
 
     pub fn new(item_count: u8, item: &'static Item) -> Self {
         Self {
             item_count,
             item,
-            components: item.components,
+            components: Cow::Borrowed(&item.components),
         }
     }
 
@@ -90,7 +91,7 @@ impl ItemStack {
     }
 
     pub fn copy_with_count(&self, count: u8) -> Self {
-        let mut stack = *self;
+        let mut stack = self.clone();
         stack.item_count = count;
         stack
     }
@@ -108,7 +109,7 @@ impl ItemStack {
     }
 
     pub fn are_items_and_components_equal(&self, other: &Self) -> bool {
-        self.item == other.item //TODO: && self.item.components == other.item.components
+        self.item == other.item && self.components == other.components
     }
 
     pub fn are_equal(&self, other: &Self) -> bool {
@@ -228,7 +229,7 @@ impl From<&RecipeResultStruct> for ItemStack {
         Self {
             item_count: value.count,
             item: Item::from_registry_key(value.id).expect("Crafting recipe gives invalid item"),
-            components: Item::from_registry_key(value.id).unwrap().components,
+            components: Cow::Borrowed(&Item::from_registry_key(value.id).unwrap().components),
         }
     }
 }

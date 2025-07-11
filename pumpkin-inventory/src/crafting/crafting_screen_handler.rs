@@ -317,7 +317,7 @@ impl ResultSlot {
             .await
             .map(|x| ItemStack::from(x.0))
             .unwrap_or(ItemStack::EMPTY);
-        *self.result.lock().await = result;
+        *self.result.lock().await = result.clone();
         result
     }
 }
@@ -337,7 +337,7 @@ impl Slot for ResultSlot {
             .store(id as u8, std::sync::atomic::Ordering::Relaxed);
     }
 
-    async fn on_quick_move_crafted(&self, _stack: ItemStack, _stack_prev: ItemStack) {
+    async fn on_quick_move_crafted(&self, _stack: &ItemStack, _stack_prev: &ItemStack) {
         // refill the result slot with the recipe result
         self.refill_output().await;
     }
@@ -364,7 +364,7 @@ impl Slot for ResultSlot {
     }
 
     async fn get_cloned_stack(&self) -> ItemStack {
-        *self.result.lock().await
+        self.result.lock().await.clone()
     }
 
     async fn has_stack(&self) -> bool {
@@ -400,7 +400,7 @@ impl Slot for ResultSlot {
             let stack = self.result.lock().await;
             // Vanilla: net.minecraft.world.inventory.ResultContainer#removeItem
             // Regardless of the amount, we always return the full stack
-            *stack
+            stack.clone()
         } else {
             ItemStack::EMPTY
         }
@@ -411,19 +411,19 @@ impl Slot for ResultSlot {
 impl ScreenHandlerListener for ResultSlot {
     async fn on_slot_update(
         &self,
-        screen_handler: &ScreenHandlerBehaviour,
-        slot: u8,
-        _stack: ItemStack,
+        _screen_handler: &ScreenHandlerBehaviour,
+        _slot: u8,
+        _stack: &ItemStack,
     ) {
         if (0..=(self.inventory.get_width() * self.inventory.get_height()))
-            .contains(&(slot as usize))
+            .contains(&(_slot as usize))
         {
             let result = self.refill_output().await;
 
-            let next_revision = screen_handler.next_revision();
-            if let Some(sync_handler) = screen_handler.sync_handler.as_ref() {
+            let next_revision = _screen_handler.next_revision();
+            if let Some(sync_handler) = _screen_handler.sync_handler.as_ref() {
                 sync_handler
-                    .update_slot(screen_handler, 0, &result, next_revision)
+                    .update_slot(_screen_handler, 0, &result, next_revision)
                     .await;
             }
         }
@@ -509,7 +509,7 @@ impl ScreenHandler for CraftingTableScreenHandler {
         if slot.has_stack().await {
             let slot_stack = slot.get_stack().await;
             let mut slot_stack = slot_stack.lock().await;
-            let stack_prev = *slot_stack;
+            let stack_prev = slot_stack.clone();
 
             if slot_index == 0 {
                 // From crafting result slot - move to player inventory (slots 10-46)
@@ -544,11 +544,12 @@ impl ScreenHandler for CraftingTableScreenHandler {
                 }
             }
 
-            let stack = *slot_stack;
+            let stack = slot_stack.clone();
             drop(slot_stack); // release the lock before calling other methods
 
             if stack.is_empty() {
-                slot.set_stack_prev(ItemStack::EMPTY, stack_prev).await;
+                slot.set_stack_prev(ItemStack::EMPTY, stack_prev.clone())
+                    .await;
             } else {
                 slot.mark_dirty().await;
             }
@@ -561,7 +562,7 @@ impl ScreenHandler for CraftingTableScreenHandler {
             slot.on_take_item(player, &stack).await;
 
             if slot_index == 0 {
-                slot.on_quick_move_crafted(stack, stack_prev).await;
+                slot.on_quick_move_crafted(&stack, &stack_prev).await;
                 // For crafting result slot, drop any remaining items
                 if !stack.is_empty() {
                     player.drop_item(stack, false).await;

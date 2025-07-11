@@ -25,12 +25,12 @@ impl EntityEquipment {
     }
 
     pub async fn put(&mut self, slot: &EquipmentSlot, stack: ItemStack) -> ItemStack {
-        *self
-            .equipment
+        self.equipment
             .insert(slot.clone(), Arc::new(Mutex::new(stack)))
             .unwrap_or(Arc::new(Mutex::new(ItemStack::EMPTY)))
             .lock()
             .await
+            .clone()
     }
 
     pub fn get(&self, slot: &EquipmentSlot) -> Arc<Mutex<ItemStack>> {

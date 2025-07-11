@@ -27,7 +27,7 @@ pub trait Slot: Send + Sync + Debug {
     /// locks to the stack to avoid deadlocks.
     ///
     /// Also see: `ScreenHandler::quick_move`
-    async fn on_quick_move_crafted(&self, _stack: ItemStack, _stack_prev: ItemStack) {}
+    async fn on_quick_move_crafted(&self, _stack: &ItemStack, _stack_prev: &ItemStack) {}
 
     /// Callback for when an item is taken from the slot.
     ///
@@ -53,7 +53,7 @@ pub trait Slot: Send + Sync + Debug {
             .await
             .expect("Timed out while trying to acquire lock");
 
-        *lock
+        lock.clone()
     }
 
     async fn has_stack(&self) -> bool {
@@ -134,7 +134,7 @@ pub trait Slot: Send + Sync + Debug {
             None
         } else {
             if self.get_cloned_stack().await.is_empty() {
-                self.set_stack_prev(ItemStack::EMPTY, stack).await;
+                self.set_stack_prev(ItemStack::EMPTY, stack.clone()).await;
             }
 
             Some(stack)
@@ -155,12 +155,13 @@ pub trait Slot: Send + Sync + Debug {
         stack.unwrap_or(ItemStack::EMPTY)
     }
 
-    async fn insert_stack(&self, stack: ItemStack) -> ItemStack {
+    async fn insert_stack(&self, mut stack: ItemStack) -> ItemStack {
         let stack_item_count = stack.item_count;
-        self.insert_stack_count(stack, stack_item_count).await
+        self.insert_stack_count(&mut stack, stack_item_count).await;
+        stack
     }
 
-    async fn insert_stack_count(&self, mut stack: ItemStack, count: u8) -> ItemStack {
+    async fn insert_stack_count(&self, stack: &mut ItemStack, count: u8) {
         if !stack.is_empty() && self.can_insert(&stack).await {
             let stack_mutex = self.get_stack().await;
             let mut stack_self = stack_mutex.lock().await;
@@ -169,7 +170,7 @@ pub trait Slot: Send + Sync + Debug {
                 .min(self.get_max_item_count_for_stack(&stack).await - stack_self.item_count);
 
             if min_count == 0 {
-                return stack;
+                return;
             } else {
                 if stack_self.is_empty() {
                     drop(stack_self);
@@ -177,15 +178,15 @@ pub trait Slot: Send + Sync + Debug {
                 } else if stack.are_items_and_components_equal(&stack_self) {
                     stack.decrement(min_count);
                     stack_self.increment(min_count);
-                    let cloned_stack = *stack_self;
+                    let cloned_stack = stack_self.clone();
                     drop(stack_self);
                     self.set_stack(cloned_stack).await;
                 }
 
-                return stack;
+                return;
             }
         } else {
-            stack
+            return;
         }
     }
 }
